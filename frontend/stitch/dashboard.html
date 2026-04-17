@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kinetic Console - Bảng điều khiển</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;family=Inter:wght@400;700;900&amp;family=Space+Grotesk:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            background-color: #0F1117;
+            color: #E8ECF2;
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono-data {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .font-headline {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .font-label {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        /* Custom scrollbar for terminal feel */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0F1117;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2A3040;
+        }
+        .vertical-anchor {
+            width: 1px;
+            background-color: #2DD4A8;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#56f1c3",
+                        "primary-container": "#2dd4a8",
+                        "on-primary": "#00382a",
+                        "surface": "#111319",
+                        "surface-container-low": "#191b22",
+                        "surface-container": "#1e1f26",
+                        "surface-container-high": "#282a30",
+                        "outline": "#85948d",
+                        "outline-variant": "#3c4a44",
+                        "on-surface": "#e2e2eb",
+                        "on-surface-variant": "#bbcac2",
+                        "background": "#0F1117",
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface flex min-h-screen overflow-x-hidden">
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 h-full flex flex-col justify-between w-[240px] bg-[#1E2333] border-r border-[#2A3040] z-50">
+<div>
+<div class="font-['Inter'] font-black text-[#E8ECF2] text-xl px-4 py-6">
+                Hệ thống Kinetic
+                <div class="text-[10px] font-bold text-[#8B95A8] tracking-[0.2em] mt-1 uppercase">Bản điều khiển chính</div>
+</div>
+<nav class="mt-4">
+<a class="flex items-center gap-3 px-4 py-3 text-[#2DD4A8] border-l-[3px] border-[#2DD4A8] bg-[#2A3040]/30 font-['Inter'] font-bold text-sm tracking-tight transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span>Bảng điều khiển</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8B95A8] border-l-[3px] border-transparent hover:bg-[#2A3040] hover:text-[#E8ECF2] font-['Inter'] font-bold text-sm tracking-tight transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">campaign</span>
+<span>Chiến dịch</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8B95A8] border-l-[3px] border-transparent hover:bg-[#2A3040] hover:text-[#E8ECF2] font-['Inter'] font-bold text-sm tracking-tight transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">account_tree</span>
+<span>Biểu đồ tri thức</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8B95A8] border-l-[3px] border-transparent hover:bg-[#2A3040] hover:text-[#E8ECF2] font-['Inter'] font-bold text-sm tracking-tight transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">memory</span>
+<span>Mô phỏng</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8B95A8] border-l-[3px] border-transparent hover:bg-[#2A3040] hover:text-[#E8ECF2] font-['Inter'] font-bold text-sm tracking-tight transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+<span>Báo cáo</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#8B95A8] border-l-[3px] border-transparent hover:bg-[#2A3040] hover:text-[#E8ECF2] font-['Inter'] font-bold text-sm tracking-tight transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">quiz</span>
+<span>Khảo sát</span>
+</a>
+</nav>
+</div>
+<div class="mb-6">
+<a class="flex items-center gap-3 px-4 py-3 text-[#8B95A8] border-l-[3px] border-transparent hover:bg-[#2A3040] hover:text-[#E8ECF2] font-['Inter'] font-bold text-sm tracking-tight transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span>Cài đặt</span>
+</a>
+<div class="px-4 py-6 flex items-center gap-3 border-t border-[#2A3040] mt-4">
+<div class="w-8 h-8 rounded bg-surface-container-high overflow-hidden">
+<img alt="Người dùng" class="w-full h-full object-cover" data-alt="professional headshot of a modern tech executive with neutral background and soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSiCi5DJr2DkPo3b5QVj1JJt9_I4aFJx9Xx1q9j2DNkHXKKC-M0EvGOQ0pj3gsxnrPeNklv46pBulANLDuSXRjh5LJLQWPl6ucNQbxjI9xSY_bzgZlYHUzMLZSFe0wIu-D409q6KTU6v-J9VogMSM50bXLhvPUZ4_aOCA9bCjihAKKfhAwfAZFPpQSlsl5JZqy1c0joQ89aFOaggV8_XLCJvYfyCbBxyPCKRbNIFOzk7WsyagTzF8lhwPY8LPpmTA0mz9IqcYNFc-S"/>
+</div>
+<div class="overflow-hidden">
+<p class="text-[12px] font-bold text-[#E8ECF2] truncate">Quản trị viên</p>
+<p class="text-[10px] text-[#8B95A8] font-mono-data">ID: KN-9921</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-[240px] flex flex-col min-h-screen">
+<!-- TopAppBar (Shared Component) -->
+<header class="h-16 flex items-center justify-end px-8 border-b border-[#2A3040] bg-[#0F1117] sticky top-0 z-40">
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined text-[#8B95A8] hover:text-[#2DD4A8] cursor-pointer transition-colors">notifications</span>
+<span class="absolute -top-1 -right-1 w-2 h-2 bg-[#2DD4A8] rounded-full"></span>
+</div>
+<span class="material-symbols-outlined text-[#8B95A8] hover:text-[#2DD4A8] cursor-pointer transition-colors">help_outline</span>
+<div class="h-6 w-[1px] bg-[#2A3040]"></div>
+<div class="text-[10px] font-['Space Grotesk'] font-bold uppercase tracking-widest text-[#E8ECF2]">
+                    TRẠNG THÁI: <span class="text-[#2DD4A8]">TRỰC TUYẾN</span>
+</div>
+</div>
+</header>
+<!-- Canvas Container -->
+<div class="max-w-[1200px] w-full mx-auto p-10 relative">
+<div class="vertical-anchor ml-[-20px]"></div>
+<!-- Header Section -->
+<section class="mb-12">
+<h1 class="text-4xl font-headline text-[#E8ECF2] mb-2 uppercase tracking-tight">Tổng quan hệ thống</h1>
+<p class="text-[#8B95A8] max-w-2xl text-sm leading-relaxed">
+                    Giám sát hiệu suất mô hình ngôn ngữ lớn (LLM) và các chiến dịch mô phỏng trong thời gian thực. Dữ liệu được cập nhật mỗi 30 giây.
+                </p>
+</section>
+<!-- Metrics Grid: Asymmetric Layout -->
+<section class="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr_0.8fr] gap-4 mb-10">
+<!-- Campaigns -->
+<div class="bg-[#171B26] p-6 border-l-2 border-[#2A3040] hover:border-[#2DD4A8] transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-[#2DD4A8]">campaign</span>
+<span class="text-[10px] font-mono-data text-[#8B95A8]">ACTIVE_CMP</span>
+</div>
+<div class="text-4xl font-mono-data font-bold text-[#E8ECF2]">03</div>
+<div class="text-[11px] font-label font-bold text-[#8B95A8] uppercase tracking-wider mt-1">Chiến dịch hiện tại</div>
+</div>
+<!-- Simulations -->
+<div class="bg-[#171B26] p-6 border-l-2 border-[#2A3040] hover:border-[#2DD4A8] transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-[#2DD4A8]">memory</span>
+<span class="text-[10px] font-mono-data text-[#8B95A8]">SIM_TOTAL</span>
+</div>
+<div class="text-4xl font-mono-data font-bold text-[#E8ECF2]">19</div>
+<div class="text-[11px] font-label font-bold text-[#8B95A8] uppercase tracking-wider mt-1">Lượt mô phỏng</div>
+</div>
+<!-- Reports -->
+<div class="bg-[#171B26] p-6 border-l-2 border-[#2A3040] hover:border-[#2DD4A8] transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-[#2DD4A8]">analytics</span>
+<span class="text-[10px] font-mono-data text-[#8B95A8]">REP_GEN</span>
+</div>
+<div class="text-4xl font-mono-data font-bold text-[#E8ECF2]">12</div>
+<div class="text-[11px] font-label font-bold text-[#8B95A8] uppercase tracking-wider mt-1">Báo cáo đã tạo</div>
+</div>
+<!-- LLM Cost -->
+<div class="bg-[#171B26] p-6 border-l-2 border-[#2A3040] hover:border-[#2DD4A8] transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-[#2DD4A8]">payments</span>
+<span class="text-[10px] font-mono-data text-[#8B95A8]">LLM_COST</span>
+</div>
+<div class="text-3xl font-mono-data font-bold text-[#2DD4A8]">$3.42</div>
+<div class="text-[11px] font-label font-bold text-[#8B95A8] uppercase tracking-wider mt-1">Chi phí ước tính</div>
+</div>
+</section>
+<!-- Charts Section (60/40) -->
+<section class="grid grid-cols-1 md:grid-cols-[6fr_4fr] gap-10 mb-16">
+<!-- Line Chart Mockup -->
+<div class="bg-[#171B26] p-8">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h3 class="text-sm font-label font-bold uppercase tracking-widest text-[#E8ECF2]">Xu hướng cảm xúc</h3>
+<p class="text-xs text-[#8B95A8]">Dữ liệu phân tích đa kênh</p>
+</div>
+<div class="flex gap-4 text-[10px] font-mono-data">
+<div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-[#2DD4A8]"></span> TÍCH CỰC</div>
+<div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-[#8B95A8]"></span> TRUNG LẬP</div>
+</div>
+</div>
+<!-- Chart Placeholder Visual -->
+<div class="h-[240px] w-full flex items-end gap-[2px]">
+<div class="bg-[#2A3040] flex-1" style="height: 40%"></div>
+<div class="bg-[#2A3040] flex-1" style="height: 45%"></div>
+<div class="bg-[#2A3040] flex-1" style="height: 38%"></div>
+<div class="bg-[#2DD4A8] flex-1" style="height: 55%"></div>
+<div class="bg-[#2DD4A8] flex-1" style="height: 62%"></div>
+<div class="bg-[#2A3040] flex-1" style="height: 48%"></div>
+<div class="bg-[#2DD4A8] flex-1" style="height: 70%"></div>
+<div class="bg-[#2DD4A8] flex-1" style="height: 75%"></div>
+<div class="bg-[#2A3040] flex-1" style="height: 52%"></div>
+<div class="bg-[#2DD4A8] flex-1" style="height: 80%"></div>
+<div class="bg-[#2DD4A8] flex-1" style="height: 90%"></div>
+<div class="bg-[#2A3040] flex-1" style="height: 60%"></div>
+<div class="bg-[#2DD4A8] flex-1" style="height: 85%"></div>
+<div class="bg-[#2DD4A8] flex-1" style="height: 95%"></div>
+<div class="bg-[#2DD4A8] flex-1" style="height: 88%"></div>
+</div>
+<div class="flex justify-between mt-4 text-[10px] font-mono-data text-[#8B95A8]">
+<span>08:00</span>
+<span>12:00</span>
+<span>16:00</span>
+<span>20:00</span>
+<span>00:00</span>
+</div>
+</div>
+<!-- Donut Chart Mockup -->
+<div class="bg-[#171B26] p-8 flex flex-col items-center justify-center text-center">
+<h3 class="text-sm font-label font-bold uppercase tracking-widest text-[#E8ECF2] mb-8 w-full text-left">Phân phối hành động</h3>
+<div class="relative w-48 h-48 mb-8">
+<svg class="w-full h-full rotate-[-90deg]" viewbox="0 0 36 36">
+<circle cx="18" cy="18" fill="transparent" r="15.915" stroke="#2A3040" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="transparent" r="15.915" stroke="#2DD4A8" stroke-dasharray="60 40" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="transparent" r="15.915" stroke="#56f1c3" stroke-dasharray="25 75" stroke-dashoffset="-60" stroke-width="4"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-2xl font-mono-data font-bold">1.2K</span>
+<span class="text-[9px] font-label uppercase text-[#8B95A8]">Tổng lượt</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 w-full">
+<div class="text-left">
+<div class="text-[10px] text-[#8B95A8] uppercase font-bold mb-1 flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-[#2DD4A8]"></span> Chấp nhận
+                            </div>
+<div class="font-mono-data text-sm">60%</div>
+</div>
+<div class="text-left">
+<div class="text-[10px] text-[#8B95A8] uppercase font-bold mb-1 flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-[#56f1c3]"></span> Xem xét
+                            </div>
+<div class="font-mono-data text-sm">25%</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Recent Simulations Table (Card-less layout) -->
+<section>
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-headline text-[#E8ECF2] uppercase">Mô phỏng gần đây</h2>
+<button class="text-[11px] font-label font-bold uppercase tracking-widest text-[#2DD4A8] border-b border-[#2DD4A8] pb-0.5 hover:text-[#E8ECF2] hover:border-[#E8ECF2] transition-colors">Xem tất cả</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full border-collapse">
+<thead>
+<tr class="text-left border-b border-[#2A3040]">
+<th class="pb-4 pr-4 font-label text-[10px] font-bold text-[#8B95A8] uppercase tracking-widest">ID Mô phỏng</th>
+<th class="pb-4 px-4 font-label text-[10px] font-bold text-[#8B95A8] uppercase tracking-widest">Chiến dịch</th>
+<th class="pb-4 px-4 font-label text-[10px] font-bold text-[#8B95A8] uppercase tracking-widest">Trạng thái</th>
+<th class="pb-4 px-4 font-label text-[10px] font-bold text-[#8B95A8] uppercase tracking-widest">Người thực hiện</th>
+<th class="pb-4 pl-4 font-label text-[10px] font-bold text-[#8B95A8] uppercase tracking-widest text-right">Ngày thực hiện</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#2A3040]/30">
+<!-- Row 1 -->
+<tr class="hover:bg-[#171B26] transition-colors group">
+<td class="py-4 pr-4 font-mono-data text-xs text-[#2DD4A8]">SIM-00129</td>
+<td class="py-4 px-4 text-sm font-medium">Chiến dịch Mùa Xuân 2024</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center px-2 py-0.5 bg-[#2DD4A8]/10 text-[#2DD4A8] text-[9px] font-bold uppercase tracking-wider">Hoàn thành</span>
+</td>
+<td class="py-4 px-4 text-sm text-[#8B95A8]">Nguyễn Văn An</td>
+<td class="py-4 pl-4 font-mono-data text-xs text-[#8B95A8] text-right">2024-05-12 14:20</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-[#171B26] transition-colors group">
+<td class="py-4 pr-4 font-mono-data text-xs text-[#2DD4A8]">SIM-00130</td>
+<td class="py-4 px-4 text-sm font-medium">Tối ưu hóa LLM v2</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[9px] font-bold uppercase tracking-wider">Đang chờ</span>
+</td>
+<td class="py-4 px-4 text-sm text-[#8B95A8]">Trần Thị Bích</td>
+<td class="py-4 pl-4 font-mono-data text-xs text-[#8B95A8] text-right">2024-05-12 15:45</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-[#171B26] transition-colors group">
+<td class="py-4 pr-4 font-mono-data text-xs text-[#2DD4A8]">SIM-00131</td>
+<td class="py-4 px-4 text-sm font-medium">Phân tích Thị trường BĐS</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center px-2 py-0.5 bg-red-500/10 text-red-500 text-[9px] font-bold uppercase tracking-wider">Thất bại</span>
+</td>
+<td class="py-4 px-4 text-sm text-[#8B95A8]">Lê Hoàng Nam</td>
+<td class="py-4 pl-4 font-mono-data text-xs text-[#8B95A8] text-right">2024-05-12 16:10</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-[#171B26] transition-colors group">
+<td class="py-4 pr-4 font-mono-data text-xs text-[#2DD4A8]">SIM-00132</td>
+<td class="py-4 px-4 text-sm font-medium">Chiến dịch Mùa Xuân 2024</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center px-2 py-0.5 bg-[#2DD4A8]/10 text-[#2DD4A8] text-[9px] font-bold uppercase tracking-wider">Hoàn thành</span>
+</td>
+<td class="py-4 px-4 text-sm text-[#8B95A8]">Phạm Minh Đức</td>
+<td class="py-4 pl-4 font-mono-data text-xs text-[#8B95A8] text-right">2024-05-12 17:30</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-[#171B26] transition-colors group">
+<td class="py-4 pr-4 font-mono-data text-xs text-[#2DD4A8]">SIM-00133</td>
+<td class="py-4 px-4 text-sm font-medium">Hệ thống Đối thoại AI</td>
+<td class="py-4 px-4">
+<span class="inline-flex items-center px-2 py-0.5 bg-[#2DD4A8]/10 text-[#2DD4A8] text-[9px] font-bold uppercase tracking-wider">Hoàn thành</span>
+</td>
+<td class="py-4 px-4 text-sm text-[#8B95A8]">Đặng Thu Thảo</td>
+<td class="py-4 pl-4 font-mono-data text-xs text-[#8B95A8] text-right">2024-05-12 18:05</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Footer Visual Identity -->
+<footer class="mt-auto py-8 px-10 border-t border-[#2A3040]">
+<div class="max-w-[1200px] mx-auto flex justify-between items-center text-[10px] font-mono-data text-[#8B95A8]">
+<div>© 2024 KINETIC CONSOLE // TERMINAL_V.2.0.4</div>
+<div class="flex gap-6 uppercase">
+<a class="hover:text-[#2DD4A8] transition-colors" href="#">Bảo mật</a>
+<a class="hover:text-[#2DD4A8] transition-colors" href="#">Điều khoản</a>
+<a class="hover:text-[#2DD4A8] transition-colors" href="#">Liên hệ kỹ thuật</a>
+</div>
+</div>
+</footer>
+</main>
+</body></html>

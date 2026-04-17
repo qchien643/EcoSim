@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+.container/
+.venv_tools/
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Environment
+.env
+
+# Uploads & data
+uploads/
+data/
+*.jsonl
+backend/data/
+oasis/data/
+
+# Logs
+log/
+*/log/
+oasis/log/
+backend/log/
+*_log.txt
+*_output.txt
+_log_analysis.txt
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

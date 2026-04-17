@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ECONOSIM | Knowledge Graph</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=JetBrains+Mono:wght@100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+        }
+        body {
+            font-family: 'Geist', sans-serif;
+            background-color: #0F1117;
+            color: #E8ECF2;
+        }
+        .mono {
+            font-family: 'JetBrains+Mono', monospace;
+        }
+        /* Custom scrollbar for the editorial feel */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0F1117; }
+        ::-webkit-scrollbar-thumb { background: #2A3040; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "background": "#0F1117",
+                "surface": "#171B26",
+                "surface-container": "#1E2333",
+                "primary": "#2DD4A8",
+                "on-primary": "#0F1117",
+                "outline": "#2A3040",
+                "secondary-text": "#8B95A8",
+                "warm-amber": "#D4A43E"
+              },
+              fontFamily: {
+                "headline": ["Geist"],
+                "body": ["Geist"],
+                "label": ["JetBrains Mono"]
+              },
+              borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background text-[#E8ECF2] antialiased overflow-hidden">
+<!-- TopNavBar (Shared Component) -->
+<nav class="fixed top-0 w-full z-50 border-b border-[#2A3040]/30 bg-[#0F1117] flex justify-between items-center h-16 px-6">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#F8FAFC]">ECONOSIM</span>
+<div class="hidden md:flex gap-6 items-center">
+<span class="text-[#F8FAFC]/50 text-sm font-label uppercase tracking-widest">System Engine</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="p-2 hover:bg-[#1E2333] transition-colors cursor-pointer rounded">
+<span class="material-symbols-outlined text-[#F8FAFC]/70">notifications</span>
+</div>
+<div class="p-2 hover:bg-[#1E2333] transition-colors cursor-pointer rounded">
+<span class="material-symbols-outlined text-[#F8FAFC]/70">settings</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container border border-outline overflow-hidden">
+<img alt="User Profile" data-alt="professional portrait of a tech executive in low-key lighting with neutral tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCequoyzVao4dd4TG0pgFSRAwBYt4n5bbQtLM3tJKQxi3ZeJiYJHkdiKD9mMuYHpa4dlkg8ll57Km0WZRu0ssVxAIWJQFEqSL-EVT9SOgWV78CVoq-qRc9_DszamJI18KSia-2l5hCXUdFb5U8YRuSx1xAozh6VAg_YdBU6zd6nqarhvsW0r-e75euy56aZWf8tAb9tUXIe2LoEQmfvqDoRp7C_bQldIbvAk699UotlUzKLUDQUeUWu7AgSBFnhVvcpbhDPjFEUjl_t"/>
+</div>
+</div>
+</nav>
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 h-screen w-[240px] bg-[#1E2333] pt-20 pb-6 flex flex-col z-40">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3 mb-1">
+<span class="material-symbols-outlined text-primary">hub</span>
+<span class="text-lg font-bold text-[#F8FAFC]">System Engine</span>
+</div>
+<span class="text-xs font-label text-secondary-text uppercase tracking-tighter">Economic Core</span>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center text-[#F8FAFC]/50 py-3 px-6 hover:bg-[#171B26] hover:text-[#F8FAFC] transition-all duration-200" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span>
+<span class="font-label text-sm uppercase">Dashboard</span>
+</a>
+<a class="flex items-center text-[#F8FAFC]/50 py-3 px-6 hover:bg-[#171B26] hover:text-[#F8FAFC] transition-all duration-200" href="#">
+<span class="material-symbols-outlined mr-3">rocket_launch</span>
+<span class="font-label text-sm uppercase">Campaigns</span>
+</a>
+<!-- Active Tab: Knowledge Graph -->
+<a class="flex items-center text-[#F8FAFC] bg-[#171B26] border-l-[3px] border-primary py-3 px-6" href="#">
+<span class="material-symbols-outlined mr-3">hub</span>
+<span class="font-label text-sm uppercase">Knowledge Graph</span>
+</a>
+<a class="flex items-center text-[#F8FAFC]/50 py-3 px-6 hover:bg-[#171B26] hover:text-[#F8FAFC] transition-all duration-200" href="#">
+<span class="material-symbols-outlined mr-3">model_training</span>
+<span class="font-label text-sm uppercase">Simulation</span>
+</a>
+<a class="flex items-center text-[#F8FAFC]/50 py-3 px-6 hover:bg-[#171B26] hover:text-[#F8FAFC] transition-all duration-200" href="#">
+<span class="material-symbols-outlined mr-3">bar_chart</span>
+<span class="font-label text-sm uppercase">Reports</span>
+</a>
+<a class="flex items-center text-[#F8FAFC]/50 py-3 px-6 hover:bg-[#171B26] hover:text-[#F8FAFC] transition-all duration-200" href="#">
+<span class="material-symbols-outlined mr-3">poll</span>
+<span class="font-label text-sm uppercase">Survey</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full bg-primary text-on-primary py-3 font-bold text-sm rounded shadow-sm active:opacity-80 transition-all uppercase tracking-tight">
+                Run Simulation
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-[240px] pt-16 h-screen flex flex-col relative">
+<!-- Header Section -->
+<header class="h-20 px-8 flex items-center justify-between border-b border-outline/30 bg-background/50">
+<div class="flex flex-col">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" style="font-size: 24px;">hub</span>
+<h1 class="text-2xl font-bold tracking-tight text-[#E8ECF2]">Knowledge Graph</h1>
+<span class="ml-4 px-2 py-0.5 bg-surface-container text-secondary-text font-label text-[10px] uppercase border border-outline/50">Step 2 of 6</span>
+</div>
+<div class="mt-1 flex items-center gap-4">
+<span class="font-label text-xs text-secondary-text uppercase">Current Status:</span>
+<span class="font-label text-xs text-primary">45 nodes, 72 edges</span>
+</div>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-on-primary px-6 py-2.5 font-bold text-sm tracking-tight transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'wght' 700;">account_tree</span>
+                BUILD GRAPH
+            </button>
+</header>
+<!-- Dynamic Layout: Left Panel (30%) & Graph Area (70%) -->
+<section class="flex-1 flex overflow-hidden">
+<!-- Left Filter Panel -->
+<aside class="w-[30%] max-w-sm border-r border-outline/30 bg-surface/30 p-8 overflow-y-auto">
+<h3 class="font-label text-xs font-bold text-secondary-text uppercase tracking-[0.2em] mb-8">Entity Types</h3>
+<div class="space-y-6">
+<div class="group flex items-center justify-between cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="font-headline font-medium text-sm">Company</span>
+</div>
+<span class="font-label text-xs text-secondary-text opacity-60 group-hover:opacity-100 transition-opacity">08</span>
+</div>
+<div class="group flex items-center justify-between cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-2 h-2 rounded-full bg-[#4ADE80]"></div>
+<span class="font-headline font-medium text-sm">Consumer</span>
+</div>
+<span class="font-label text-xs text-secondary-text opacity-60 group-hover:opacity-100 transition-opacity">12</span>
+</div>
+<div class="group flex items-center justify-between cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-2 h-2 rounded-full bg-warm-amber"></div>
+<span class="font-headline font-medium text-sm">Indicator</span>
+</div>
+<span class="font-label text-xs text-secondary-text opacity-60 group-hover:opacity-100 transition-opacity">05</span>
+</div>
+<div class="group flex items-center justify-between cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-2 h-2 rounded-full bg-secondary-text"></div>
+<span class="font-headline font-medium text-sm">Supplier</span>
+</div>
+<span class="font-label text-xs text-secondary-text opacity-60 group-hover:opacity-100 transition-opacity">04</span>
+</div>
+<div class="group flex items-center justify-between cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-2 h-2 rounded-full bg-[#64748B]"></div>
+<span class="font-headline font-medium text-sm">Media</span>
+</div>
+<span class="font-label text-xs text-secondary-text opacity-60 group-hover:opacity-100 transition-opacity">03</span>
+</div>
+</div>
+<div class="mt-12 p-6 bg-surface-container border border-outline/20">
+<h4 class="font-label text-[10px] text-secondary-text uppercase tracking-widest mb-4">Graph Integrity</h4>
+<div class="flex items-baseline gap-2">
+<span class="font-label text-2xl text-primary font-bold">94.2</span>
+<span class="font-label text-xs text-secondary-text">%</span>
+</div>
+<p class="text-[11px] text-secondary-text/60 mt-2 leading-relaxed font-body">Structural consistency verified across cross-referenced data points.</p>
+</div>
+</aside>
+<!-- Main Graph Visualization Area -->
+<div class="w-[70%] bg-background relative flex items-center justify-center p-8 overflow-hidden">
+<!-- SVG Visualization Simulation -->
+<svg class="w-full h-full opacity-80" viewbox="0 0 800 600">
+<!-- Edge Lines -->
+<g stroke="#2A3040" stroke-dasharray="4 2" stroke-width="1.5">
+<line x1="400" x2="250" y1="300" y2="200"></line>
+<line x1="400" x2="550" y1="300" y2="150"></line>
+<line x1="400" x2="600" y1="300" y2="400"></line>
+<line x1="400" x2="200" y1="300" y2="450"></line>
+<line x1="250" x2="150" y1="200" y2="150"></line>
+<line x1="550" x2="650" y1="150" y2="100"></line>
+</g>
+<!-- Nodes -->
+<!-- Shopee (Central) -->
+<circle class="cursor-pointer" cx="400" cy="300" fill="#2DD4A8" r="28"></circle>
+<text fill="#E8ECF2" font-family="Geist" font-size="14" font-weight="500" text-anchor="middle" x="400" y="345">Shopee</text>
+<!-- Other Nodes -->
+<circle cx="250" cy="200" fill="#4ADE80" r="16"></circle>
+<text fill="#8B95A8" font-family="Geist" font-size="12" text-anchor="middle" x="250" y="235">Consumer_Segment_A</text>
+<circle cx="550" cy="150" fill="#D4A43E" r="14"></circle>
+<text fill="#8B95A8" font-family="Geist" font-size="12" text-anchor="middle" x="550" y="185">Inflation_Index</text>
+<circle cx="600" cy="400" fill="#2DD4A8" r="18"></circle>
+<text fill="#8B95A8" font-family="Geist" font-size="12" text-anchor="middle" x="600" y="435">Logistics_Corp</text>
+<circle cx="200" cy="450" fill="#8B95A8" r="15"></circle>
+<text fill="#8B95A8" font-family="Geist" font-size="12" text-anchor="middle" x="200" y="485">Warehouse_ID_09</text>
+<circle cx="650" cy="100" fill="#64748B" r="12"></circle>
+<text fill="#8B95A8" font-family="Geist" font-size="12" text-anchor="middle" x="650" y="130">Market_News_API</text>
+</svg>
+<!-- Floating Selection Panel (Right Side Panel Overlay) -->
+<div class="absolute right-8 top-8 w-80 bg-surface border border-outline/30 p-6 shadow-2xl">
+<div class="flex justify-between items-start mb-6">
+<div>
+<span class="font-label text-[10px] text-primary uppercase tracking-widest mb-1 block">Selected Entity</span>
+<h2 class="text-xl font-bold font-headline tracking-tight text-[#E8ECF2]">Shopee</h2>
+</div>
+<span class="px-2 py-1 bg-primary/10 text-primary font-label text-[10px] uppercase border border-primary/20">Company</span>
+</div>
+<div class="mb-8 flex items-center gap-6">
+<div class="flex flex-col">
+<span class="font-label text-lg font-bold">24</span>
+<span class="font-label text-[10px] text-secondary-text uppercase">Connections</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label text-lg font-bold text-warm-amber">High</span>
+<span class="font-label text-[10px] text-secondary-text uppercase">Centrality</span>
+</div>
+</div>
+<div class="space-y-4">
+<div class="pb-3 border-b border-outline/30 flex justify-between items-center group cursor-pointer">
+<span class="text-xs text-secondary-text font-body">Sector</span>
+<span class="text-xs font-label text-[#E8ECF2] uppercase">E-Commerce</span>
+</div>
+<div class="pb-3 border-b border-outline/30 flex justify-between items-center">
+<span class="text-xs text-secondary-text font-body">Active Region</span>
+<span class="text-xs font-label text-[#E8ECF2] uppercase">SEA / Global</span>
+</div>
+<div class="pb-3 border-b border-outline/30 flex justify-between items-center">
+<span class="text-xs text-secondary-text font-body">Market Cap</span>
+<span class="text-xs font-label text-[#E8ECF2] uppercase">42.5B</span>
+</div>
+<div class="pb-3 border-b border-outline/30 flex justify-between items-center">
+<span class="text-xs text-secondary-text font-body">Growth Delta</span>
+<span class="text-xs font-label text-primary uppercase">+12.4%</span>
+</div>
+</div>
+<button class="w-full mt-8 py-3 bg-surface-container border border-outline/30 font-label text-xs uppercase tracking-widest hover:bg-outline/20 transition-all text-secondary-text hover:text-white">
+                        Expand Node Data
+                    </button>
+</div>
+</div>
+</section>
+<!-- Bottom Status Bar -->
+<footer class="h-12 bg-surface-container border-t border-outline/30 px-8 flex items-center justify-between">
+<div class="flex items-center gap-6 font-label text-[10px] text-secondary-text uppercase tracking-widest">
+<div class="flex items-center gap-2">
+<span>Nodes:</span>
+<span class="text-[#E8ECF2]">45</span>
+</div>
+<div class="flex items-center gap-2">
+<span>Edges:</span>
+<span class="text-[#E8ECF2]">72</span>
+</div>
+<div class="flex items-center gap-2">
+<span>Types:</span>
+<span class="text-[#E8ECF2]">08</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[12px]">schedule</span>
+<span>Build:</span>
+<span class="text-primary">45s</span>
+</div>
+</div>
+<div class="flex items-center gap-12">
+<a class="flex items-center gap-2 text-secondary-text hover:text-[#E8ECF2] transition-colors group" href="#">
+<span class="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
+<span class="font-label text-[10px] uppercase tracking-widest">Back: Campaign</span>
+</a>
+<a class="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors group" href="#">
+<span class="font-label text-[10px] uppercase tracking-widest">Next: Simulation Setup</span>
+<span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</div>
+</footer>
+</main>
+</body></html>

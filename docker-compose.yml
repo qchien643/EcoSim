@@ -1,0 +1,65 @@
+version: "3.8"
+
+# ============================================================
+# EcoSim Microservice Architecture
+# ============================================================
+# Start: docker-compose up -d
+# Stop:  docker-compose down
+# ============================================================
+
+services:
+  # ── FalkorDB — Graph Database ──
+  falkordb:
+    image: falkordb/falkordb
+    container_name: ecosim-falkordb
+    ports:
+      - "6379:6379"
+    volumes:
+      - falkordb_data:/data
+    restart: unless-stopped
+
+  # ── API Gateway — Reverse Proxy (Port 5000) ──
+  gateway:
+    build: ./gateway
+    container_name: ecosim-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - CORE_SERVICE_URL=http://core:5001
+      - SIM_SERVICE_URL=http://simulation:5002
+    depends_on:
+      - core
+      - simulation
+
+  # ── Core Service — Campaign + Report (Port 5001) ──
+  core:
+    build: ./backend
+    container_name: ecosim-core
+    ports:
+      - "5001:5001"
+    env_file: .env
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+
+  # ── Simulation Service — FastAPI (Port 5002) ──
+  simulation:
+    build: ./oasis
+    container_name: ecosim-simulation
+    ports:
+      - "5002:5002"
+    env_file: .env
+    depends_on:
+      - falkordb
+
+  # ── Frontend Service — Web UI (Port 80 mapped to 3000) ──
+  frontend:
+    build: ./frontend
+    container_name: ecosim-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+
+volumes:
+  falkordb_data:

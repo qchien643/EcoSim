@@ -1,0 +1,30 @@
+# ============================================================
+# EcoSim Dependencies
+# ============================================================
+
+# --- Web Framework ---
+flask>=3.0
+flask-cors>=4.0
+python-dotenv>=1.0
+
+# --- LLM ---
+openai>=1.0
+
+# --- Knowledge Graph ---
+graphiti-core[falkordb]>=0.5
+
+# --- Document Parsing ---
+PyMuPDF>=1.23
+
+# --- Data Validation ---
+pydantic>=2.0
+
+# --- Simulation (OASIS) ---
+camel-ai[all]>=0.2
+
+# --- Utilities ---
+pandas>=2.0
+tqdm>=4.0
+
+# --- Parquet Profile Sampling ---
+duckdb>=1.0.0
