@@ -18,43 +18,61 @@ services:
       - falkordb_data:/data
     restart: unless-stopped
 
-  # ── API Gateway — Reverse Proxy (Port 5000) ──
+  # ── API Gateway — Caddy Reverse Proxy (Port 5000) ──
   gateway:
-    build: ./gateway
+    image: caddy:2-alpine
     container_name: ecosim-gateway
     ports:
       - "5000:5000"
+    volumes:
+      - ./apps/gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     environment:
-      - CORE_SERVICE_URL=http://core:5001
-      - SIM_SERVICE_URL=http://simulation:5002
+      # Upstream hostnames trong docker network — override nếu deploy khác
+      - CORE_UPSTREAM=core:5001
+      - SIM_UPSTREAM=simulation:5002
     depends_on:
       - core
       - simulation
+    restart: unless-stopped
 
   # ── Core Service — Campaign + Report (Port 5001) ──
   core:
-    build: ./backend
+    build: ./apps/core
     container_name: ecosim-core
     ports:
       - "5001:5001"
     env_file: .env
+    environment:
+      # ecosim-common library được bind-mount vào container và thêm vào PYTHONPATH
+      - PYTHONPATH=/app/libs/ecosim-common/src
     volumes:
+      - ./libs/ecosim-common:/app/libs/ecosim-common:ro
       - ./uploads:/app/uploads
       - ./data:/app/data
 
   # ── Simulation Service — FastAPI (Port 5002) ──
   simulation:
-    build: ./oasis
+    build:
+      context: .
+      dockerfile: apps/simulation/Dockerfile
     container_name: ecosim-simulation
     ports:
       - "5002:5002"
     env_file: .env
+    environment:
+      # Dockerfile bakes vendored/oasis; libs/ecosim-common is mounted fresh
+      - PYTHONPATH=/app/libs/ecosim-common/src:/app/vendored/oasis
+    volumes:
+      - ./libs/ecosim-common:/app/libs/ecosim-common:ro
+      - ./data:/app/data
     depends_on:
       - falkordb
 
   # ── Frontend Service — Web UI (Port 80 mapped to 3000) ──
   frontend:
-    build: ./frontend
+    build: ./apps/frontend
     container_name: ecosim-frontend
     ports:
       - "3000:80"
@@ -63,3 +81,5 @@ services:
 
 volumes:
   falkordb_data:
+  caddy_data:
+  caddy_config:

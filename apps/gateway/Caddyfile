@@ -1,0 +1,92 @@
+# EcoSim API Gateway — Caddy reverse proxy (port 5000)
+# ───────────────────────────────────────────────────────────────
+# Routing rules:
+#   /api/campaign/*   → Core Service        (core:5001)
+#   /api/report/*     → Core Service        (core:5001)
+#   /api/sim/*        → Simulation Service  (simulation:5002)
+#   /api/graph/*      → Simulation Service  (simulation:5002)
+#   /api/survey/*     → Simulation Service  (simulation:5002)
+#   /api/interview/*  → Simulation Service  (simulation:5002)
+#   /api/analysis/*   → Simulation Service  (simulation:5002)
+#
+# Run (Docker):   caddy run --config /etc/caddy/Caddyfile
+# Run (Local):    caddy run --config gateway/Caddyfile
+#
+# Dev hosts: nếu chạy local không qua Docker, thay `core:5001` bằng
+# `localhost:5001` và `simulation:5002` bằng `localhost:5002`.
+
+{
+    # Disable auto HTTPS — EcoSim là internal service, không cần TLS ở đây
+    auto_https off
+    # Admin API off trong prod (tránh exposing qua port 2019)
+    admin off
+}
+
+# Upstream vars — override qua env cho local dev:
+#   CORE_UPSTREAM=localhost:5001 SIM_UPSTREAM=localhost:5002 caddy run ...
+(upstream_core) {
+    reverse_proxy {env.CORE_UPSTREAM:core:5001}
+}
+(upstream_sim) {
+    reverse_proxy {env.SIM_UPSTREAM:simulation:5002} {
+        # SSE streaming: disable buffer để forward event kịp thời
+        flush_interval -1
+        # Long timeouts cho LLM chains (report ReACT, graph build, sim prepare)
+        transport http {
+            read_timeout 600s
+            write_timeout 600s
+            dial_timeout 10s
+        }
+    }
+}
+
+:5000 {
+    # Access log — console format để đọc trực tiếp, JSON nếu ship sang Loki
+    log {
+        output stdout
+        format console
+        level INFO
+    }
+
+    # Gateway liveness (independent of backends)
+    handle /api/health/gateway {
+        respond `{"status":"ok","service":"gateway"}` 200 {
+            header Content-Type application/json
+        }
+    }
+
+    # Aggregate health — forward tới Core (trả {status, services})
+    handle /api/health {
+        import upstream_core
+    }
+
+    # Campaign + Report → Core
+    handle /api/campaign/* {
+        import upstream_core
+    }
+    handle /api/report/* {
+        import upstream_core
+    }
+
+    # Sim family → Simulation (SSE-aware)
+    handle /api/sim/* {
+        import upstream_sim
+    }
+    handle /api/graph/* {
+        import upstream_sim
+    }
+    handle /api/survey/* {
+        import upstream_sim
+    }
+    handle /api/interview/* {
+        import upstream_sim
+    }
+    handle /api/analysis/* {
+        import upstream_sim
+    }
+
+    # Catch-all
+    handle {
+        respond "Gateway: no route for {uri}" 404
+    }
+}

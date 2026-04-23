@@ -33,6 +33,9 @@ backend/log/
 *_output.txt
 _log_analysis.txt
 
+# Claude Code
+.claude/settings.local.json
+
 # IDE
 .vscode/
 .idea/

@@ -1,0 +1,23 @@
+{
+  "include": [
+    "apps",
+    "libs",
+    "vendored"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/.venv",
+    "**/node_modules",
+    "venv",
+    "data",
+    "uploads",
+    "log",
+    "apps/frontend"
+  ],
+  "extraPaths": [
+    "libs/ecosim-common/src",
+    "apps/simulation"
+  ],
+  "reportMissingImports": "information",
+  "pythonVersion": "3.10"
+}
