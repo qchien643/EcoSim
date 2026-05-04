@@ -64,30 +64,31 @@ data/simulations/{sim_id}/
 
 ## Frontend workflow
 
-Pinia store [apps/frontend/src/stores/appStore.js](../apps/frontend/src/stores/appStore.js) enforces sequential unlocking:
+Frontend Next.js 16 dùng **campaign-centric IA** — không có pipeline lock. Routes là `/campaigns/[id]/...` với tabs:
 
-```mermaid
-flowchart LR
-    D[Dashboard] --> C[Campaign]
-    C -->|uploaded| G[Graph]
-    G -->|built| S[Simulation]
-    S -->|completed| Unlock
-    Unlock --> A[Analysis]
-    Unlock --> R[Report]
-    Unlock --> Sv[Survey]
-    Unlock --> I[Interview]
+```
+/campaigns/[campaignId]/
+  ├─ ./                  ← Overview
+  ├─ ./spec              ← Full spec
+  ├─ ./graph             ← KG browser (cache-status tri-state)
+  └─ ./sims/[simId]/
+      ├─ ./              ← Run (SSE feed + progress)
+      ├─ ./analysis      ← Sentiment
+      ├─ ./report        ← ReACT report
+      ├─ ./survey        ← Composer + results
+      └─ ./interview     ← Per-agent chat
 ```
 
-Router guard ở [apps/frontend/src/router/index.js](../apps/frontend/src/router/index.js) redirect locked routes → next unlocked. Debug mode: `?debug=1` URL param bypass.
+State qua **Zustand** ([apps/frontend/stores/app-store.ts](../apps/frontend/stores/app-store.ts)) với `persist` middleware → localStorage key `ecosim.app` (recent campaigns + debug flag). UI state ở `ui-store.ts` (sidebar collapsed, command palette, toasts) không persist.
 
-**No persistence**: appStore state cleared on page refresh — fresh state policy.
+Components đọc persisted state phải gate qua `useHydrated()` ([apps/frontend/hooks/use-hydration.ts](../apps/frontend/hooks/use-hydration.ts)) tránh React hydration mismatch.
 
 ## Common gotchas
 
 - **Mọi flow yêu cầu `SIM_COMPLETED`** — nếu gọi khi status `RUNNING` → 400. Verify qua `/api/sim/status`.
 - **Sentiment cost**: local RoBERTa model, zero API call cho sentiment scoring. Chi phí chủ yếu ở campaign_score aggregation.
-- **Survey cost**: N_agents × N_questions LLM calls. Mặc định 10 agents × 10 questions = 100 calls (~$0.02 với gpt-4o-mini).
+- **Survey cost**: N_agents × N_questions LLM calls qua `LLM_FAST_MODEL_NAME` (fallback main). Mặc định 10 agents × 10 questions = 100 calls (~$0.02 với gpt-4o-mini).
 - **Report preflight**: nếu `auto_run_sentiment=true` (default) thì Report tự chạy Sentiment. `auto_run_survey=false` (default) để user kiểm soát chi phí.
-- **FalkorDB `ecosim_agent_memory`**: data giữ nguyên sau sim COMPLETED — Report, Interview, Survey đều query từ đây.
+- **Sim KG hybrid (Phase 13/15)**: data sống trong FalkorDB sim graph (group_id=sim_id) + sim ChromaDB delta — Report, Interview, Survey đều query từ đây. Zep sim graph deleted khi sim COMPLETED (free quota).
 
 Đi tiếp chi tiết từng flow → [06a](06a_sentiment_analysis.md) · [06b](06b_survey.md) · [06c](06c_interview.md) · [06d](06d_report.md) · [reference](reference.md)

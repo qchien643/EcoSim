@@ -14,22 +14,27 @@ flowchart TB
     Gateway -->|/api/campaign/*<br/>/api/report/*| Core
     Gateway -->|/api/sim/*<br/>/api/graph/*<br/>/api/survey/*<br/>/api/interview/*<br/>/api/analysis/*| Sim
 
-    Core[Core Service<br/>Flask :5001<br/>backend/run.py]
+    Core[Core Service<br/>Flask :5001<br/>apps/core/run.py]
     Sim[Simulation Service<br/>FastAPI :5002<br/>apps/simulation/sim_service.py]
 
-    Shared[(libs/ecosim-common<br/>config · llm_client<br/>file_parser · atomic_io)]
+    Shared[(libs/ecosim-common<br/>config · llm_client · file_parser<br/>atomic_io · chroma_client · zep_client<br/>sim_zep_ontology · zep_label_map<br/>graphiti_factory · sim_manifest)]
     Core -.import.-> Shared
     Sim -.import.-> Shared
 
-    Core --> FalkorDB[(FalkorDB<br/>:6379)]
+    Snapshot[(Disk: KG snapshot<br/>uploads/&lt;cid&gt;/kg/snapshot.json<br/>+ chroma/ collections)]
+    Core --> Snapshot
+    Sim --> Snapshot
+
+    Core --> FalkorDB[(FalkorDB :6379<br/>load-on-demand cache)]
     Core --> FS[(Filesystem<br/>data/ uploads/<br/>atomic writes)]
     Sim --> FalkorDB
     Sim --> FS
-    Sim -->|subprocess| Runner[run_simulation.py<br/>OASIS runtime]
+    Sim -->|subprocess| Runner[run_simulation.py<br/>OASIS runtime + EcoSim cognition]
     Runner -.import.-> Shared
     Runner --> FalkorDB
     Runner --> FS
-    Runner --> ChromaDB[(ChromaDB<br/>in-process)]
+    Runner --> ChromaDB[(ChromaDB persistent<br/>per-sim + per-campaign)]
+    Runner -.optional.-> Zep[(Zep Cloud<br/>content extraction<br/>sim runtime)]
 ```
 
 ## Liệt kê service
@@ -48,10 +53,20 @@ flowchart TB
 
 | Module | Vai trò |
 |--------|---------|
-| `config.EcoSimConfig` | Unified env loader, auto-locate repo root, remap `LLM_API_KEY`→`OPENAI_API_KEY` cho Graphiti |
-| `llm_client.LLMClient` | OpenAI-compatible sync (`chat`, `chat_json`) + async (`chat_async`, `chat_json_async`) với retry |
+| `config.EcoSimConfig` | Unified env loader, auto-locate repo root, remap `LLM_API_KEY`→`OPENAI_API_KEY` cho Graphiti, helper paths cho per-campaign storage |
+| `llm_client.LLMClient` | OpenAI-compatible sync (`chat`, `chat_json`) + async (`chat_async`, `chat_json_async`) với retry, 3-tier model override |
 | `file_parser.FileParser` + `CampaignDocumentParser` | Document parsing: 3-tier chunking + section-based |
 | `atomic_io.atomic_write_json` / `atomic_write_text` / `atomic_append_jsonl` | Tmp+rename pattern → tránh race condition khi nhiều service ghi cùng `data/simulations/{sim_id}/` |
+| `chroma_client` | KG ChromaDB factory (master campaign + sim delta collections) |
+| `zep_client` | AsyncZep singleton + sim graph helpers |
+| `zep_label_map` | Zep extracted labels → canonical entity types (Phase A) |
+| `sim_zep_ontology` | 10 entity + 10 edge ontology cho sim runtime hybrid (Phase 13) |
+| `graphiti_factory` | Centralized Graphiti client builder (FalkorDriver + embedder) |
+| `agent_interview` | Shared 10-intent classifier + context loaders + response prompt builder cho Interview/Survey/Report tool |
+| `sim_manifest` | Per-campaign sim list + metadata index helpers |
+| `path_resolver` / `metadata_index` / `metadata_migrations` | Per-campaign path resolution + metadata schema versioning |
+| `survey_question_gen` | LLM auto-generate survey questions tagged theo report section |
+| `name_pool` / `parquet_reader` / `agent_schemas` | Agent generation primitives (xem [04_agent_generation.md](04_agent_generation.md)) |
 
 Bootstrap: `apps/core/run.py`, `apps/simulation/sim_service.py`, `apps/simulation/run_simulation.py` walk up folder tree tìm `libs/ecosim-common/src` và insert vào `sys.path`. Docker set `PYTHONPATH=/app/libs/ecosim-common/src:/app/vendored/oasis` qua docker-compose. `run_simulation.py` cũng bootstrap `vendored/oasis/` lên sys.path để `import oasis` (upstream camel-ai package) hoạt động.
 
@@ -128,6 +143,7 @@ Application factory: [apps/core/app/__init__.py](../apps/core/app/__init__.py).
 **Blueprints đã register:**
 - `campaign_bp` từ [apps/core/app/api/campaign.py](../apps/core/app/api/campaign.py)
 - `report_bp` từ [apps/core/app/api/report.py](../apps/core/app/api/report.py)
+- `dashboard_bp` từ [apps/core/app/api/dashboard.py](../apps/core/app/api/dashboard.py) — health + aggregate counters
 
 **Blueprints legacy (còn file nhưng KHÔNG register — đã chuyển sang Simulation Service):**
 - `apps/core/app/api/graph.py`, `apps/core/app/api/simulation.py`, `apps/core/app/api/survey.py` — giữ làm tham chiếu hoặc sẽ xoá khi cleanup.
@@ -167,11 +183,11 @@ sequenceDiagram
 
     U->>G: POST /api/campaign/upload (file)
     G->>C: forward
-    C->>FS: save file to UPLOAD_DIR
+    C->>FS: save file to data/uploads/{campaign_id}/source/{filename}
     C->>C: FileParser.parse + split_into_chunks
-    C->>LLM: chat_json(EXTRACTION_SYSTEM_PROMPT)
+    C->>LLM: chat_json(EXTRACTION_SYSTEM_PROMPT, model=LLM_EXTRACTION_MODEL)
     LLM-->>C: {name, type, market, KPIs, ...}
-    C->>FS: write {campaign_id}_spec.json
+    C->>FS: write data/uploads/{campaign_id}/extracted/spec.json
     C-->>G: 201 {campaign_id, spec}
     G-->>U: 201 {campaign_id, spec}
 ```
@@ -214,34 +230,79 @@ sequenceDiagram
 
 ```
 EcoSim/
-├── uploads/                        ← legacy upload dir (Core)
 ├── data/
-│   ├── samples/                    ← parquet profile pool (20M rows)
-│   ├── uploads/                    ← campaign files + {id}_spec.json
+│   ├── samples/                                   ← parquet profile pool (20M rows)
+│   ├── dataGenerator/profile.parquet              ← parquet 20M rows
+│   ├── uploads/                                   ← per-campaign storage (xem §11 CLAUDE.md)
+│   │   └── {campaign_id}/
+│   │       ├── source/{filename}                  ← tài liệu gốc (immutable sau upload)
+│   │       ├── extracted/                         ← LLM extract cache (3 stages)
+│   │       │   ├── spec.json                      ← Stage 1 CampaignSpec
+│   │       │   ├── sections.json                  ← Stage 2 parsed sections
+│   │       │   └── analyzed.json                  ← Stage 3 entities + facts (đắt nhất, reuse)
+│   │       ├── kg/
+│   │       │   ├── snapshot.json                  ← KG persistence (Phase A) — source of truth
+│   │       │   └── build_meta.json                ← KG build metadata
+│   │       ├── chroma/                            ← per-campaign ChromaDB (3 collections)
+│   │       └── sims.json                          ← manifest list sims thuộc campaign
 │   └── simulations/{sim_id}/
-│       ├── simulation_config.json  ← toàn bộ config sinh ở prepare
-│       ├── profiles.json           ← N agent profiles
-│       ├── crisis_scenarios.json   ← scheduled crisis events
-│       ├── oasis_simulation.db     ← SQLite: trace/post/comment
-│       ├── actions.jsonl           ← export incremental mỗi round
-│       ├── progress.json           ← {current_round, total_rounds, status}
-│       ├── pending_crisis.json     ← runtime-injected crisis buffer
-│       ├── agent_tracking.txt      ← cognitive state của tracked agents
-│       ├── memory_stats.json       ← thống kê memory buffer
+│       ├── simulation_config.json                 ← toàn bộ config sinh ở prepare
+│       ├── profiles.json                          ← N agent profiles (+ persona_evolved sau reflection)
+│       ├── crisis_scenarios.json                  ← scheduled crisis events
+│       ├── oasis_simulation.db                    ← SQLite: trace/post/comment/like/follow
+│       ├── actions.jsonl                          ← atomic_append_jsonl mỗi round
+│       ├── progress.json                          ← {current_round, total_rounds, status}
+│       ├── pending_crisis.json                    ← runtime-injected crisis buffer
+│       ├── agent_tracking.txt                     ← cognitive state của tracked agents
+│       ├── memory_stats.json                      ← thống kê AgentMemory buffer
+│       ├── kg/snapshot_delta.json                 ← Phase D.4 sim KG delta (chỉ entities/edges sinh mới)
+│       ├── chroma_delta/                          ← per-sim ChromaDB delta
 │       └── report/
-│           ├── meta.json           ← report_id, status, sections_count, duration_s
-│           ├── outline.json        ← Phase 1 output
-│           ├── section_NN.md       ← Phase 2 per-section
-│           ├── full_report.md      ← assembled final
-│           └── agent_log.jsonl     ← ReACT iteration log
+│           ├── meta.json                          ← report_id, status, sections_count, duration_s
+│           ├── outline.json                       ← Phase 1 output
+│           ├── section_NN.md                      ← Phase 2 per-section
+│           ├── full_report.md                     ← assembled final
+│           ├── evidence.json                      ← EvidenceStore items
+│           └── agent_log.jsonl                    ← ReACT iteration log
 ```
 
 Runtime artifacts nằm trong `data/` đã được gitignore.
 
+## KG persistence layer (Phase A-D)
+
+**Source of truth = disk** (`uploads/<cid>/kg/snapshot.json` ~300KB structure + `chroma/` 3 collections ~2.4MB). FalkorDB `<cid>` graph là **load-on-demand cache** cho Graphiti hybrid search. Khi mất FalkorDB volume → `POST /api/graph/restore?campaign_id=X` reload từ disk (~5s, no API calls).
+
+**Tri-state cache status** qua `GET /api/graph/cache-status?campaign_id=X`:
+- `fresh` — JSON snapshot chưa build → cần `POST /api/graph/build`
+- `snapshot_only` — disk có snapshot, FalkorDB rỗng → frontend hiện "restore" button
+- `active` — FalkorDB đã load, query được
+
+**Atomic invariant**: snapshot.json present ⇒ chroma đầy đủ (chroma upsert + fsync trước, JSON ghi last). Migration cũ: `POST /api/graph/snapshot?campaign_id=X` dump from FalkorDB (one-time).
+
+**Sim KG = delta-only persistence** ([apps/simulation/sim_kg_snapshot.py](../apps/simulation/sim_kg_snapshot.py)): chỉ entities/edges sinh mới trong sim, không duplicate master. Cascade restore: master → fork → apply delta.
+
+Code: [apps/simulation/kg_snapshot.py](../apps/simulation/kg_snapshot.py), [apps/simulation/sim_kg_snapshot.py](../apps/simulation/sim_kg_snapshot.py), [apps/simulation/kg_fork.py](../apps/simulation/kg_fork.py).
+
+## Sim runtime hybrid (Phase E/13/15)
+
+Trong sim runtime, content actions (post/comment ≥ 30 chars) được Zep extract thành section text natural Vietnamese, episodes Zep batched cuối mỗi round, fetch lại nodes/edges, re-embed local, MERGE vào FalkorDB sim graph. Structural actions (like/follow/vote) ở SQLite — không vào KG.
+
+- Section writer: [apps/simulation/sim_zep_section_writer.py](../apps/simulation/sim_zep_section_writer.py) — 10-node pipeline mỗi round (filter → enrich → convert → batch → poll → fetch → filter delta → re-embed → MERGE → reroute)
+- Sim graph clone (master → sim graph): [apps/simulation/sim_graph_clone.py](../apps/simulation/sim_graph_clone.py)
+- Agent seeder (`:SimAgent` anchors): [apps/simulation/sim_agent_seeder.py](../apps/simulation/sim_agent_seeder.py)
+- Master mutator (apply sim delta back nếu cần): [apps/simulation/sim_master_mutator.py](../apps/simulation/sim_master_mutator.py)
+- Eviction cron (free Zep quota khi sim COMPLETED): [apps/simulation/sim_evict_cron.py](../apps/simulation/sim_evict_cron.py)
+- Master KG Zep writer (build path): [apps/simulation/zep_kg_writer.py](../apps/simulation/zep_kg_writer.py)
+- KG direct writer (Stage 3b bypass Graphiti extraction): [apps/simulation/kg_direct_writer.py](../apps/simulation/kg_direct_writer.py)
+
+**Cost**: 5-15 Zep credits/round × 5-10 rounds = 25-150 credits/sim. Free tier 1000/mo = ~7-20 sims.
+
 ## Share state giữa services
 
-- **FalkorDB** là store duy nhất giữa Core và Simulation: campaign KG, agent memory, graph-based context trong simulation.
-- **Filesystem** (`data/simulations/{sim_id}/`) là hợp đồng giữa Simulation Service, subprocess runner, và Core Service (report đọc actions.jsonl + truy vấn FalkorDB).
+- **Disk (KG snapshot + ChromaDB)** là source of truth cho campaign KG. FalkorDB là cache có thể wipe + restore.
+- **FalkorDB** chỉ giữ live cache giữa Core + Simulation: campaign KG (loaded on demand), sim runtime hybrid graph.
+- **Filesystem** (`data/simulations/{sim_id}/` + `data/uploads/{campaign_id}/`) là hợp đồng giữa Simulation Service, subprocess runner, và Core Service.
+- **Zep Cloud** (optional, sim runtime) — content extraction; sim graph deleted khi sim COMPLETED.
 - **Không có message queue** — không có nhu cầu pub/sub giữa services; tất cả truy cập qua file + DB.
 
 ## Lý do microservice
@@ -255,8 +316,8 @@ Runtime artifacts nằm trong `data/` đã được gitignore.
 | Scenario | Cách chạy |
 |----------|-----------|
 | **Docker all-in-one** | `docker compose up -d` — 5 container |
-| **Local dev (Windows)** | `.\start.ps1` — spawn 5 terminal cho gateway/core/simulation/frontend + docker FalkorDB |
-| **Chỉ backend phát triển** | `cd backend && python run.py` + `cd oasis && uvicorn sim_service:app --port 5002` |
+| **Local dev (Windows)** | `.\scripts\start.ps1` — spawn 5 terminal cho gateway/core/simulation/frontend + docker FalkorDB |
+| **Chỉ backend phát triển** | `cd apps/core && python run.py` + `cd apps/simulation && .venv/Scripts/python -m uvicorn sim_service:app --port 5002` |
 | **Test endpoint trực tiếp** | Gọi thẳng `localhost:5001` (Core) hoặc `localhost:5002` (Sim) bỏ qua gateway |
 
 Chi tiết ports + env vars: [reference.md](reference.md).

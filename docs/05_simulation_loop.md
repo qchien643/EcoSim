@@ -171,16 +171,31 @@ Tất cả xác suất × `MBTI like_mult` / `comment_mult`.
 
 **LLM được gọi cho comment** — chỉ cho posts có distance < 1.0 (strong hoặc moderate). Tier B M1: các comment call chạy **song song** qua `asyncio.gather` với `Semaphore(10)` — N=20 agents, 2 comments/agent, 3s/call giảm từ serial 120s xuống ~12s.
 
-### Phase 5 — Persistence
+### Phase 5 — Persistence + Sim KG hybrid (Phase 13/15)
 
-- **SQLite trace**: `trace(user_id, action, info, created_at)`
-- **actions.jsonl** (Tier B C4): `atomic_append_jsonl` 1 record/lần, track offset trong state; KHÔNG còn full-rewrite (trước đó crash giữa write = mất toàn bộ).
-- **AgentMemory**: flush recent actions → 1-line summary
-- **memory_stats.json** (Tier B C6): dump mỗi round qua `AgentMemory.dump_stats()` — `{current_round, num_agents, max_buffer, total_rounds_logged, avg_summary_len, buffer_fullness_by_agent}`.
-- **Interest drift**: KeyBERT update interest vectors, wrap try/except để KeyBERT fail không crash sim (Tier B H5).
-- **Evolved persona persist**: mỗi reflection cycle ghi `profiles.json` với `persona_evolved` + `reflection_insights` (Tier B H4).
-- **FalkorDB graph memory**: nếu `enable_graph_cognition`, queue via `FalkorGraphMemoryUpdater`. **KHÔNG cleanup sau sim** — giữ data cho post-simulation (Report, Interview, Survey).
+- **SQLite trace**: `trace(user_id, action, info, created_at)` — structural actions (like/follow/vote/sign_up/repost) sống ở đây
+- **actions.jsonl** (Tier B C4): `atomic_append_jsonl` 1 record/lần, track offset trong state; KHÔNG còn full-rewrite
+- **AgentMemory**: flush recent actions → 1-line summary; FIFO 5-round buffer
+- **memory_stats.json** (Tier B C6): dump mỗi round qua `AgentMemory.dump_stats()` — `{current_round, num_agents, max_buffer, total_rounds_logged, avg_summary_len, buffer_fullness_by_agent}`
+- **Interest drift**: KeyBERT update interest vectors, wrap try/except để KeyBERT fail không crash sim (Tier B H5)
+- **Evolved persona persist**: mỗi reflection cycle ghi `profiles.json` với `persona_evolved` + `reflection_insights` (Tier B H4)
+- **Sim KG hybrid (Phase 13/15)** — content actions (post + comment ≥30 chars) → end-of-round Zep extraction:
+  - [apps/simulation/sim_zep_section_writer.py](../apps/simulation/sim_zep_section_writer.py) `write_round_sections_via_zep()` chạy 10-node pipeline:
+    1. Filter content traces → 2. Enrich agent name + role → 3. Convert mỗi trace → 1 section text natural Vietnamese ("{name} ({role}) đăng bài viết tại Round N: ..." hoặc "{name} ({role}) bình luận tại Round N trên bài viết của {parent}: ...") → 4. Build `EpisodeData(type="text")` list → 5. `zep.graph.add_batch` + poll until processed (timeout 180s) → 6. Fetch nodes/edges/episodes (cumulative state Zep server) → 7. Filter delta (loại entities trùng master) → 8. Re-embed local 4 batch (Zep KHÔNG expose embeddings) → 9. Cypher MERGE multi-label `:Entity:Brand`, edges với fact, `:Episodic`, `:MENTIONS` → 10. Reroute extracted Agent → seeded `:SimAgent` (idempotent)
+  - **Round N+1** cognitive query (`GraphCognitiveHelper.get_social_context()`) thấy data round 1..N (real-time cumulative)
+  - Yêu cầu: `ZEP_API_KEY` + `ZEP_SIM_RUNTIME=true`. Prepare flow: `create_sim_zep_graph` apply sim ontology (10 entity + 10 edge tại [libs/ecosim-common/src/ecosim_common/sim_zep_ontology.py](../libs/ecosim-common/src/ecosim_common/sim_zep_ontology.py))
+  - Cost: 5-15 Zep credits/round × 5-10 rounds = 25-150 credits/sim
+- **FalkorDB sim graph contents**: `:SimAgent` (seeded prepare), `:Entity` master clone (Layer 1 — fork master KG), `:Entity` Zep extract (Layer 3, source='zep_extract'), `:Episodic`. Không còn `:Post`, `:Comment`, `[:POSTED]`, `[:LIKED]`, `[:FOLLOWED]`
+- **Sim KG delta persist** ([apps/simulation/sim_kg_snapshot.py](../apps/simulation/sim_kg_snapshot.py)): chỉ entities/edges sinh mới, không duplicate master. Cascade restore: master → fork → apply delta
+- **Optional: legacy `enable_graph_cognition`** (FalkorDB `ecosim_agent_memory` database) — agent memory updater queue, batch worker. Replaced bởi Phase 13 hybrid; còn giữ cho backward compat
 - **Progress json**: `{current_round, total_rounds, status: "running", crisis_summary}`
+
+### Sim COMPLETED — finalize
+
+`finalize_sim_post_run()` chạy 1 lần sau tất cả rounds:
+- **Node 11**: build Graphiti HNSW + lookup indices trên FalkorDB sim graph (cho Report/Interview hybrid search)
+- **Node 12**: delete Zep sim graph (free quota)
+- **Eviction cron** ([apps/simulation/sim_evict_cron.py](../apps/simulation/sim_evict_cron.py)): periodic cleanup Zep graphs cho sims đã COMPLETED quá X giờ
 
 ## 2. Cognitive traits từ MBTI
 
@@ -242,17 +257,20 @@ Crisis perturbation: `inject_crisis_interests(agent_id, scaled_perturbation, rou
 - `get_context(agent_id)`: format `"Your recent activity:\nRound X: ...\nRound Y: ..."` inject vào prompts
 - `dump_stats(path, num_agents, current_round)`: ghi `memory_stats.json` (Tier B C6)
 
-### FalkorDB Graph Memory (optional)
+### Sim KG hybrid (Phase 13/15) — primary mechanism cho cognitive context
 
-Khi `enable_graph_cognition=true`:
+Đã thay thế cơ chế `falkor_graph_memory.py` cũ. Read path: `GraphCognitiveHelper.get_social_context(agent_name)` query FalkorDB sim graph (group_id=sim_id) — đọc `:SimAgent`, `:Entity` (master + Zep extract), `:Episodic` đã build trong Phase 5 mỗi round.
 
-[apps/simulation/falkor_graph_memory.py](../apps/simulation/falkor_graph_memory.py) + run_simulation.py Phase 5
+Search helpers:
+- [apps/simulation/falkor_graph_searcher.py](../apps/simulation/falkor_graph_searcher.py) — entity/edge lookup + hybrid search adapter
+- [apps/simulation/agent_memory_graph.py](../apps/simulation/agent_memory_graph.py) — agent-centric memory queries (recent posts/comments theo agent)
+- [apps/simulation/agent_tracking_writer.py](../apps/simulation/agent_tracking_writer.py) — write `agent_tracking.txt` snapshot per round
 
-- Database `ecosim_agent_memory` (graphiti default_db)
-- `FalkorGraphMemoryUpdater`: batch worker thread, `batch_size=5`, `flush_interval=10s`
-- Schema auto-extracted bởi graphiti-core (không hardcode)
-- Read: `GraphCognitiveHelper.get_social_context(agent_name)` → append snippet vào persona
-- **Data giữ lại sau sim** — post-simulation (Report, Interview, Survey) query từ đây
+**Data giữ lại sau sim COMPLETED** — post-simulation (Report, Interview, Survey) query từ FalkorDB sim graph (Cypher) + sim ChromaDB (semantic). Zep sim graph deleted (Node 12 finalize) — không cần.
+
+### Optional: legacy `enable_graph_cognition` (toggle off by default)
+
+Trước Phase 13, agent memory dùng FalkorDB database riêng `ecosim_agent_memory`. Cơ chế này **deprecated** nhưng còn giữ cho backward compat — `enable_graph_cognition=false` mặc định. Nếu bật, code path qua Graphiti factory ở [libs/ecosim-common/src/ecosim_common/graphiti_factory.py](../libs/ecosim-common/src/ecosim_common/graphiti_factory.py).
 
 ## 5. Crisis injection (detail)
 
@@ -272,16 +290,19 @@ data/simulations/{sim_id}/
 ├── profiles.json                  ← có persona_evolved + reflection_insights (Tier B)
 ├── simulation_config.json
 ├── campaign_context.txt
-├── oasis_simulation.db            ← SQLite trace/post/comment/like_table/follow
+├── oasis_simulation.db            ← SQLite trace/post/comment/like_table/follow (structural)
 ├── actions.jsonl                  ← atomic_append_jsonl, 1 action/line (Tier B)
 ├── progress.json                  ← atomic_write_json
 ├── memory_stats.json              ← Tier B C6: dump mỗi round
+├── build_progress.json            ← (Phase 15) per-round Zep batch build status
 ├── crisis_log.json                ← active crises log
 ├── crisis_scenarios.json
 ├── pending_crisis.json            ← runtime injection (deleted after consumed)
 ├── agent_tracking.txt             ← cognitive snapshot cho tracked_agent_id
-└── chroma/                        ← ChromaDB PersistentClient (Tier B C3)
-    └── ...
+├── chroma/                        ← ChromaDB PersistentClient cho posts (Tier B C3)
+├── chroma_delta/                  ← (Phase D.4) per-sim ChromaDB delta cho KG
+└── kg/
+    └── snapshot_delta.json        ← (Phase D.4) sim KG delta persist
 ```
 
 ### actions.jsonl line format

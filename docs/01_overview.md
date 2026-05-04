@@ -88,15 +88,17 @@ Xem [05_simulation_loop.md](05_simulation_loop.md) cho công thức chi tiết.
 
 | Layer | Công nghệ |
 |-------|-----------|
-| Gateway | Python reverse proxy (port 5000) |
+| Gateway | Caddy 2 reverse proxy (port 5000) — SSE-friendly với `flush_interval -1` |
 | Core Service | Flask 3 + Pydantic 2 (port 5001) — campaign + report |
 | Simulation Service | FastAPI + uvicorn (port 5002) — graph + sim + survey + interview + analysis |
-| Simulation runner | OASIS framework + extensions (subprocess) |
-| Frontend | Vue 3 + Pinia + Vite (port 3000 trong Docker, 5173 dev) |
-| Graph DB | FalkorDB (Redis-based) qua `graphiti-core` |
-| Vector DB | ChromaDB với `all-MiniLM-L6-v2` (local) |
+| Simulation runner | OASIS framework + EcoSim extensions (subprocess, `apps/simulation/.venv/`) |
+| Frontend | Next.js 16 App Router + React 19 + TS strict + Tailwind 3 + Zustand + react-query (port 5173) |
+| Graph DB | FalkorDB (Redis-based) qua `graphiti-core` — load-on-demand cache (Phase A) |
+| KG persistence | JSON snapshot + ChromaDB primary (Phase A-D) — source of truth là disk, FalkorDB ephemeral |
+| Sim runtime KG | Hybrid: structural Cypher + Zep content extraction (Phase E/13/15) |
+| Vector DB | ChromaDB persistent per-campaign + per-sim, `all-MiniLM-L6-v2` (local) |
 | Profile pool | Parquet 20M rows scan bằng DuckDB |
-| LLM | OpenAI-compatible SDK (OpenAI / Groq / Together / Ollama qua `base_url`) |
+| LLM | OpenAI-compatible SDK (OpenAI / Groq / Together / Ollama qua `base_url`) — 3-tier model (main + fast + extraction) |
 | Keyword extraction | KeyBERT + sentence-transformers |
 | Document parsing | PyMuPDF + LangChain text splitters |
 
