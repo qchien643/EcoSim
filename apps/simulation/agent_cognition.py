@@ -107,6 +107,51 @@ class AgentMemory:
         buffer = self._buffers.get(agent_id)
         return len(buffer) if buffer else 0
 
+    def dump_stats(self, out_path: str, num_agents: int, current_round: int) -> dict:
+        """Ghi `memory_stats.json` cho debugging.
+
+        Stats gồm:
+        - `current_round`: round hiện tại khi dump
+        - `num_agents`: tổng số agents
+        - `max_buffer`: MAX_BUFFER (hardcoded hiện tại, expose để docs khớp)
+        - `total_rounds_logged`: tổng summaries đã tích lũy
+        - `total_injections`: ước lượng số lần inject_prompt() được gọi (LLM calls có memory)
+        - `avg_summary_len`: độ dài trung bình (chars) của summary
+        - `buffer_fullness_by_agent`: {agent_id: len(buffer)}
+
+        Ghi qua `atomic_write_json` nếu có ecosim_common; nếu không thì raw json.
+        """
+        total_summaries = 0
+        total_chars = 0
+        fullness = {}
+        for aid in range(num_agents):
+            buf = self._buffers.get(aid)
+            n = len(buf) if buf else 0
+            fullness[aid] = n
+            if buf:
+                total_summaries += n
+                total_chars += sum(len(s) for s in buf)
+
+        avg_len = round(total_chars / total_summaries, 1) if total_summaries else 0.0
+
+        stats = {
+            "current_round": current_round,
+            "num_agents": num_agents,
+            "max_buffer": self.MAX_BUFFER,
+            "total_rounds_logged": total_summaries,
+            "avg_summary_len": avg_len,
+            "total_injections": getattr(self, "_injection_count", 0),
+            "buffer_fullness_by_agent": fullness,
+        }
+        try:
+            from ecosim_common.atomic_io import atomic_write_json
+            atomic_write_json(out_path, stats)
+        except Exception:
+            import json as _json
+            with open(out_path, "w", encoding="utf-8") as f:
+                _json.dump(stats, f, indent=2, ensure_ascii=False)
+        return stats
+
 
 # ══════════════════════════════════════════════════════════════
 # Phase 2: MBTI Behavioral Modifiers
@@ -133,9 +178,9 @@ _MBTI_DIMENSION_MODIFIERS = {
     "P": {"feed_mult": 1.2},
     "J": {"feed_mult": 0.9},
 
-    # iNtuition vs Sensing → reflection boost (Phase 4)
-    "N": {"reflection_boost": 1.3},
-    "S": {"reflection_boost": 0.8},
+    # N/S dimension: từng có `reflection_boost` cho "Phase 4" nhưng không
+    # consumer nào trong sim runtime → đã loại bỏ. Reflection cycle hiện
+    # chỉ control bằng `enable_reflection` toggle + `reflection.interval`.
 }
 
 # Default values when MBTI is unknown or feature is disabled
@@ -144,7 +189,6 @@ _DEFAULT_MODIFIERS = {
     "comment_mult": 1.0,
     "like_mult": 1.0,
     "feed_mult": 1.0,
-    "reflection_boost": 1.0,
 }
 
 
@@ -156,13 +200,13 @@ def get_behavior_modifiers(mbti: str) -> dict:
               If empty or invalid, returns all-1.0 defaults.
 
     Returns:
-        Dict with keys: post_mult, comment_mult, like_mult,
-        feed_mult, reflection_boost. All default to 1.0.
+        Dict with keys: post_mult, comment_mult, like_mult, feed_mult.
+        All default to 1.0.
 
     Example:
         >>> get_behavior_modifiers("ENFJ")
         {'post_mult': 1.2, 'comment_mult': 1.3, 'like_mult': 1.2,
-         'feed_mult': 0.9, 'reflection_boost': 1.3}
+         'feed_mult': 0.9}
     """
     result = dict(_DEFAULT_MODIFIERS)
     for char in mbti.upper():
@@ -716,14 +760,27 @@ class InterestVectorTracker:
                                 round_num: int):
         """Inject crisis-related keywords into an agent's interest vector.
 
-        Called by CrisisEngine when a crisis event is triggered.
+        Called by CrisisEngine at the trigger round. `weight` (= severity
+        from UI) is the STARTING weight for the N keywords being added —
+        i.e. for a brand-new keyword, `weight=0.7` means it lives in the
+        vector at 0.7 immediately.
+
+        For a keyword that already exists in the vector (e.g. coincides
+        with a profile interest), severity acts as a FLOOR: we set
+        `weight = max(existing, severity)` so the crisis can lift a weak
+        baseline to at least severity, but never lowers a stronger pre-
+        existing signal. This honors the user-typed severity as a
+        guaranteed minimum without erasing prior boosts.
+
+        After injection, longevity is owned by `update_after_round`:
+        keywords boost when the agent engages with matching content, decay
+        otherwise.
 
         Args:
             agent_id: Agent to perturb.
             perturbation: Dict with keys:
-                - keywords: list[str] — crisis-related keywords to inject
-                - weight_boost: float — weight for new crisis keywords (0.3-1.0)
-                - decay_factor: float — how much to suppress existing interests (0.0-0.5)
+                - keywords: list[str] — crisis-related keywords
+                - weight: float — starting weight (= severity, ≤ 1.0)
                 - source: str — source tag (e.g. "crisis:crisis_abc123")
             round_num: Current simulation round.
         """
@@ -732,43 +789,37 @@ class InterestVectorTracker:
             return
 
         keywords = perturbation.get("keywords", [])
-        weight_boost = perturbation.get("weight_boost", 0.5)
-        decay_factor = perturbation.get("decay_factor", 0.1)
+        # Back-compat: previous callers used `weight_boost`. Prefer `weight`.
+        weight = perturbation.get("weight", perturbation.get("weight_boost", 0.5))
+        weight = max(0.0, min(1.0, float(weight)))
         source = perturbation.get("source", "crisis")
 
-        # 1. Decay existing non-profile interests (crisis steals attention)
-        for kw, item in items.items():
-            if item.source != "profile":
-                item.weight *= (1.0 - decay_factor)
-
-        # 2. Inject crisis keywords with high weight
         for kw in keywords:
             kw_lower = kw.lower()
             if kw_lower in items:
-                # Boost existing interest
-                items[kw_lower].weight = min(1.0, items[kw_lower].weight + weight_boost)
+                # Severity-as-floor: never decrease, raise to severity if below.
+                items[kw_lower].weight = max(items[kw_lower].weight, weight)
                 items[kw_lower].last_engaged = round_num
                 items[kw_lower].engagement_count += 1
             else:
-                # Add new crisis interest
                 items[kw_lower] = InterestItem(
                     keyword=kw,
-                    weight=weight_boost,
+                    weight=weight,
                     source=source,
                     first_seen=round_num,
                     last_engaged=round_num,
                 )
                 items[kw_lower].engagement_count = 1
 
-        # 3. Prune if over MAX_INTERESTS (keep highest-weight items)
+        # Prune if over MAX_INTERESTS (keep highest-weight items, never
+        # touch profile interests).
         if len(items) > self.MAX_INTERESTS:
             sorted_keys = sorted(items.keys(), key=lambda k: -items[k].weight)
-            to_remove = sorted_keys[self.MAX_INTERESTS:]
-            for k in to_remove:
-                if items[k].source != "profile":  # never remove profile interests
+            for k in sorted_keys[self.MAX_INTERESTS:]:
+                if items[k].source != "profile":
                     del items[k]
 
-        # 4. Save snapshot
+        # Save snapshot for history chart
         self._history[agent_id].append(
             {item.keyword: item.weight for item in
              sorted(items.values(), key=lambda x: -x.weight)}
@@ -935,14 +986,20 @@ class GraphCognitiveHelper:
         self._connected = False
 
     async def _ensure_connected(self):
-        """Lazy-init: connect to FalkorDB on first query."""
+        """Lazy-init: connect to FalkorDB sim graph on first query.
+
+        Phase 15.fix: pass `database=group_id` (= sim_<sid>) để Graphiti driver
+        bind đúng sim graph thay vì default_db. Nếu không pass, search sẽ trả
+        empty vì default_db không có entities.
+        """
         if self._connected:
             return True
         try:
-            from falkor_graph_memory import FalkorGraphSearcher
+            from falkor_graph_searcher import FalkorGraphSearcher
             self._searcher = FalkorGraphSearcher(
                 falkor_host=self.falkor_host,
                 falkor_port=self.falkor_port,
+                database=self.group_id or "default_db",
             )
             await self._searcher.connect()
             self._connected = True
@@ -1014,6 +1071,7 @@ class GraphCognitiveHelper:
             nodes = await self._searcher.get_nodes(
                 query=agent_name,
                 num_results=num_results,
+                group_id=self.group_id,
             )
             if not nodes:
                 return []

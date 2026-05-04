@@ -1,9 +1,14 @@
 """
-Profile Generator — OASIS Reddit-Compatible Agent Pipeline.
+Profile Generator — LEGACY module, test-only.
 
-3-Phase Pipeline (simplified):
+⚠️ Production pipeline đã chuyển sang ``apps/simulation/api/simulation.py:_generate_profiles``
+   với async LLM batch + seed reproducibility + Pydantic validation (xem docs/04_agent_generation.md).
+   File này giữ lại cho ``apps/core/tests/test_profile_pipeline.py``. Không được dùng ở
+   `/api/sim/prepare`. Đừng gọi từ code mới.
+
+3-Phase Pipeline (legacy):
   Phase 1 (SAMPLE): DuckDB scans 20M-row profile.parquet → sample personas by domain
-  Phase 2 (LLM COMPLETE): Batch LLM enriches persona with name + campaign context
+  Phase 2 (LLM COMPLETE): Serial batch LLM enriches persona with name + campaign context
   Phase 3 (ASSEMBLE): Build 8-field AgentProfile objects for OASIS Reddit
 
 Output fields (matches OASIS generate_reddit_agent_graph):
@@ -21,8 +26,8 @@ from ecosim_common.atomic_io import atomic_write_json
 
 from ..config import Config
 from ..models.simulation import AgentProfile
-from ..services.parquet_reader import ParquetProfileReader
-from ..services.name_pool import NamePool
+from ecosim_common.parquet_reader import ParquetProfileReader
+from ecosim_common.name_pool import NamePool
 from ..utils.llm_client import LLMClient
 
 logger = logging.getLogger("ecosim.profile_generator")

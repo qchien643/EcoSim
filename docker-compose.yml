@@ -15,7 +15,11 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - falkordb_data:/data
+      # ⚠ Image FalkorDB ghi dump.rdb vào /var/lib/falkordb/data (đường dẫn
+      # thực; /data/data là symlink trỏ tới đó). Mount vào /data sẽ che symlink
+      # → data nằm ở writable layer của container và mất khi container
+      # recreate. Mount đúng path này để RDB persist trong named volume.
+      - falkordb_data:/var/lib/falkordb/data
     restart: unless-stopped
 
   # ── API Gateway — Caddy Reverse Proxy (Port 5000) ──
@@ -49,7 +53,7 @@ services:
       - PYTHONPATH=/app/libs/ecosim-common/src
     volumes:
       - ./libs/ecosim-common:/app/libs/ecosim-common:ro
-      - ./uploads:/app/uploads
+      # Phase 5: uploads/ moved into data/campaigns/. Single ./data mount đủ.
       - ./data:/app/data
 
   # ── Simulation Service — FastAPI (Port 5002) ──
@@ -70,14 +74,21 @@ services:
     depends_on:
       - falkordb
 
-  # ── Frontend Service — Web UI (Port 80 mapped to 3000) ──
+  # ── Frontend Service — Next.js 16 (App Router) on :5173 ──
+  # Standalone Node server built from apps/frontend/Dockerfile.
+  # Browser-side `/api/*` requests are rewritten server-side to the
+  # gateway container (`http://gateway:5000`) — same-origin from the user's POV.
   frontend:
     build: ./apps/frontend
     container_name: ecosim-frontend
     ports:
-      - "3000:80"
+      - "5173:5173"
+    environment:
+      - GATEWAY_UPSTREAM=http://gateway:5000
+      - NODE_ENV=production
     depends_on:
       - gateway
+    restart: unless-stopped
 
 volumes:
   falkordb_data:

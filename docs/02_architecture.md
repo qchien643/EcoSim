@@ -6,8 +6,8 @@ EcoSim triển khai kiểu microservice với **API Gateway làm reverse proxy d
 
 ```mermaid
 flowchart TB
-    Browser[Browser<br/>Vue 3 SPA] -->|HTTP :3000 hoặc :5173| Frontend
-    Frontend[Frontend<br/>Vue + Pinia] -->|/api/*| Gateway
+    Browser[Browser] -->|HTTP :5173| Frontend
+    Frontend[Frontend<br/>Next.js 16 App Router<br/>TS · Tailwind · Zustand · react-query] -->|/api/* via next.config rewrites| Gateway
 
     Gateway[API Gateway<br/>Caddy :5000<br/>gateway/Caddyfile]
 
@@ -39,7 +39,7 @@ flowchart TB
 | **Gateway** | **Caddy 2** | 5000 | [apps/gateway/Caddyfile](../apps/gateway/Caddyfile) | Reverse proxy, route tới Core/Simulation, SSE streaming |
 | **Core Service** | Flask 3 | 5001 | [apps/core/run.py](../apps/core/run.py) | Campaign upload/parse, Report generation (ReACT) |
 | **Simulation Service** | FastAPI + uvicorn | 5002 | [apps/simulation/sim_service.py](../apps/simulation/sim_service.py) | Graph build, Sim lifecycle, Survey, Interview, Analysis |
-| **Frontend** | Vue 3 + Vite | 3000 (Docker) / 5173 (dev) | [apps/frontend/](../apps/frontend/) | UI |
+| **Frontend** | **Next.js 16 + React 19 + TS + Tailwind 3** | 5173 | [apps/frontend/](../apps/frontend/) | UI — campaign-centric IA, Linear-style aesthetic |
 | **FalkorDB** | Redis fork | 6379 | Docker image `falkordb/falkordb` | Graph + Hybrid search (BM25 + Vector + RRF) |
 
 ### Shared library `ecosim_common`
@@ -74,6 +74,50 @@ SSE streaming: `reverse_proxy` với `flush_interval -1` để forward event k�
 Upstream host có thể override qua env: `CORE_UPSTREAM=localhost:5001 SIM_UPSTREAM=localhost:5002` (local dev ngoài Docker).
 
 Gateway health: `GET /api/health/gateway` → `{"status":"ok"}` (liveness). `GET /api/health` forward tới Core (aggregate).
+
+## Frontend (Next.js)
+
+Frontend ([apps/frontend/](../apps/frontend/)) — Next.js 16 App Router. Stack tóm tắt:
+
+| Concern | Library |
+|---------|---------|
+| Routing | Next.js 16 App Router (file-based, dynamic `[campaignId]/sims/[simId]`) |
+| Styling | Tailwind 3 với theme tokens (zinc + brand violet 600), không dùng CSS-in-JS |
+| State | Zustand `app-store.ts` (persist via `localStorage` key `ecosim.app`: recent campaigns + debug flag) + `ui-store.ts` (transient: sidebar collapse, command palette open, toast queue) |
+| Data fetching | `@tanstack/react-query` v5 — single QueryClient ở `app/providers.tsx`, query keys ở `lib/queries/index.ts` factory `qk` |
+| HTTP | Native `fetch` qua `lib/api/client.ts` (`apiFetch<T>`) — bỏ axios |
+| SSE | `EventSource` wrapped trong `hooks/use-sse.ts` — dùng cho live action feed của Sim Run + Report progress |
+| Charts | `recharts` (Sentiment + Survey aggregations) |
+| Markdown | `react-markdown + remark-gfm` cho Report sections |
+| Icons | `lucide-react` (tree-shakable) |
+| Forms | `react-hook-form + zod` (Settings, Survey composer) |
+
+**Information architecture — campaign-centric** (không có pipeline lock):
+
+```
+/                                              ← Dashboard (overview + recent campaigns + active sims)
+/campaigns                                     ← All campaigns list
+/campaigns/new                                 ← Upload
+/campaigns/[campaignId]                        ← Workspace (tabs)
+  ├─ ./                                        ← Overview (status, KPIs, stakeholders, risks)
+  ├─ ./spec                                    ← Full spec
+  ├─ ./graph                                   ← KG entities/edges browser
+  └─ ./sims
+      ├─ ./                                    ← Sims list (per campaign)
+      └─ ./[simId]                             ← Sim workspace (tabs)
+          ├─ ./                                ← Run (SSE feed + progress + crisis log)
+          ├─ ./analysis                        ← Sentiment charts + top excerpts
+          ├─ ./report                          ← ReACT outline + section markdown
+          ├─ ./survey                          ← Composer / aggregated results
+          └─ ./interview                       ← Agent chat with intent badge
+/settings                                      ← Local prefs (debug toggle, reset state)
+```
+
+**Backend integration**: Next `next.config.ts` rewrites `/api/*` → `${GATEWAY_UPSTREAM || NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:5000'}/api/*`. Browser luôn same-origin → no CORS. SSE chạy qua rewrite chain (Next → Caddy → FastAPI), Caddy đã set `flush_interval -1` nên không block. Trong Docker, compose set `GATEWAY_UPSTREAM=http://gateway:5000` (service hostname).
+
+**Shell layout** (Slack-style split): collapsible sidebar 256↔56px (recent campaigns + nav + Cmd+K trigger) · TopBar (breadcrumbs derived from URL) · main pane · floating Toast host · Cmd+K Command Palette overlay (fuzzy match commands + campaigns).
+
+**Production build** ([apps/frontend/Dockerfile](../apps/frontend/Dockerfile)): multi-stage Node 20-alpine → `next.config.ts` `output: 'standalone'` → minimal runtime image (~150 MB). Container runs `node server.js` as non-root user `nextjs:1001` on port 5173. Compose service `frontend` (xem [docker-compose.yml](../docker-compose.yml)) builds from this Dockerfile + sets `GATEWAY_UPSTREAM=http://gateway:5000`.
 
 Fallback: nếu Caddy không có PATH, `start.ps1` tự động fallback sang `apps/gateway/gateway.py.bak` (Flask + httpx legacy).
 

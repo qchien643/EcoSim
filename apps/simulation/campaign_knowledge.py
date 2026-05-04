@@ -104,6 +104,118 @@ class AnalyzedSection:
         return " ".join(parts)
 
 
+# ──────────────────────────────────────────────
+# Serialization helpers cho cache extracted/sections.json + analyzed.json
+# ──────────────────────────────────────────────
+# Build idempotent: nếu cache file tồn tại → skip LLM stage, load từ disk.
+# Force re-run: rm -rf <UPLOAD_DIR>/<campaign_id>/extracted/
+_CACHE_VERSION = 1  # bump khi schema DocumentSection/AnalyzedSection thay đổi
+
+
+def _save_sections(path, sections: "List[DocumentSection]") -> None:
+    """Persist parsed DocumentSection list → JSON (Stage 2 cache)."""
+    payload = {
+        "_version": _CACHE_VERSION,
+        "data": [
+            {
+                "title": s.title,
+                "content": s.content,
+                "level": s.level,
+                "index": s.index,
+                "metadata": s.metadata,
+            }
+            for s in sections
+        ],
+    }
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def _load_sections(path) -> "Optional[List[DocumentSection]]":
+    """Load DocumentSection list từ cache. Trả None nếu không có / version mismatch."""
+    p = Path(path)
+    if not p.exists():
+        return None
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        if payload.get("_version") != _CACHE_VERSION:
+            logger.info("sections.json version mismatch, re-extracting")
+            return None
+        return [DocumentSection(**d) for d in payload.get("data", [])]
+    except Exception as e:
+        logger.warning("Failed to load sections cache %s: %s — re-extracting", p, e)
+        return None
+
+
+def _save_analyzed(path, analyzed: "List[AnalyzedSection]") -> None:
+    """Persist AnalyzedSection list (entities + facts) → JSON (Stage 3 cache).
+
+    Đây là cache đắt nhất — mỗi section = 1 LLM call gpt-4o ~$0.01-0.03.
+    """
+    payload = {
+        "_version": _CACHE_VERSION,
+        "data": [
+            {
+                "original": {
+                    "title": a.original.title,
+                    "content": a.original.content,
+                    "level": a.original.level,
+                    "index": a.original.index,
+                    "metadata": a.original.metadata,
+                },
+                "summary": a.summary,
+                "entities": [
+                    {"name": e.name, "entity_type": e.entity_type, "description": e.description}
+                    for e in a.entities
+                ],
+                "facts": [
+                    {"subject": f.subject, "predicate": f.predicate,
+                     "object": f.object, "edge_type": f.edge_type}
+                    for f in a.facts
+                ],
+                "episode_name": a.episode_name,
+            }
+            for a in analyzed
+        ],
+    }
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def _load_analyzed(path) -> "Optional[List[AnalyzedSection]]":
+    """Load AnalyzedSection list từ cache. None nếu không có / version mismatch."""
+    p = Path(path)
+    if not p.exists():
+        return None
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        if payload.get("_version") != _CACHE_VERSION:
+            logger.info("analyzed.json version mismatch, re-running LLM")
+            return None
+        result = []
+        for a in payload.get("data", []):
+            orig = DocumentSection(**a["original"])
+            entities = [ExtractedEntity(**e) for e in a.get("entities", [])]
+            facts = [ExtractedFact(**f) for f in a.get("facts", [])]
+            result.append(AnalyzedSection(
+                original=orig,
+                summary=a.get("summary", ""),
+                entities=entities,
+                facts=facts,
+                episode_name=a.get("episode_name", ""),
+            ))
+        return result
+    except Exception as e:
+        logger.warning("Failed to load analyzed cache %s: %s — re-running LLM", p, e)
+        return None
+
+
 # ======================================================================
 # Stage 1: Document Parser
 # ======================================================================
@@ -486,23 +598,54 @@ class CampaignSectionAnalyzer:
             episode_name=f"campaign_doc_{section.metadata.get('source_file', 'unknown')}_s{section.index}_{section.title[:40]}",
         )
 
-    async def analyze_all(self, sections: List[DocumentSection]) -> List[AnalyzedSection]:
-        """Analyze all sections sequentially (ordered for graph coherence)."""
-        analyzed = []
-        for i, section in enumerate(sections):
+    async def analyze_all(
+        self,
+        sections: List[DocumentSection],
+        batch_size: int = 5,
+    ) -> List[AnalyzedSection]:
+        """Analyze all sections in parallel batches.
+
+        Trước đây sequential loop → 17 sections × 30-60s = 8-17 min cho cold
+        cache. Giờ chạy parallel với asyncio.gather batch_size sections cùng
+        lúc → ~5x speedup. Không quá lớn (batch=5) để tránh overwhelm
+        provider RPM khi user dùng OpenAI tier 1.
+
+        Section order preserved (gather giữ thứ tự input). Failed sections
+        log + skip; section khác trong cùng batch không bị ảnh hưởng nhờ
+        return_exceptions=True.
+
+        Note: Stage 2 cache (`extracted/analyzed.json`) skip toàn bộ method
+        này khi cache hit → optimization chỉ matter cho first build.
+        """
+        import asyncio
+
+        async def _analyze_one(idx: int, section: DocumentSection) -> Optional[AnalyzedSection]:
             logger.info(
                 "  Analyzing section %d/%d: '%s' (%d chars)...",
-                i + 1, len(sections), section.title, len(section.content),
+                idx + 1, len(sections), section.title, len(section.content),
             )
             try:
                 result = await self.analyze(section)
-                analyzed.append(result)
                 logger.info(
-                    "    → %d entities, %d facts extracted",
-                    len(result.entities), len(result.facts),
+                    "    → '%s' done: %d entities, %d facts",
+                    section.title, len(result.entities), len(result.facts),
                 )
+                return result
             except Exception as e:
                 logger.error("    ✗ Failed to analyze '%s': %s", section.title, e)
+                return None
+
+        analyzed: List[AnalyzedSection] = []
+        for batch_start in range(0, len(sections), batch_size):
+            batch = sections[batch_start : batch_start + batch_size]
+            batch_indexed = [(batch_start + j, s) for j, s in enumerate(batch)]
+            results = await asyncio.gather(
+                *[_analyze_one(idx, s) for idx, s in batch_indexed],
+                return_exceptions=False,  # _analyze_one đã catch
+            )
+            for r in results:
+                if r is not None:
+                    analyzed.append(r)
 
         return analyzed
 
@@ -806,7 +949,14 @@ class CampaignKnowledgePipeline:
         falkor_host: str = "localhost",
         falkor_port: int = 6379,
         group_id: str = "default",
+        extracted_dir=None,
     ):
+        """Args:
+            extracted_dir: Path tới `<UPLOAD_DIR>/<campaign_id>/extracted/`
+                để cache sections.json + analyzed.json. None → no cache,
+                LLM stages chạy mỗi lần. Caller (build_graph endpoint) pass
+                `EcoSimConfig.campaign_extracted_dir(campaign_id)`.
+        """
         self.parser = CampaignDocumentParser()
         self.analyzer = CampaignSectionAnalyzer(
             api_key=api_key, base_url=base_url, model=model
@@ -817,6 +967,7 @@ class CampaignKnowledgePipeline:
             group_id=group_id,
         )
         self.group_id = group_id
+        self.extracted_dir = extracted_dir
 
     async def run(
         self,
@@ -931,26 +1082,78 @@ class CampaignKnowledgePipeline:
         logger.info("📄 Campaign Knowledge Pipeline (from text)")
         logger.info("   Doc name: %s (%d chars)", doc_name, len(text))
         logger.info("   Group ID: %s", self.group_id)
+        logger.info("   Cache dir: %s", self.extracted_dir or "(disabled)")
         logger.info("=" * 60)
 
-        # Stage 1: Parse text
-        logger.info("\n📋 Stage 1: Parsing text...")
-        if "#" in text.split("\n", 1)[0] or re.search(r"^#{1,4}\s+", text, re.MULTILINE):
-            sections = self.parser._parse_markdown(text)
+        # Build progress tracker — write JSON file mỗi stage để frontend
+        # poll show "stage X: Y" thay vì "building..." chung chung.
+        from build_progress import start as _bp_start, update as _bp_update
+        _bp_start(self.group_id, "Initializing pipeline...")
+
+        # Path setup cho cache
+        sections_cache = None
+        analyzed_cache = None
+        if self.extracted_dir:
+            sections_cache = Path(self.extracted_dir) / "sections.json"
+            analyzed_cache = Path(self.extracted_dir) / "analyzed.json"
+
+        # ─── Stage 1: Parse text (with cache) ───
+        _bp_update(self.group_id, "stage_1_parse", 5, "Parsing document sections...")
+        sections = _load_sections(sections_cache) if sections_cache else None
+        if sections is not None:
+            logger.info("\n📋 Stage 1: SKIPPED (loaded %d sections từ cache)", len(sections))
+            _bp_update(
+                self.group_id, "stage_1_cache_hit", 10,
+                f"Loaded {len(sections)} sections từ cache",
+            )
         else:
-            sections = self.parser._parse_plaintext(text)
-        sections = self.parser._split_oversized(sections)
-        for i, s in enumerate(sections):
-            s.index = i
-            s.metadata.setdefault("source_file", doc_name)
-        logger.info("   → %d sections", len(sections))
+            logger.info("\n📋 Stage 1: Parsing text...")
+            if "#" in text.split("\n", 1)[0] or re.search(r"^#{1,4}\s+", text, re.MULTILINE):
+                sections = self.parser._parse_markdown(text)
+            else:
+                sections = self.parser._parse_plaintext(text)
+            sections = self.parser._split_oversized(sections)
+            for i, s in enumerate(sections):
+                s.index = i
+                s.metadata.setdefault("source_file", doc_name)
+            logger.info("   → %d sections", len(sections))
+            if sections_cache:
+                _save_sections(sections_cache, sections)
+                logger.info("   💾 Saved sections cache: %s", sections_cache)
+            _bp_update(
+                self.group_id, "stage_1_done", 10,
+                f"Parsed {len(sections)} sections",
+            )
 
-        # Stage 2: Analyze
-        logger.info("\n🔍 Stage 2: Analyzing sections with LLM...")
-        analyzed = await self.analyzer.analyze_all(sections)
-        logger.info("   → %d sections analyzed", len(analyzed))
+        # ─── Stage 2: Analyze (with cache — biggest cost savings) ───
+        analyzed = _load_analyzed(analyzed_cache) if analyzed_cache else None
+        if analyzed is not None:
+            logger.info("\n🔍 Stage 2: SKIPPED (loaded %d analyzed sections từ cache, NO LLM cost)", len(analyzed))
+            _bp_update(
+                self.group_id, "stage_2_cache_hit", 50,
+                f"Loaded {len(analyzed)} analyzed sections từ cache (skip LLM)",
+            )
+        else:
+            logger.info("\n🔍 Stage 2: Analyzing sections with LLM (extraction model)...")
+            _bp_update(
+                self.group_id, "stage_2_analyzing", 15,
+                f"LLM analyze {len(sections)} sections (gpt-4o)...",
+            )
+            analyzed = await self.analyzer.analyze_all(sections)
+            logger.info("   → %d sections analyzed", len(analyzed))
+            if analyzed_cache:
+                _save_analyzed(analyzed_cache, analyzed)
+                logger.info("   💾 Saved analyzed cache: %s", analyzed_cache)
+            _bp_update(
+                self.group_id, "stage_2_done", 50,
+                f"Analyzed {len(analyzed)} sections",
+            )
 
-        # Stage 2.5: Post-processing
+        # Stage 2.5: Post-processing (always run, cheap)
+        _bp_update(
+            self.group_id, "stage_2_5_postprocess", 55,
+            "Deduplicating entities + canonical map...",
+        )
         all_entities: List[ExtractedEntity] = []
         all_facts: List[ExtractedFact] = []
         for s in analyzed:
@@ -958,16 +1161,69 @@ class CampaignKnowledgePipeline:
             all_facts.extend(s.facts)
         clean_entities, clean_facts, _ = postprocess_entities(all_entities, all_facts)
 
-        # Stage 3: Load
-        logger.info("\n📥 Stage 3: Loading into FalkorDB (group=%s)...", self.group_id)
-        await self.loader.connect()
-        try:
-            struct_stats = self.loader.merge_structured(clean_entities, clean_facts)
-            episode_stats = await self.loader.load(
-                analyzed, source_description=src_desc, reference_time=reference_time,
+        # ─── Stage 3: Dispatch theo KG_BUILDER env ───
+        # zep_hybrid: Zep server-side LLM extract → mirror FalkorDB (rich)
+        # direct: Stage 2 entities → direct Cypher write (fast, info-lossy)
+        # graphiti: Legacy add_episode (slow, fallback debug)
+        from ecosim_common.config import EcoSimConfig
+        kg_builder = EcoSimConfig.kg_builder()
+        logger.info("\n📥 Stage 3: KG_BUILDER=%s", kg_builder)
+
+        if kg_builder == "zep_hybrid":
+            from ecosim_common.zep_client import ZepKeyMissing
+            try:
+                from zep_kg_writer import write_kg_via_zep
+                # Zep extract dùng `analyzed` cho `original.content` chỉ —
+                # Zep tự extract entities/facts (KHÔNG dùng Stage 2 output)
+                result_stage3 = await write_kg_via_zep(
+                    graph_name=self.group_id,
+                    sections=analyzed,
+                    llm=self.analyzer._llm,
+                    falkor_host=self.loader.falkor_host,
+                    falkor_port=self.loader.falkor_port,
+                    extracted_dir=self.extracted_dir,
+                    source_description=src_desc,
+                    reference_time=reference_time,
+                )
+            except ZepKeyMissing as e:
+                logger.warning(
+                    "Zep unavailable (%s) — fallback KG_BUILDER=direct", e,
+                )
+                kg_builder = "direct"  # fall through to direct path
+            except Exception as e:
+                logger.error(
+                    "Zep build failed: %s — fallback direct path", e, exc_info=True,
+                )
+                kg_builder = "direct"
+
+        if kg_builder == "direct":
+            _bp_update(
+                self.group_id, "stage_3_writing", 65,
+                f"Direct Cypher write: {len(clean_entities)} entities + "
+                f"{len(clean_facts)} facts + {len(analyzed)} episodes...",
             )
-        finally:
-            await self.loader.close()
+            from kg_direct_writer import write_kg_direct
+            result_stage3 = await write_kg_direct(
+                graph_name=self.group_id,
+                sections=analyzed,
+                entities=clean_entities,
+                facts=clean_facts,
+                llm=self.analyzer._llm,
+                falkor_host=self.loader.falkor_host,
+                falkor_port=self.loader.falkor_port,
+                source_description=src_desc,
+                reference_time=reference_time,
+            )
+
+        # graphiti path: KHÔNG support nữa trong dispatch (legacy code in
+        # CampaignGraphLoader.load() vẫn hoạt động nhưng dispatch chỉ
+        # accept zep_hybrid/direct). User cần explicit gọi loader.load qua
+        # script.
+
+        _bp_update(
+            self.group_id, "stage_3_indexes", 95,
+            "Building Graphiti indexes (HNSW vector + lookup)...",
+        )
 
         result = {
             "sections_parsed": len(sections),
@@ -977,11 +1233,17 @@ class CampaignKnowledgePipeline:
             "entities_canonical": len(clean_entities),
             "facts_extracted": len(all_facts),
             "facts_canonical": len(clean_facts),
-            **struct_stats,
-            **episode_stats,
+            **result_stage3,  # nodes_merged, edges_merged, episodes_written, mentions_written, ...
         }
         logger.info(
-            "✅ Structured %d nodes + %d edges | Graphiti %d episodes",
-            result["nodes_merged"], result["edges_merged"], result["episodes_written"],
+            "✅ Direct write: %d nodes + %d edges + %d episodes (%.1fs)",
+            result["nodes_merged"], result["edges_merged"],
+            result["episodes_written"], result_stage3["elapsed_ms"] / 1000,
+        )
+        from build_progress import done as _bp_done
+        _bp_done(
+            self.group_id,
+            f"Build done: {result['nodes_merged']} nodes, {result['edges_merged']} edges, "
+            f"{result['episodes_written']} episodes",
         )
         return result

@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ────────────────────────────────────────────
+   Minimal base — no `*` selectors, no theme()
+   calls. Everything else handled by Tailwind
+   utilities in components.
+   ──────────────────────────────────────────── */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: #ffffff;
+  color: #09090b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+}
+
+::selection {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* Sigma graph background — subtle dot grid match design tham khảo */
+.sigma-bg-dotted {
+  background-color: #ffffff;
+  background-image: radial-gradient(circle, #e4e4e7 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #f4f4f5 0%, #ededed 50%, #f4f4f5 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: 4px;
+}
+
+/* Markdown prose (used by Report section viewer) */
+.prose {
+  color: #09090b;
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 70ch;
+}
+.prose h1 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 1.6em 0 0.6em;
+  line-height: 1.25;
+}
+.prose h1:first-child { margin-top: 0; }
+.prose h2 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 1.5em 0 0.5em;
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid #e4e4e7;
+}
+.prose h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 1.4em 0 0.4em;
+}
+.prose p { margin: 0.8em 0; }
+.prose strong { font-weight: 600; }
+.prose em { font-style: italic; }
+.prose a { color: #6d28d9; text-decoration: underline; text-underline-offset: 2px; }
+.prose ul, .prose ol { margin: 0.8em 0; padding-left: 1.5em; }
+.prose ul { list-style: disc; }
+.prose ol { list-style: decimal; }
+.prose li { margin: 0.3em 0; }
+.prose code {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 0.88em;
+  background: #f4f4f5;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+.prose pre {
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  padding: 0.85em 1em;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 1em 0;
+}
+.prose pre code { background: transparent; padding: 0; font-size: inherit; }
+.prose blockquote {
+  border-left: 3px solid #d4d4d8;
+  padding: 0.2em 0 0.2em 1em;
+  color: #52525b;
+  margin: 1em 0;
+  font-style: italic;
+}
+.prose hr { border: 0; border-top: 1px solid #e4e4e7; margin: 2em 0; }
+.prose table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 13px; }
+.prose th, .prose td { border: 1px solid #e4e4e7; padding: 0.5em 0.75em; text-align: left; }
+.prose th { background: #fafafa; font-weight: 600; }

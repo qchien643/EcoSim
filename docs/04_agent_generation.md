@@ -1,233 +1,145 @@
 # 04 — Stage 3: Khởi tạo Agent
 
-Biến persona từ dataset thực (parquet 20M rows) thành tập N agent cá nhân hoá kèm MBTI, bio, persona narrative, và cấu hình simulation (thời gian, sự kiện, recsys). Gọi là bước **prepare** trong API.
+Biến persona từ dataset thực (parquet 20M rows) thành N agent profile kèm MBTI signal-from-persona, bio, persona narrative cá nhân hóa theo campaign, và bộ thuộc tính runtime. Gọi là bước **prepare** trong API.
+
+Pipeline hiện tại (Tier B, ngày 2026-04-23) sống ở [apps/simulation/api/simulation.py](../apps/simulation/api/simulation.py) — **không phải** `apps/core/app/services/profile_generator.py` (giờ là legacy, chỉ tests dùng).
 
 ```mermaid
 flowchart TB
-    In[POST /api/sim/prepare<br/>campaign_id, num_agents=N] --> PG[ProfileGenerator]
-    PG --> DD[DuckDB sample<br/>60% domain-relevant<br/>40% random diversity]
-    DD --> NP[NamePool<br/>Vietnamese names]
-    NP --> Enrich[LLM batch enrich<br/>MBTI + bio + persona]
-    Enrich --> Profiles[profiles.json<br/>N agents]
-    In --> SC[SimConfigGenerator]
-    SC --> TC[LLM: TimeConfig<br/>rounds, periods, multipliers]
-    SC --> EC[LLM: EventConfig<br/>initial posts, hot topics]
-    TC --> CFG[simulation_config.json]
-    EC --> CFG
-    In --> CI[CrisisInjector]
-    CI --> CR[LLM: CrisisScenario[]<br/>7 templates]
-    CR --> CRJ[crisis_scenarios.json]
-    Profiles --> Out[sim_id]
-    CFG --> Out
-    CRJ --> Out
+    In[POST /api/sim/prepare<br/>campaign_id, num_agents=N, seed?] --> D[LLM: extract domain keywords]
+    D --> S[ParquetProfileReader<br/>60% domain-match + 40% random<br/>REPEATABLE seed]
+    S --> San[Sanitize persona<br/>PII strip + 600 char truncate]
+    In --> C[LLM: consumer campaign context<br/>Graphiti facts → plain English]
+    San --> N[NamePool gender-aware<br/>pick realname + username]
+    C --> E[LLM batch enrichment<br/>asyncio.gather, batch=10<br/>Pydantic validate]
+    N --> E
+    E --> M[MBTI balance guard<br/>max 30% same type]
+    M --> R[Derive runtime fields<br/>active_hours, posting_prob, followers]
+    R --> Out[profiles.json<br/>AgentProfile × N]
 ```
 
-## 1. ProfileGenerator
+## 1. Input: `PrepareRequest`
 
-File: [apps/core/app/services/profile_generator.py](../apps/core/app/services/profile_generator.py)
+File: [apps/simulation/api/simulation.py](../apps/simulation/api/simulation.py)
 
-### Parquet source
-
-- Path: `data/dataGenerator/profile.parquet` (20M rows, cấu hình qua `Config.PARQUET_PROFILE_PATH`)
-- Schema: `general_domain`, `specific_domain`, `persona`
-- Được scan qua [ParquetProfileReader.sample_by_domains()](../apps/core/app/services/parquet_reader.py) — DuckDB query có `LIMIT` để không OOM khi scan 20M rows.
-
-### Sampling strategy
-
-```mermaid
-flowchart LR
-    Camp[Campaign spec<br/>summary + market] --> DM[Extract domain keywords]
-    DM --> Q1[DuckDB filter<br/>60% rows matching domains]
-    DM --> Q2[DuckDB random<br/>40% rows diversity]
-    Q1 --> Mix[Mix]
-    Q2 --> Mix
-    Mix --> Persona[Raw persona text<br/>N rows]
-```
-
-Tỉ lệ 60/40 ở [profile_generator.py:169](../apps/core/app/services/profile_generator.py#L169) — cân bằng giữa relevance (những người thực sự quan tâm chiến dịch) và diversity (không echo chamber).
-
-### LLM enrichment — batch
-
-[apps/core/app/services/profile_generator.py:137-144](../apps/core/app/services/profile_generator.py#L137-L144)
-
-- Batch size = 5 (default) — giảm số LLM call
-- Prompt: `BATCH_COMPLETION_PROMPT` ([profile_generator.py:46-76](../apps/core/app/services/profile_generator.py#L46-L76))
-- Temperature = mặc định 0.7
-- LLM nhận `raw_persona_text` + campaign context → trả batch JSON có: `mbti`, `bio`, `username`, `age`, `gender`, và persona được viết lại 150-200 chữ nhúng campaign context một cách tự nhiên.
-
-### Gán MBTI
-
-- **Phương pháp:** LLM quyết định (không rule-based)
-- Prompt yêu cầu assign 1 trong 16 MBTI types dựa trên raw persona
-- Fallback `random.choice(MBTI_TYPES)` nếu LLM fail ([profile_generator.py:328](../apps/core/app/services/profile_generator.py#L328))
-- MBTI sau này chuyển thành `CognitiveTraits` (post_mult, comment_mult, like_mult, feed_mult, impressionability, curiosity, ...) ở [apps/simulation/agent_cognition.py:150-250](../apps/simulation/agent_cognition.py#L150-L250) — xem [05_simulation_loop.md](05_simulation_loop.md).
-
-### NamePool
-
-File: [apps/core/app/services/name_pool.py](../apps/core/app/services/name_pool.py)
-
-Pool tên tiếng Việt được chọn random. LLM sẽ nhúng tên này vào trong persona narrative tự nhiên. `username` được normalize thành ASCII-safe (không dấu, dấu cách → `_`).
-
-### Profile JSON schema
-
-```json
-{
-  "agent_id": 42,
-  "username": "nguyen_thi_lan",
-  "realname": "Nguyễn Thị Lan",
-  "bio": "Freelance designer tại Hà Nội, mê cafe và thú cưng. Shopping online nhiều.",
-  "persona": "Nguyễn Thị Lan, 28 tuổi, là designer freelance tại Hà Nội. Thu nhập trung bình 15 triệu/tháng. Thường xuyên mua sắm online trên Shopee, đặc biệt trong các đợt sale lớn... [150-200 chữ, có nhắc đến Black Friday nếu campaign liên quan]",
-  "age": 28,
-  "gender": "female",
-  "mbti": "INFJ",
-  "country": "Vietnam"
-}
-```
-
-Chi tiết: [profile_generator.py:372-382](../apps/core/app/services/profile_generator.py#L372-L382), output wrapper: [profile_generator.py:459-475](../apps/core/app/services/profile_generator.py#L459-L475).
-
-## 2. SimConfigGenerator
-
-File: [apps/core/app/services/sim_config_generator.py](../apps/core/app/services/sim_config_generator.py)
-
-Generate 2 config quan trọng qua 2 LLM call độc lập (không share context để tránh nhiễu).
-
-### LLM Step 1 — TimeConfig
-
-[sim_config_generator.py:147-180](../apps/core/app/services/sim_config_generator.py#L147-L180)
-
-LLM dựa trên `campaign.timeline` + `campaign_type` → sinh:
-
-```json
-{
-  "simulation_hours": 168,
-  "rounds": 24,
-  "period_multipliers": {
-    "00-06": 0.3,
-    "06-09": 0.8,
-    "09-12": 1.2,
-    "12-14": 1.5,
-    "14-18": 1.0,
-    "18-22": 1.8,
-    "22-00": 0.6
-  },
-  "reasoning": "Peak hours buổi tối vì campaign nhắm user sau giờ làm..."
-}
-```
-
-**Period multiplier** là hệ số nhân xác suất agent active trong khung giờ đó. Peak hours (18-22) có multiplier cao → nhiều agent post/comment. Ban đêm (00-06) giảm xuống 0.3.
-
-### LLM Step 2 — EventConfig
-
-[sim_config_generator.py:238-300](../apps/core/app/services/sim_config_generator.py#L238-L300)
-
-```json
-{
-  "initial_posts": [
-    {"content": "Black Friday sắp tới, ai hóng cùng?", "author_persona": "tech enthusiast"},
-    {"content": "Shopee năm nay có deal gì hot không ta?", "author_persona": "casual shopper"},
-    ...
-  ],
-  "hot_topics": ["giảm giá", "freeship", "flash sale"],
-  "narrative_direction": "Ngày đầu: hype; ngày 3-4: feedback đầu tiên; ngày 5+: phàn nàn về server/deal ảo"
-}
-```
-
-- `initial_posts` được inject vào Round 0 — tạo conversation starter
-- `hot_topics` bias ChromaDB index weighting
-- `narrative_direction` hint cho LLM khi sinh content round later
-
-### RecConfig
-
-Hardcoded defaults hoặc được set qua API (chưa LLM-generated). Tham số:
-- `recommendation_count_per_round` (default 10)
-- `popularity_bonus_weight` (default 0.1)
-- `comment_decay_weight` (default 0.05)
-
-Chi tiết thresholds + formula: [05_simulation_loop.md](05_simulation_loop.md) phần Semantic Matching.
-
-## 3. CrisisInjector
-
-File: [apps/core/app/services/crisis_injector.py](../apps/core/app/services/crisis_injector.py), [apps/simulation/crisis_engine.py](../apps/simulation/crisis_engine.py)
-
-### 7 crisis templates
-
-| Template | Mô tả | Ví dụ |
-|----------|-------|-------|
-| `price_change` | Thay đổi giá đột ngột | "Shopee tăng phí sàn 10%" |
-| `scandal` | Vụ bê bối công ty | "CEO dính scandal chuyển tiền" |
-| `news` | Tin breaking liên quan | "Báo chí đưa tin server crash" |
-| `competitor` | Đối thủ ra đòn | "Lazada tung freeship 24h" |
-| `regulation` | Thay đổi luật/chính sách | "Bộ Công thương ra quy định mới" |
-| `positive_event` | Sự kiện tích cực bất ngờ | "Chính phủ khen campaign" |
-| `custom` | LLM sinh theo tả | Đặc thù campaign |
-
-### LLM sinh scenarios
-
-CrisisInjector chọn 2-3 scenarios phù hợp campaign → LLM fill-in:
-
-```json
-{
-  "scenario_id": "crisis_001",
-  "template": "scandal",
-  "trigger_round": 8,
-  "title": "Rò rỉ dữ liệu user Shopee",
-  "body": "Đêm qua, một nhóm hacker... [3-5 câu breaking news]",
-  "affected_entities": ["Shopee", "ShopeePay"],
-  "interest_perturbation": {
-    "security": +0.3,
-    "trust": -0.2,
-    "privacy": +0.4
-  }
-}
-```
-
-- `trigger_round` quyết định round nào crisis được fire
-- `interest_perturbation` dịch chuyển interest vector của agents (xem [05](05_simulation_loop.md#crisis-injection))
-
-## 4. Endpoint prepare tổng hợp
-
-`POST /api/sim/prepare` ([apps/simulation/api/simulation.py](../apps/simulation/api/simulation.py))
-
-**Request:**
 ```json
 {
   "campaign_id": "a3f1b29c",
   "num_agents": 20,
   "num_rounds": 24,
   "group_id": "a3f1b29c",
-  "cognitive_toggles": {
-    "enable_agent_memory": true,
-    "enable_mbti_modifiers": true,
-    "enable_interest_drift": true,
-    "enable_reflection": true,
-    "enable_graph_cognition": false
-  },
-  "crisis_events": []
+  "cognitive_toggles": { "enable_agent_memory": true },
+  "crisis_events": [],
+  "seed": 42
 }
 ```
 
-**Response:**
+- `seed: int | null` (Tier B mới) — pass vào `random.Random` + DuckDB `REPEATABLE(seed)` + `NamePool(seed)`. 2 lần prepare cùng seed ⇒ output bit-identical (ngoại trừ LLM response vì temperature > 0).
+
+## 2. Pipeline
+
+### Step 1 — Domain extraction (LLM, 1 call)
+
+Prompt `_DOMAIN_EXTRACT_PROMPT` yêu cầu 3-8 domain keywords liên quan campaign:
+
+```json
+{"domains": ["E-commerce", "Fashion", "Beauty", "Mobile apps", "Discounts"]}
+```
+
+Output này feed vào DuckDB ILIKE filter ở step 2. Nếu LLM fail → fallback random sampling.
+
+### Step 2 — Parquet 60/40 sampling
+
+File: [libs/ecosim-common/src/ecosim_common/parquet_reader.py](../libs/ecosim-common/src/ecosim_common/parquet_reader.py)
+
+- 60% rows `sample_by_domains(domains, n*0.6, seed=seed)` — ILIKE match 2 field `general domain (top 1 percent)` + `specific domain (top 1 percent)`
+- 40% rows `sample_random(n*0.4, seed=seed)` — đa dạng, tránh echo chamber
+- Cả 2 dùng `USING SAMPLE n ROWS REPEATABLE({seed})` để reproducible
+- Domain string được `_sanitize_domain()` — allowlist `[A-Za-z0-9 _&-]`, strip mọi ký tự khác → SQL injection-safe
+
+### Step 3 — Consumer campaign context (LLM, 1 call)
+
+`_get_consumer_campaign_context(campaign_spec)`:
+- Query Graphiti hybrid search cho facts thực
+- LLM rewrite thành 3-5 câu "consumer perspective" (bỏ KPI, risks, stakeholder list)
+- **1 lần / campaign** — cache shared cho tất cả N agents
+
+### Step 4 — Per-agent enrichment (LLM, async batches)
+
+File: [apps/simulation/api/simulation.py](../apps/simulation/api/simulation.py) — `_enrich_batch_async`
+
+Chia `num_agents` thành batches 10, gọi `asyncio.gather(*tasks)`. Mỗi batch:
+
+1. Sanitize parquet persona qua `_sanitize_persona()`:
+   - Strip email/phone regex (PII)
+   - Escape `{` `}` (chống LLM-format injection từ dataset không trust)
+   - Truncate 600 chars
+2. Send prompt `_ENRICH_SYSTEM` + `_ENRICH_USER_TMPL` với pre-assigned name + gender + consumer context
+3. LLM trả JSON array profiles với fields (persona 150-200 chữ, bio, age, mbti, interests)
+4. `BatchEnrichmentResponse.model_validate(raw)` — Pydantic validate MBTI must-be-16-types, age 18-70, persona 100-3000 chars
+5. Nếu batch fail → fallback rule-based `_mbti_from_traits(persona_text)` + concat parquet + consumer_ctx
+
+Performance: với N=100 agents và BATCH=10 ⇒ 10 batches song song, tổng ≈ max(batch latency) ≈ 3-5s (không phải 20 × 3s = 60s như serial).
+
+### Step 5 — MBTI balance guard
+
+`_balance_mbti(mbtis, max_ratio=0.30)`: nếu > 30% agents cùng MBTI (LLM bias toward INTJ/INFJ), reshuffle phần dư sang type ít nhất.
+
+### Step 6 — Derive runtime fields
+
+`_derive_runtime_fields(mbti, rng)` từ MBTI suy ra:
+
+| Field | Rule |
+|-------|------|
+| `posts_per_week` | `base * (1.3 if E else 0.8)` — Extroverts post nhiều hơn |
+| `daily_hours` | `base * (1.2 if P else 0.9)` — Perceivers mò mạng nhiều hơn |
+| `activity_level` | `posts_per_week/15 + daily_hours/8`, clamp [0.1, 1.0] |
+| `posting_probability` | `0.15 + activity*0.5 + 0.1(if E)`, clamp ≤ 0.95 |
+| `active_hours` | E → `9-22h`; I → `10-12 + 20-23h` (pattern khác nhau) |
+| `followers` | Log-normal distribution qua `rng.choice` của 4 range |
+
+## 3. Output schema (`AgentProfile`)
+
+File: [libs/ecosim-common/src/ecosim_common/agent_schemas.py](../libs/ecosim-common/src/ecosim_common/agent_schemas.py)
+
 ```json
 {
-  "sim_id": "sim_b72e4f10",
-  "status": "ready",
-  "profiles_count": 20,
-  "output_dir": "data/simulations/sim_b72e4f10",
-  "time_config": {...},
-  "event_config": {...},
-  "crisis_scenarios": [...]
+  "agent_id": 0,
+  "realname": "Nguyễn Thị Lan",
+  "username": "lan_nguyen_742",
+  "age": 28,
+  "gender": "female",
+  "mbti": "INFJ",
+  "country": "Vietnam",
+  "persona": "<150-200 English words, name embedded, campaign awareness sentence>",
+  "bio": "Freelance designer, Hanoi. Shopee sale hunter.",
+  "original_persona": "<raw parquet text, for analysis>",
+  "general_domain": "Creative Arts",
+  "specific_domain": "Graphic Design",
+  "interests": ["design", "shopping", "coffee", "pets"],
+  "active_hours": [10, 11, 12, 20, 21, 22, 23],
+  "activity_level": 0.55,
+  "posting_probability": 0.42,
+  "posts_per_week": 5,
+  "daily_hours": 1.5,
+  "followers": 420
 }
 ```
 
-**Side effects:** Ghi files vào `data/simulations/{sim_id}/`:
-- `profiles.json`
-- `simulation_config.json` (có embed time_config + event_config + rec_config + cognitive_toggles)
-- `crisis_scenarios.json`
+Pydantic validate shape khi assemble. `active_hours` rỗng ⇒ fallback `[8..22]`.
 
-## 5. Cognitive toggles
+## 4. Shared utilities (libs/ecosim-common)
 
-Bit switches cho các cơ chế ở stage 4:
+| Module | Vai trò |
+|--------|---------|
+| [`ecosim_common.agent_schemas`](../libs/ecosim-common/src/ecosim_common/agent_schemas.py) | Pydantic: `AgentProfile`, `EnrichedAgentLLMOutput`, `BatchEnrichmentResponse`, `MBTI_TYPES` |
+| [`ecosim_common.name_pool`](../libs/ecosim-common/src/ecosim_common/name_pool.py) | `NamePool(seed)` — gender-aware split (100 họ × 17-20 đệm × ~50 tên/gender), dedup |
+| [`ecosim_common.parquet_reader`](../libs/ecosim-common/src/ecosim_common/parquet_reader.py) | `ParquetProfileReader` — `sample_by_domains(seed)`, `sample_random(seed)`, SQL injection-safe |
+| [`ecosim_common.llm_client`](../libs/ecosim-common/src/ecosim_common/llm_client.py) | `LLMClient.chat_json_async` — async retry, strip code fences |
+
+## 5. Cognitive toggles (vẫn giữ)
+
+Bit switches cho các cơ chế ở simulation loop:
 
 | Toggle | Mặc định | Hiệu ứng khi ON |
 |--------|----------|-----------------|
@@ -237,36 +149,57 @@ Bit switches cho các cơ chế ở stage 4:
 | `enable_reflection` | `true` | LLM reflect phasic mỗi 3 rounds → update persona |
 | `enable_graph_cognition` | `false` | Read social context từ FalkorDB để inject vào prompt |
 
-Tắt toggles để benchmark cost — ví dụ disable `graph_cognition` có thể giảm 30% FalkorDB load nhưng agent mất awareness về "ai follow ai".
-
 ## 6. Trace code
 
 ```
 POST /api/sim/prepare
-  └─ apps/simulation/api/simulation.py prepare()
-     ├─ SimManager.create_sim()                    [services/sim_manager.py]
-     │  └─ status: CREATED → PREPARING
-     ├─ ProfileGenerator.generate()                [services/profile_generator.py:137]
-     │  ├─ ParquetProfileReader.sample_by_domains() [services/parquet_reader.py]
-     │  │  └─ DuckDB query (60/40 mix)
-     │  ├─ NamePool.draw(N)                         [services/name_pool.py]
-     │  └─ Batch LLM enrich
-     │     └─ LLMClient.chat_json(BATCH_COMPLETION_PROMPT, batch=5)
-     ├─ SimConfigGenerator.generate()              [services/sim_config_generator.py]
-     │  ├─ LLMClient.chat_json(TIME_PROMPT)         → TimeConfig
-     │  └─ LLMClient.chat_json(EVENT_PROMPT)        → EventConfig
-     ├─ CrisisInjector.generate()                  [services/crisis_injector.py]
-     │  └─ LLMClient.chat_json(CRISIS_PROMPT)
+  └─ apps/simulation/api/simulation.py:prepare_simulation
+     ├─ validate spec_path exists
+     ├─ create SimState (status=PREPARING)
+     ├─ _generate_profiles(num_agents, spec, seed)
+     │  ├─ _extract_campaign_domains(llm, spec)                [1 LLM call]
+     │  ├─ _sample_parquet_60_40(n, domains, seed)              [ParquetProfileReader]
+     │  ├─ _get_consumer_campaign_context(spec)                 [1 LLM call + Graphiti]
+     │  ├─ NamePool(seed).pick(gender=...)                      [per agent]
+     │  ├─ _sanitize_persona(raw)                               [PII strip]
+     │  ├─ asyncio.gather([_enrich_batch_async(...) × 10])      [async LLM batches]
+     │  ├─ BatchEnrichmentResponse.model_validate(...)          [Pydantic]
+     │  ├─ _mbti_from_traits(persona)                           [fallback nếu batch fail]
+     │  ├─ _balance_mbti(mbtis, max_ratio=0.30)                 [reshuffle bias]
+     │  └─ _derive_runtime_fields(mbti, rng)                    [active_hours, etc.]
      ├─ Write profiles.json + simulation_config.json + crisis_scenarios.json
-     └─ SimManager.set_ready()                     status: PREPARING → READY
+     └─ status: PREPARING → READY
+```
+
+## 7. Verification
+
+```bash
+# 1. Reproducibility test (smoke)
+curl -X POST localhost:5000/api/sim/prepare -H "Content-Type: application/json" \
+  -d '{"campaign_id":"XXX","num_agents":20,"seed":42}'
+# Run again with same seed → profiles identical modulo LLM stochasticity
+
+# 2. Parquet sampling 60/40
+python -c "
+from ecosim_common.parquet_reader import ParquetProfileReader
+r = ParquetProfileReader('data/dataGenerator/profile.parquet')
+a = r.sample_by_domains(['Fashion'], 5, seed=42)
+b = r.sample_by_domains(['Fashion'], 5, seed=42)
+assert [x['persona'] for x in a] == [x['persona'] for x in b], 'not reproducible'
+print('reproducible OK')
+"
+
+# 3. Run test suite
+cd apps/core && pytest tests/test_profile_pipeline.py -v
 ```
 
 ## Gotchas
 
-- **Parquet path sai** → scan fail silent (empty rows). Verify: `python -c "import duckdb; duckdb.sql('SELECT COUNT(*) FROM read_parquet(...)')"`
-- **Batch LLM timeout** với `num_agents > 50`: tăng batch_size trong [profile_generator.py](../apps/core/app/services/profile_generator.py) hoặc chia nhỏ request.
-- **MBTI distribution** có thể lệch (LLM thiên về INTJ, INFJ) — nếu cần balance, thêm rule post-hoc.
-- **Crisis trigger_round > num_rounds**: crisis sẽ không bao giờ fire, kiểm tra ở CrisisInjector validation.
-- **Same campaign_id prepare nhiều lần**: tạo sim_id mới mỗi lần, profiles khác nhau (sampling random). Muốn reproducible → cần seed manual.
+- **Parquet path sai** → fallback 1 persona duplicated N lần (logged warning, không crash).
+- **LLM timeout** ⇒ batch return empty → rule-based fallback kick in cho batch đó.
+- **MBTI distribution** balanced ≤ 30% same type (`_balance_mbti`), nhưng vẫn random nhiều hơn distribution thực tế dân số VN.
+- **Same campaign_id prepare nhiều lần** với seed khác nhau ⇒ profiles khác; cùng seed ⇒ deterministic (parquet + NamePool + rng đều seeded).
+- **Legacy `profile_generator.py`** còn ở `apps/core/app/services/` — chỉ dùng cho `tests/test_profile_pipeline.py`, **KHÔNG** import vào production.
+- **Parquet 20M rows**: `sample_by_domains` tiered 10%→50%→100% sample để tránh full-scan trừ khi domain rare.
 
 Đi tiếp → [05_simulation_loop.md](05_simulation_loop.md)

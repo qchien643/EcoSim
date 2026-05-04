@@ -1,14 +1,19 @@
 """
 Interest-Based Feed Recommendation + Personality-Driven Posting
 
-Uses ChromaDB with all-MiniLM-L6-v2 (default sentence-transformer) for
-semantic similarity matching between agent interests and post content.
+Uses ChromaDB with **OpenAI embeddings** (cùng model với Graphiti KG via
+LLMClient) for semantic similarity matching giữa agent interests và post
+content. Trước đây dùng all-MiniLM-L6-v2 local (384-dim) — đã chuyển sang
+OpenAI để có 1 vector space duy nhất với KG (xem CLAUDE.md §Embedding).
 
 Key design:
-- Model runs locally, no API calls needed
-- Pre-download model at setup time to avoid slow first-run
-- Calibrated cosine distance thresholds for all-MiniLM-L6-v2
-- Rule-based action decisions (replaces expensive LLMAction)
+- Embedder = `LLM_EMBEDDING_MODEL` env (default `text-embedding-3-small`,
+  1536-dim). Nếu user dùng local provider (Ollama), set env trỏ vào endpoint
+  embeddings tương thích OpenAI.
+- Distance thresholds CALIBRATED cho cosine với OpenAI embeddings — model có
+  embedding scale khác MiniLM nên `dedup_threshold` default 0.15 vẫn dùng
+  cho cosine distance (cosine in [0,2], identical=0). Tune nếu cần.
+- Rule-based action decisions (replaces expensive LLMAction).
 """
 import logging
 import os
@@ -21,47 +26,134 @@ logger = logging.getLogger("ecosim.interest_feed")
 
 
 def pre_download_model():
-    """Pre-download the all-MiniLM-L6-v2 model used by ChromaDB.
+    """No-op now (kept for backward-compat with run_simulation.py callers).
 
-    Call this during prepare_simulation so the model is cached
-    before the simulation starts. Subsequent calls are instant.
+    Trước đây pre-download all-MiniLM-L6-v2 model từ HuggingFace (~90MB).
+    Giờ ChromaDB dùng OpenAI API → không cần download model. Function vẫn
+    keep tên cũ để không phải sửa caller, chỉ log debug.
     """
-    try:
-        import chromadb
-        client = chromadb.Client()
-        col = client.get_or_create_collection("_warmup")
-        col.add(ids=["warmup"], documents=["warmup text"])
-        col.query(query_texts=["test"], n_results=1)
-        client.delete_collection("_warmup")
-        logger.info("ChromaDB embedding model warmed up successfully")
-    except Exception as e:
-        logger.warning("Model pre-download failed: %s", e)
+    logger.debug("pre_download_model: no-op (OpenAI embedder, no local model needed)")
+
+
+def _make_openai_embedder():
+    """Build ChromaDB OpenAIEmbeddingFunction từ LLMClient env config.
+
+    Centralize embedder qua LLM_EMBEDDING_* env (xem libs/ecosim_common/config.py).
+    Đảm bảo cùng model với Graphiti embeddings → 1 vector space duy nhất.
+    """
+    from chromadb.utils.embedding_functions.openai_embedding_function import (
+        OpenAIEmbeddingFunction,
+    )
+    from ecosim_common.config import EcoSimConfig
+
+    api_key = EcoSimConfig.llm_embedding_api_key()
+    base_url = EcoSimConfig.llm_embedding_base_url()
+    model = EcoSimConfig.llm_embedding_model()
+    if not api_key:
+        raise RuntimeError(
+            "LLM_EMBEDDING_API_KEY (or LLM_API_KEY) not set — required for "
+            "PostIndexer OpenAI embedder. Configure trong .env."
+        )
+    return OpenAIEmbeddingFunction(
+        api_key=api_key,
+        api_base=base_url if base_url != "https://api.openai.com/v1" else None,
+        model_name=model,
+    )
 
 
 class PostIndexer:
     """Indexes posts into ChromaDB for semantic similarity search.
 
-    Uses all-MiniLM-L6-v2 (ChromaDB default) — runs locally, no API needed.
+    Embedder = OpenAI (cùng model với Graphiti KG via `LLM_EMBEDDING_*` env).
+
+    Args:
+        sim_id: Unique simulation id. Used to scope collection name per-sim
+                (tránh cross-sim contamination khi 2 simulation chạy song song).
+        persist_dir: Nếu set → dùng `chromadb.PersistentClient(path=persist_dir)`,
+                     collection sống sót qua subprocess crash và có thể rebuild
+                     khi resume. Mặc định `None` = in-memory (backward compat).
+        dedup_threshold: Nếu post mới có semantic distance < threshold so với
+                         post đã index → skip (tránh duplicate content). Default
+                         `0.15` — chỉ reject gần như identical.
     """
 
-    def __init__(self, collection_name: str = "ecosim_posts"):
+    def __init__(
+        self,
+        sim_id: Optional[str] = None,
+        persist_dir: Optional[str] = None,
+        dedup_threshold: float = 0.15,
+        collection_name: Optional[str] = None,
+    ):
         import chromadb
-        self._client = chromadb.Client()  # in-memory
+        if persist_dir:
+            os.makedirs(persist_dir, exist_ok=True)
+            self._client = chromadb.PersistentClient(path=persist_dir)
+        else:
+            self._client = chromadb.Client()  # in-memory (legacy fallback)
+
+        if collection_name is None:
+            collection_name = f"ecosim_{sim_id}" if sim_id else "ecosim_posts"
+        # Sanitize: ChromaDB yêu cầu [a-zA-Z0-9._-], len 3-63
+        safe = "".join(c if c.isalnum() or c in "._-" else "_" for c in collection_name)
+        self._collection_name = safe[:63].ljust(3, "_") if len(safe) < 3 else safe[:63]
+
+        # OpenAI embedder qua LLMClient env. Build 1 lần per indexer instance.
+        embedder = _make_openai_embedder()
+        # Lưu embedding model vào collection metadata để verify lúc resume
+        # (nếu user đổi LLM_EMBEDDING_MODEL giữa runs → vector dim không match
+        # → ChromaDB sẽ raise. Metadata giúp diagnose nhanh.)
+        from ecosim_common.config import EcoSimConfig
+        meta = {
+            "hnsw:space": "cosine",
+            "embedding_model": EcoSimConfig.llm_embedding_model(),
+        }
+
         self._collection = self._client.get_or_create_collection(
-            name=collection_name,
-            metadata={"hnsw:space": "cosine"},
+            name=self._collection_name,
+            embedding_function=embedder,
+            metadata=meta,
         )
-        self._indexed_ids: set = set()
-        logger.info("PostIndexer initialized with all-MiniLM-L6-v2 (collection=%s)",
-                     collection_name)
+        self._indexed_ids: set = set(
+            self._collection.get().get("ids", []) if self._collection.count() > 0 else []
+        )
+        self._dedup_threshold = dedup_threshold
+        logger.info(
+            "PostIndexer initialized (collection=%s, persist=%s, existing=%d, embed_model=%s)",
+            self._collection_name,
+            bool(persist_dir),
+            len(self._indexed_ids),
+            EcoSimConfig.llm_embedding_model(),
+        )
+
+    def _is_near_duplicate(self, content: str) -> bool:
+        """Check if content is near-duplicate of existing post."""
+        if self._collection.count() == 0 or not content or len(content) < 20:
+            return False
+        try:
+            res = self._collection.query(
+                query_texts=[content],
+                n_results=1,
+                include=["distances"],
+            )
+            dists = (res.get("distances") or [[]])[0]
+            if dists and dists[0] < self._dedup_threshold:
+                return True
+        except Exception:
+            pass
+        return False
 
     def index_post(self, post_id: int, content: str, author_id: int = -1,
                    round_num: int = 0):
-        """Index a single post into ChromaDB."""
+        """Index a single post into ChromaDB (with content dedup)."""
         doc_id = f"post_{post_id}"
         if doc_id in self._indexed_ids:
             return
         if not content or len(content.strip()) < 5:
+            return
+        if self._is_near_duplicate(content):
+            logger.info("Skipped near-duplicate post %d", post_id)
+            # Vẫn mark indexed để tránh kiểm tra lại mỗi round
+            self._indexed_ids.add(doc_id)
             return
 
         try:
@@ -207,27 +299,46 @@ class PostIndexer:
         engagement_tracker: 'EngagementTracker',
         agent_id: int,
         n_results: int = 5,
+        current_round: int = 0,
+        already_liked: Optional[Set[int]] = None,
     ) -> List[Tuple[int, float]]:
-        """Unified query: semantic + popularity + comment decay in one step.
+        """Unified query: semantic + popularity + comment decay + like decay
+        + freshness in one step.
 
-        1. Query ChromaDB with large N (3x feed_size or all posts)
+        1. Query ChromaDB with large N (3x feed_size or all posts), pulling
+           metadatas in the same call so we can compute author + post round.
         2. Re-rank each post:
            final_distance = semantic_distance
                           - popularity_bonus(author_followers)
+                          - freshness_bonus(current_round - post_round_num)
                           + comment_decay(agent_comment_count)
-        3. Sort by final_distance, return top n_results
+                          + like_decay(post in already_liked)
+        3. Sort by final_distance, return top n_results.
 
-        This ensures posts already commented on by this agent are pushed
-        down the ranking, while popular authors' posts are promoted.
+        Effect:
+        - Posts the agent already liked are pushed to the bottom (LIKE_DECAY
+          large enough to dominate semantic). Without this, agents kept hitting
+          OASIS "Like record already exists." every round.
+        - Newer posts get a boost so they can break into the top-K feed even
+          when older popular posts dominate semantic similarity.
         """
         total = self._collection.count()
         if total == 0:
             return []
 
-        # Step 1: Query with large N to get broad candidate pool
+        # Step 1: Single ChromaDB query that returns metadatas + distances
+        # together, so we don't need a per-post `get(...)` round-trip.
         raw_n = min(total, max(n_results * 3, 20))
-        raw_results = self.query_by_interests(interests_text, n_results=raw_n)
-        if not raw_results:
+        try:
+            results = self._collection.query(
+                query_texts=[interests_text],
+                n_results=raw_n,
+                include=["metadatas", "distances"],
+            )
+        except Exception as e:
+            logger.warning("ChromaDB query_unified failed: %s", e)
+            return []
+        if not results or not results.get("metadatas") or not results["metadatas"][0]:
             return []
 
         # Build author_id -> follower_count map
@@ -235,19 +346,43 @@ class PostIndexer:
         for i, p in enumerate(profiles):
             author_followers[i] = p.get("followers", 0)
 
-        # Step 2: Unified re-ranking
-        rescored = []
-        for post_id, semantic_dist in raw_results:
-            # Popularity bonus: popular authors get lower distance
-            author_id = self.get_post_author(post_id)
+        already_liked = already_liked or set()
+        rescored: List[Tuple[int, float]] = []
+        for meta, semantic_dist in zip(
+            results["metadatas"][0], results["distances"][0]
+        ):
+            pid = meta.get("post_id")
+            if pid is None:
+                continue
+            pid = int(pid)
+            author_id = int(meta.get("author_id", -1))
+            post_round = int(meta.get("round_num", 0) or 0)
+
+            # Popularity bonus: popular authors get lower distance (cap +0.25)
             followers = author_followers.get(author_id, 0)
             pop_bonus = min(0.25, followers / 20000.0) if followers > 0 else 0.0
 
-            # Comment decay: posts this agent already commented get higher distance
-            decay = engagement_tracker.get_decay(agent_id, post_id)
+            # Comment decay: agent's previous comments push post down
+            comment_decay = engagement_tracker.get_decay(agent_id, pid)
 
-            final_dist = max(0.0, semantic_dist - pop_bonus + decay)
-            rescored.append((post_id, final_dist))
+            # Like decay: heavy penalty so already-liked posts fall out of
+            # top-K. 1.5 is large enough to flip a strong-match (<0.7) into
+            # weak-match territory (>1.3 -> like_prob 0.10), but the post
+            # can still be picked for re-comment if no fresh alternatives.
+            like_decay = LIKE_DECAY if pid in already_liked else 0.0
+
+            # Freshness bonus: posts from the current round get -0.20, with
+            # 0.05 decay per round of age, floor 0. Helps newly-created posts
+            # surface against entrenched popular ones.
+            rounds_old = max(0, current_round - post_round)
+            freshness_bonus = max(0.0, 0.20 - 0.05 * rounds_old)
+
+            final_dist = max(
+                0.0,
+                float(semantic_dist) - pop_bonus - freshness_bonus
+                + comment_decay + like_decay,
+            )
+            rescored.append((pid, final_dist))
 
         # Step 3: Sort and select top-K
         rescored.sort(key=lambda x: x[1])
@@ -256,6 +391,12 @@ class PostIndexer:
     @property
     def count(self) -> int:
         return self._collection.count()
+
+
+# Like decay constant used by `PostIndexer.query_unified`. Heavy enough to
+# bump an already-liked post from strong-match (<0.7) to weak-match (>1.3),
+# so it falls out of the top-K feed unless there are no fresher candidates.
+LIKE_DECAY = 1.5
 
 
 class EngagementTracker:
@@ -315,22 +456,40 @@ def get_feed_size(daily_hours: float, feed_mult: float = 1.0) -> int:
     return max(1, int(base * feed_mult))
 
 
-def get_post_probability(profile: dict) -> float:
-    """Probability an agent posts in a given round (posts_per_week / 7)."""
+def get_post_probability(profile: dict, hours_per_round: float = 24.0) -> float:
+    """Probability an agent posts in a given round.
+
+    Formula: `posts_per_week * hours_per_round / (7 * 24)`.
+    Ví dụ: `posts_per_week=7, hours_per_round=7` (168h / 24 rounds) → 0.29 (~29%/round).
+
+    Trước đây doc nhầm chia cho 7 → agent có `posts_per_week ≥ 7` luôn post mỗi round
+    (sai 24×). Fix Tier B: giờ chia theo simulation hours thực.
+
+    Args:
+        profile: Agent profile dict (đọc `posts_per_week`).
+        hours_per_round: Số giờ simulated mỗi round. Default 24 (1 round = 1 ngày)
+                         để backward-compat nếu caller không biết config.
+    """
     posts_per_week = profile.get("posts_per_week", 3)
-    return min(1.0, posts_per_week / 7.0)
+    hours_per_week = 7 * 24  # 168
+    return min(1.0, max(0.0, posts_per_week * hours_per_round / hours_per_week))
 
 
 def should_post(profile: dict, rng: _random.Random = None,
-                post_mult: float = 1.0) -> bool:
+                post_mult: float = 1.0, period_mult: float = 1.0,
+                hours_per_round: float = 24.0) -> bool:
     """Decide if this agent should create a post this round.
 
     Args:
         profile: Agent profile dict.
         rng: Random number generator.
         post_mult: MBTI post probability multiplier (E=1.2, I=0.8). Default 1.0.
+        period_mult: TimeConfig.period_multipliers cho hour hiện tại (peak=1.5,
+                     midnight=0.3). Default 1.0 nghĩa không áp dụng.
+        hours_per_round: Số giờ simulated mỗi round (dùng cho base probability).
     """
-    prob = min(1.0, get_post_probability(profile) * post_mult)
+    base = get_post_probability(profile, hours_per_round=hours_per_round)
+    prob = min(1.0, base * post_mult * period_mult)
     r = (rng or _random).random()
     return r < prob
 
@@ -403,6 +562,29 @@ MODERATE_THRESHOLD = 1.0
 WEAK_THRESHOLD = 1.3
 
 
+def _fetch_already_liked(db_path: str, agent_id: int) -> Set[int]:
+    """Read the set of post_ids this agent has already liked from OASIS DB.
+
+    OASIS rejects duplicate likes with `'Like record already exists.'` and
+    returns success=False; those failed attempts still consumed a slot in
+    the agent's plan and waste an LLM-driven decision. This helper lets the
+    caller filter before emitting actions.
+    """
+    if not db_path or agent_id < 0:
+        return set()
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        rows = cur.execute(
+            "SELECT post_id FROM like WHERE user_id = ?", (agent_id,)
+        ).fetchall()
+        conn.close()
+        return {int(r[0]) for r in rows}
+    except Exception as e:
+        logger.debug("fetch_already_liked failed for agent %d: %s", agent_id, e)
+        return set()
+
+
 def decide_agent_actions(
     profile: dict,
     post_indexer: PostIndexer,
@@ -416,13 +598,17 @@ def decide_agent_actions(
     feed_mult: float = 1.0,
     drift_text: str = "",
     interest_queries: List[tuple] = None,
+    current_round: int = 0,
 ) -> List[dict]:
     """Decide agent actions using unified ranking -- RULE-BASED, no LLM.
 
     Pipeline:
-    1. query_unified() combines semantic + popularity + comment decay
-    2. Thresholds on final_distance determine like/comment probability
-    3. Comments are recorded for future decay
+    1. query_unified() combines semantic + popularity + comment decay +
+       like decay + freshness bonus.
+    2. Thresholds on final_distance determine like/comment probability.
+    3. Already-liked posts are skipped for new like emissions (OASIS would
+       reject them anyway with `'Like record already exists.'`); they may
+       still receive a follow-up comment if they survive the re-rank.
 
     Thresholds (on final_distance after re-ranking):
     - < 0.7  (strong match):   LIKE 100% + COMMENT 50%
@@ -435,6 +621,7 @@ def decide_agent_actions(
         like_mult: MBTI like probability multiplier (F=1.2, T=0.9).
         feed_mult: MBTI feed size multiplier (P=1.2, J=0.9).
         interest_queries: List of (query, weight) for multi-query search.
+        current_round: Round number, used by query_unified for freshness bonus.
     """
     rng = rng or _random.Random()
 
@@ -442,17 +629,26 @@ def decide_agent_actions(
     daily_hours = profile.get("daily_hours", 1.0)
     feed_size = get_feed_size(daily_hours, feed_mult=feed_mult)
 
-    # Unified query: semantic + popularity + comment decay in one step
+    # Pull already-liked once per agent per round so the re-rank can demote
+    # them and the action loop can skip emitting redundant likes.
+    already_liked = _fetch_already_liked(db_path, agent_id)
+
+    # Unified query: semantic + popularity + comment decay + like decay +
+    # freshness in one step
     if all_profiles and engagement_tracker and agent_id >= 0:
         matches = post_indexer.query_unified(
             interest_text, all_profiles, engagement_tracker,
             agent_id, n_results=feed_size,
+            current_round=current_round,
+            already_liked=already_liked,
         )
     elif all_profiles:
         # Fallback: just semantic + popularity (no decay tracker)
         matches = post_indexer.query_unified(
             interest_text, all_profiles, EngagementTracker(),
             agent_id, n_results=feed_size,
+            current_round=current_round,
+            already_liked=already_liked,
         )
     else:
         matches = post_indexer.query_by_interests(interest_text, n_results=feed_size)
@@ -478,7 +674,9 @@ def decide_agent_actions(
             like_prob = 0.10 * activity_mult * like_mult
             comment_prob = 0.0
 
-        if rng.random() < like_prob:
+        # Skip the like emission for posts the agent has already liked —
+        # OASIS would reject with `'Like record already exists.'` anyway.
+        if post_id not in already_liked and rng.random() < like_prob:
             actions.append({"type": "like_post", "post_id": post_id})
 
         if comment_prob > 0 and rng.random() < comment_prob:
@@ -488,10 +686,13 @@ def decide_agent_actions(
                 "needs_llm": True,
             })
 
-    # Guarantee at least 1 interaction
+    # Guarantee at least 1 interaction — but only on a post we haven't
+    # already liked (otherwise OASIS rejects and the round looks idle).
     if not actions and matches:
-        best_pid = matches[0][0]
-        actions.append({"type": "like_post", "post_id": best_pid})
+        for pid, _ in matches:
+            if pid not in already_liked:
+                actions.append({"type": "like_post", "post_id": pid})
+                break
 
     if not actions:
         actions.append({"type": "do_nothing"})

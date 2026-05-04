@@ -1,0 +1,19 @@
+# EcoSim-only Python deps not present in vendored/oasis/pyproject.toml.
+#
+# camel-oasis (vendored) is upstream third-party; we don't patch its
+# pyproject.toml to keep clean diffs against upstream. Anything EcoSim needs
+# on top goes here, and we install it explicitly into apps/simulation/.venv
+# after `poetry install` runs from vendored/oasis/.
+#
+# Local dev:
+#   cd apps/simulation && .venv/Scripts/python -m pip install -r requirements-extra.txt
+#
+# Docker build: see apps/simulation/Dockerfile — same step runs after
+# `poetry install`.
+
+# KeyBERT — semantic keyphrase extraction reusing sentence-transformers
+# (already pulled by upstream OASIS). Used by InterestVectorTracker
+# `update_after_round` to derive boost/decay keywords from engaged content.
+# Without it agent_cognition falls back to a coarser N-gram extractor and
+# logs `[COGNITION] KeyBERT not installed, using N-gram fallback` each boot.
+keybert==0.9.0

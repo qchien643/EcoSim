@@ -11,6 +11,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "openai>=1.0",
     "httpx>=0.25",
+    "pydantic>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +20,11 @@ parsing = [
     "langchain-text-splitters>=0.0.1",
     "langchain-experimental>=0.0.50",
     "langchain-openai>=0.0.5",
+]
+zep = [
+    # Zep Cloud SDK cho managed KG extraction. Optional vì user có thể
+    # dùng KG_BUILDER=direct (không cần Zep). Bắt buộc khi KG_BUILDER=zep_hybrid.
+    "zep-cloud>=3.20",
 ]
 
 [tool.setuptools.packages.find]

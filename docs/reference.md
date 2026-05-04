@@ -198,15 +198,18 @@ EcoSim/
 │   │                                   ← upstream, don't touch
 │   └── Dockerfile
 │
-├── frontend/                           ← Vue 3 SPA
-│   ├── package.json
-│   ├── Dockerfile
-│   └── src/
-│       ├── api/client.js               ← axios endpoints
-│       ├── router/index.js
-│       ├── stores/appStore.js
-│       ├── views/                      ← 9 views
-│       └── components/
+├── frontend/                           ← Frontend — Next.js 16 + TS
+│   ├── package.json                    ← Next 16, React 19, Tailwind 3, Zustand, react-query
+│   ├── tailwind.config.ts              ← Linear-style theme (zinc + brand violet)
+│   ├── next.config.ts                  ← rewrites /api/* → ${GATEWAY_UPSTREAM} (default :5000)
+│   ├── tsconfig.json                   ← strict mode
+│   ├── Dockerfile                      ← multi-stage Node 20 → standalone server
+│   ├── .dockerignore
+│   ├── app/                            ← App Router pages (campaign-centric IA)
+│   ├── components/{ui,data,shell}/     ← primitives + shell layout
+│   ├── lib/{api,queries,types}/        ← typed fetch + react-query hooks
+│   ├── stores/{app,ui}-store.ts        ← Zustand
+│   └── hooks/{use-hydration,use-sse}.ts
 │
 ├── docs/                               ← file bạn đang đọc
 │   ├── README.md
@@ -343,7 +346,7 @@ Coverage hiện tại khiêm tốn — chủ yếu integration smoke. Không có
 2. Core: `cd backend && python run.py` (port 5001)
 3. Simulation: `cd oasis && uvicorn sim_service:app --port 5002`
 4. Gateway: `cd gateway && python gateway.py` (port 5000)
-5. Frontend: `cd frontend && npm run dev` (port 5173)
+5. Frontend: `cd apps/frontend && npm run dev` (port 5173, Next.js)
 
 ### `stop.ps1`
 
@@ -363,6 +366,6 @@ Gracefully stop processes + `docker compose down`.
 | `gateway` | `./gateway` | 5000 | core, simulation |
 | `core` | `./backend` | 5001 | — |
 | `simulation` | `./oasis` | 5002 | falkordb |
-| `frontend` | `./frontend` | 3000 (→ 80) | gateway |
+| `frontend` | `./apps/frontend` | 5173 | gateway *(Next.js standalone container, env `GATEWAY_UPSTREAM=http://gateway:5000`)* |
 
 Volume: `falkordb_data` (persisted). `uploads/` và `data/` bind-mounted từ host vào `core`.

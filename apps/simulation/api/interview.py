@@ -11,10 +11,18 @@ import json
 import logging
 import os
 import sqlite3
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+
+from ecosim_common.agent_interview import (
+    BUILTIN_LOADERS,
+    INTENT_INFO_MAP,
+    build_response_prompt,
+    classify_intent,
+    load_context_blocks,
+)
 
 logger = logging.getLogger("sim-svc.interview")
 
@@ -26,6 +34,33 @@ ECOSIM_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os
 SIM_DIR = os.path.join(ECOSIM_ROOT, "data", "simulations")
 FALKOR_HOST = os.getenv("FALKORDB_HOST", "localhost")
 FALKOR_PORT = int(os.getenv("FALKORDB_PORT", "6379"))
+
+
+def _sim_dir(sim_id: str) -> str:
+    """Resolve sim folder via meta.db, fallback to flat layout."""
+    return _sim_meta(sim_id).get("sim_dir") or os.path.join(SIM_DIR, sim_id)
+
+
+def _sim_meta(sim_id: str) -> Dict[str, str]:
+    """All file paths for a sim, resolved from meta.db (with convention fallback).
+
+    Single entry point so every helper in this file goes through the same
+    canonical lookup; previously each helper did its own `os.path.join` and
+    drifted from what `populate_simulation_paths` wrote into the DB.
+    """
+    try:
+        from ecosim_common.path_resolver import resolve_simulation_paths
+        return dict(resolve_simulation_paths(sim_id, fallback=True))
+    except Exception:
+        sim_dir = os.path.join(SIM_DIR, sim_id)
+        return {
+            "sim_dir": sim_dir,
+            "config_path": os.path.join(sim_dir, "config.json"),
+            "profiles_path": os.path.join(sim_dir, "profiles.json"),
+            "oasis_db_path": os.path.join(sim_dir, "oasis_simulation.db"),
+            "campaign_context_path": os.path.join(sim_dir, "campaign_context.txt"),
+            "crisis_log_path": os.path.join(sim_dir, "crisis_log.json"),
+        }
 
 # ── In-memory chat history (per session) ──
 _chat_histories: Dict[str, List[dict]] = {}
@@ -47,12 +82,20 @@ class ChatRequest(BaseModel):
 # ══════════════════════════════════════════════════════════════════
 
 def _get_db_path(sim_id: str) -> str:
-    return os.path.join(SIM_DIR, sim_id, "oasis_simulation.db")
+    # meta.db v5 column points at `oasis_simulation.db` (the actual filename
+    # written by run_simulation). Older v4 rows had `oasis.db`; the
+    # migration rewrote them, but keep a safety fallback for stale rows.
+    p = _sim_meta(sim_id).get("oasis_db_path") or ""
+    if p and os.path.exists(p):
+        return p
+    base = _sim_dir(sim_id)
+    legacy = os.path.join(base, "oasis_simulation.db")
+    return legacy if os.path.exists(legacy) else (p or os.path.join(base, "oasis_simulation.db"))
 
 
 def _get_profiles(sim_id: str) -> list:
-    profiles_path = os.path.join(SIM_DIR, sim_id, "profiles.json")
-    if not os.path.exists(profiles_path):
+    profiles_path = _sim_meta(sim_id).get("profiles_path") or ""
+    if not profiles_path or not os.path.exists(profiles_path):
         return []
     with open(profiles_path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -393,9 +436,11 @@ DU LIEU THO:
 # ══════════════════════════════════════════════════════════════════
 
 def _build_agent_context_from_profile(profile: dict) -> str:
-    """Build context from ENRICHED profile (persisted sim_actions + graph_context).
-    
-    Reads pre-computed data from profiles.json written by enrichment pipeline.
+    """Legacy monolithic context builder — nạp TẤT CẢ sections vào 1 block.
+
+    Giữ lại cho các endpoint cũ (history, profile endpoints) để không break.
+    `chat_with_agent` đã migrate sang intent-classified selective loaders
+    (`_ctx_*` + `INTENT_INFO_MAP`).
     """
     name = profile.get("realname", profile.get("name", "Agent"))
     mbti = profile.get("mbti", "")
@@ -571,8 +616,14 @@ def _build_system_prompt(profile: dict, context: str) -> str:
     mbti_desc = MBTI_DESCRIPTIONS.get(mbti, "")
     stance_desc = STANCE_DESCRIPTIONS.get(stance, stance)
 
-    # Use original persona/user_char if available
-    persona = profile.get("persona", "") or profile.get("user_char", "")
+    # Prefer evolved persona nếu reflection đã tích luỹ insights (Tier B H4 fix).
+    # Agent đã post/comment dựa trên evolved persona; interview phải dùng cùng
+    # bản evolved để câu trả lời nhất quán với hành vi đã sinh.
+    persona = (
+        profile.get("persona_evolved")
+        or profile.get("persona", "")
+        or profile.get("user_char", "")
+    )
 
     # Build identity
     identity_parts = [f"Ban la {name}"]
@@ -615,6 +666,69 @@ QUY TAC TRA LOI:
 
 
 # ══════════════════════════════════════════════════════════════════
+# Interview 2-phase architecture
+# ══════════════════════════════════════════════════════════════════
+#
+# Intent classifier + context block loaders + response prompt composer
+# live in `ecosim_common.agent_interview` (shared with Report
+# `interview_agents` tool and Survey `conduct_survey`). This module only
+# adds sim-specific loaders (`campaign`, `crisis`) that need filesystem
+# access to the `data/simulations/{sim_id}/` directory.
+# ══════════════════════════════════════════════════════════════════
+
+
+def _ctx_campaign(sim_id: str) -> str:
+    """Load campaign context from sim config (paths via meta.db)."""
+    meta = _sim_meta(sim_id)
+    ctx_path = meta.get("campaign_context_path") or ""
+    if ctx_path and os.path.exists(ctx_path):
+        try:
+            with open(ctx_path, "r", encoding="utf-8") as f:
+                return f.read().strip()[:1500]
+        except OSError:
+            pass
+    cfg_path = meta.get("config_path") or ""
+    if cfg_path and os.path.exists(cfg_path):
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            return cfg.get("campaign_context", "(no campaign context)")[:1500]
+        except (OSError, json.JSONDecodeError):
+            pass
+    return "(no campaign context)"
+
+
+def _ctx_crisis(sim_id: str) -> str:
+    """Load crisis events for this sim (path via meta.db)."""
+    log_path = _sim_meta(sim_id).get("crisis_log_path") or ""
+    if os.path.exists(log_path):
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                events = json.load(f)
+            if isinstance(events, list) and events:
+                lines = [f"Crisis events triggered ({len(events)} total):"]
+                for ev in events[:5]:
+                    if not isinstance(ev, dict):
+                        continue
+                    title = ev.get("title", "?")
+                    rd = ev.get("trigger_round", "?")
+                    sev = ev.get("severity", "?")
+                    lines.append(f"  [Round {rd}, severity={sev}] {title}")
+                return "\n".join(lines)
+        except (OSError, json.JSONDecodeError):
+            pass
+    return "(no crisis events in this simulation)"
+
+
+def _sim_loaders_registry(sim_id: str) -> Dict[str, Any]:
+    """Merge builtin loaders with sim-specific `campaign` + `crisis` closures."""
+    registry = dict(BUILTIN_LOADERS)
+    registry["campaign"] = lambda _profile, _topic="": _ctx_campaign(sim_id)
+    registry["crisis"] = lambda _profile, _topic="": _ctx_crisis(sim_id)
+    return registry
+
+
+# ══════════════════════════════════════════════════════════════════
 # ENDPOINTS
 # ══════════════════════════════════════════════════════════════════
 
@@ -624,7 +738,7 @@ async def list_agents(sim_id: str = Query("", description="Simulation ID")):
     if not sim_id:
         raise HTTPException(400, "sim_id is required")
 
-    sim_dir = os.path.join(SIM_DIR, sim_id)
+    sim_dir = _sim_dir(sim_id)
     if not os.path.isdir(sim_dir):
         raise HTTPException(404, f"Simulation {sim_id} not found")
 
@@ -655,7 +769,7 @@ async def list_agents(sim_id: str = Query("", description="Simulation ID")):
 @router.post("/chat")
 async def chat_with_agent(req: ChatRequest):
     """Send a message and get an in-character response from the agent."""
-    sim_dir = os.path.join(SIM_DIR, req.sim_id)
+    sim_dir = _sim_dir(req.sim_id)
     if not os.path.isdir(sim_dir):
         raise HTTPException(404, f"Simulation {req.sim_id} not found")
 
@@ -671,26 +785,26 @@ async def chat_with_agent(req: ChatRequest):
         try:
             from api.simulation import (
                 _extract_agent_actions_from_db, _query_kg_for_agent, _llm_summarize_kg,
-                SIM_DIR as _SIM_DIR, _simulations
+                _simulations
             )
             from datetime import datetime as _dt
 
-            _state = _simulations.get(req.sim_id)
-            _sim_dir = _state.output_dir if _state else os.path.join(_SIM_DIR, req.sim_id)
-            _db_path = os.path.join(_sim_dir, "oasis_simulation.db")
+            # All paths via meta.db
+            _meta = _sim_meta(req.sim_id)
+            _sim_dir = _meta.get("sim_dir") or ""
+            _db_path = _meta.get("oasis_db_path") or ""
+            _cfg_path = _meta.get("config_path") or ""
 
-            # Determine group_id
-            _group_id = ""
+            # Determine group_id — in-memory state preferred, else config.json
+            _state = _simulations.get(req.sim_id)
             if _state:
                 _group_id = _state.group_id or req.sim_id
+            elif _cfg_path and os.path.exists(_cfg_path):
+                with open(_cfg_path, "r", encoding="utf-8") as cf:
+                    _cfg = json.load(cf)
+                _group_id = _cfg.get("group_id", req.sim_id)
             else:
-                _cfg_path = os.path.join(_sim_dir, "simulation_config.json")
-                if os.path.exists(_cfg_path):
-                    with open(_cfg_path, "r", encoding="utf-8") as cf:
-                        _cfg = json.load(cf)
-                    _group_id = _cfg.get("group_id", req.sim_id)
-                else:
-                    _group_id = req.sim_id
+                _group_id = req.sim_id
 
             # Extract actions
             if os.path.exists(_db_path):
@@ -725,7 +839,7 @@ async def chat_with_agent(req: ChatRequest):
             profile["enriched_at"] = _dt.utcnow().isoformat()
 
             # Persist
-            _profiles_path = os.path.join(_sim_dir, "profiles.json")
+            _profiles_path = _meta.get("profiles_path") or os.path.join(_sim_dir, "profiles.json")
             _all_profiles = _get_profiles(req.sim_id)
             _all_profiles[req.agent_id] = profile
             with open(_profiles_path, "w", encoding="utf-8") as wf:
@@ -735,32 +849,56 @@ async def chat_with_agent(req: ChatRequest):
         except Exception as e:
             import traceback
             logger.warning(f"Lazy enrichment failed: {e}\n{traceback.format_exc()}")
-    # Build context from enriched profile
-    context = _build_agent_context_from_profile(profile)
-    system_prompt = _build_system_prompt(profile, context)
+    # ── 2-phase interview architecture (Tier B++ redesign) ──
+    # Interview uses FAST model cho cả classifier + response — prompt đã có
+    # context đầy đủ (persona + selective blocks), không cần reasoning model mạnh.
+    # Override qua env LLM_FAST_MODEL_NAME (vd "gpt-4o-mini", "gpt-3.5-turbo",
+    # "llama-3.1-8b-instant") để tiết kiệm chi phí.
+    api_key = os.environ.get("LLM_API_KEY", "")
+    base_url = os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
+    fast_model = (
+        os.environ.get("LLM_FAST_MODEL_NAME", "").strip()
+        or os.environ.get("LLM_MODEL_NAME", "gpt-4o-mini")
+    )
 
-    # Build messages for LLM
+    # Phase 1: Intent classification (small LLM call, fast model)
+    intent_data = await classify_intent(req.message, api_key, base_url, fast_model)
+    logger.info(
+        "Interview intent for agent %d: %s (conf=%.2f, lang=%s, topic=%r)",
+        req.agent_id, intent_data["intent"], intent_data["confidence"],
+        intent_data["language"], intent_data["topic_hint"],
+    )
+
+    # Phase 2: Load ONLY required context blocks based on intent
+    required_blocks = INTENT_INFO_MAP.get(
+        intent_data["intent"], INTENT_INFO_MAP["general"]
+    )
+    context_blocks = load_context_blocks(
+        profile,
+        required_blocks,
+        loaders_registry=_sim_loaders_registry(req.sim_id),
+        topic_hint=intent_data.get("topic_hint", ""),
+    )
+
+    # Phase 3: Build minimal system prompt + call LLM for response
+    system_prompt = build_response_prompt(profile, intent_data, context_blocks)
+
     messages = [{"role": "system", "content": system_prompt}]
-    for msg in req.history:
+    for msg in req.history[-10:]:  # cap history to last 10 turns
         messages.append({
             "role": msg.get("role", "user"),
             "content": msg.get("content", ""),
         })
     messages.append({"role": "user", "content": req.message})
 
-    # Call LLM
     import httpx
-    api_key = os.environ.get("LLM_API_KEY", "")
-    base_url = os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
-    model = os.environ.get("LLM_MODEL_NAME", "gpt-4o-mini")
-
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 f"{base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
-                    "model": model,
+                    "model": fast_model,
                     "messages": messages,
                     "max_tokens": 500,
                     "temperature": 0.7,
@@ -769,7 +907,7 @@ async def chat_with_agent(req: ChatRequest):
             resp.raise_for_status()
             answer = resp.json()["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        logger.error(f"LLM chat error: {e}")
+        logger.error(f"Interview Phase 3 LLM call failed: {e}")
         raise HTTPException(502, f"LLM call failed: {e}")
 
     # Save to history
@@ -779,7 +917,6 @@ async def chat_with_agent(req: ChatRequest):
     _chat_histories[history_key].append({"role": "user", "content": req.message})
     _chat_histories[history_key].append({"role": "assistant", "content": answer})
 
-    # Persist to disk
     history_path = os.path.join(sim_dir, f"interview_{req.agent_id}.json")
     try:
         with open(history_path, "w", encoding="utf-8") as f:
@@ -791,11 +928,19 @@ async def chat_with_agent(req: ChatRequest):
     return {
         "agent_name": agent_name,
         "response": answer,
+        "intent": {
+            "classified_as": intent_data["intent"],
+            "confidence": intent_data["confidence"],
+            "language": intent_data["language"],
+            "context_blocks_loaded": list(context_blocks.keys()),
+            "model_used": fast_model,
+        },
         "context_stats": {
             "posts": len(sa.get("posts", [])),
             "comments": len(sa.get("comments", [])),
             "likes": len(sa.get("likes_given", [])),
             "graph_context_len": len(profile.get("graph_context", "")),
+            "blocks_used": len(context_blocks),
         },
     }
 
@@ -811,7 +956,7 @@ async def get_history(
     if history_key in _chat_histories:
         return {"history": _chat_histories[history_key]}
 
-    history_path = os.path.join(SIM_DIR, sim_id, f"interview_{agent_id}.json")
+    history_path = os.path.join(_sim_dir(sim_id), f"interview_{agent_id}.json")
     if os.path.exists(history_path):
         with open(history_path, "r", encoding="utf-8") as f:
             history = json.load(f)
@@ -830,7 +975,7 @@ async def get_agent_profile(
     if not sim_id:
         raise HTTPException(400, "sim_id is required")
 
-    sim_dir = os.path.join(SIM_DIR, sim_id)
+    sim_dir = _sim_dir(sim_id)
     if not os.path.isdir(sim_dir):
         raise HTTPException(404, f"Simulation {sim_id} not found")
 

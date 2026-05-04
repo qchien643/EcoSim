@@ -17,9 +17,28 @@ Schema of profile.parquet:
 import json
 import logging
 import os
+import re
 from typing import Dict, List, Optional
 
 import duckdb
+
+# Chỉ cho phép chữ, số, space, dấu gạch, underscore, ampersand — đủ cho domain name
+# (vd "Computer Science", "Healthcare & Biotech"). Mọi ký tự khác bị strip.
+_DOMAIN_SAFE_RE = re.compile(r"[^A-Za-z0-9 \-_&]")
+
+
+def _sanitize_domain(raw: str) -> str:
+    """Strip về allowlist chars để inject an toàn vào DuckDB ILIKE."""
+    if not raw:
+        return ""
+    cleaned = _DOMAIN_SAFE_RE.sub("", raw.strip().strip('"'))
+    return cleaned.strip()
+
+
+def _seed_to_float(seed: int) -> float:
+    """DuckDB `setseed()` yêu cầu float trong [-1, 1]. Ánh xạ int seed bất kỳ."""
+    # Dùng modulo để giữ deterministic, tránh precision issue cho int lớn
+    return ((int(seed) % 20001) - 10000) / 10000.0
 
 logger = logging.getLogger("ecosim.parquet_reader")
 
@@ -83,6 +102,7 @@ class ParquetProfileReader:
         domains: List[str],
         n: int,
         include_specific: bool = True,
+        seed: Optional[int] = None,
     ) -> List[Dict]:
         """Sample n profiles matching given domains.
 
@@ -93,18 +113,18 @@ class ParquetProfileReader:
             domains: List of domain strings to match (case-insensitive)
             n: Number of profiles to sample
             include_specific: Also search specific domain field
+            seed: Reproducibility seed cho TABLESAMPLE `REPEATABLE`
 
         Returns:
             List of dicts with keys: persona, general_domain, specific_domain
         """
         if not domains:
-            return self.sample_random(n)
+            return self.sample_random(n, seed=seed)
 
-        # Build domain filter — use string interpolation with sanitized values
-        # (DuckDB STRUCT->VARCHAR ILIKE doesn't work well with parameterized queries)
+        # Build domain filter — input được sanitize qua allowlist regex
         conditions = []
         for domain in domains:
-            clean = domain.strip().strip('"').replace("'", "''")
+            clean = _sanitize_domain(domain)
             if not clean or clean.lower() == "none":
                 continue
             conditions.append(
@@ -116,9 +136,10 @@ class ParquetProfileReader:
                 )
 
         if not conditions:
-            return self.sample_random(n)
+            return self.sample_random(n, seed=seed)
 
         where_clause = " OR ".join(conditions)
+        repeat_clause = f" REPEATABLE ({int(seed)})" if seed is not None else ""
 
         # 2-stage sampling: TABLESAMPLE first to reduce scan, then filter
         # Stage 1: Try with 10% sample (~2M rows) for speed
@@ -130,14 +151,17 @@ class ParquetProfileReader:
                         CAST(json->>'persona' AS VARCHAR) as persona,
                         CAST(json->>'general domain (top 1 percent)' AS VARCHAR) as general_domain,
                         CAST(json->>'specific domain (top 1 percent)' AS VARCHAR) as specific_domain
-                    FROM (SELECT * FROM '{self.parquet_path}' USING SAMPLE {sample_pct} PERCENT (bernoulli)) t
+                    FROM (
+                        SELECT * FROM '{self.parquet_path}'
+                        USING SAMPLE {sample_pct} PERCENT (bernoulli){repeat_clause}
+                    ) t
                     WHERE ({where_clause})
                       AND CAST(json->>'persona' AS VARCHAR) IS NOT NULL
                       AND length(CAST(json->>'persona' AS VARCHAR)) > 50
                     LIMIT {n}
                 """
             else:
-                # Full scan as last resort
+                # Full scan as last resort — `random()` được seeded bằng setseed() bên trên
                 query = f"""
                     SELECT
                         CAST(json->>'persona' AS VARCHAR) as persona,
@@ -152,12 +176,15 @@ class ParquetProfileReader:
                 """
 
             try:
+                if seed is not None:
+                    # setseed cho `random()` trong DuckDB — phải ở khoảng [-1, 1]
+                    self.conn.execute(f"SELECT setseed({_seed_to_float(seed)})")
                 rows = self.conn.execute(query).fetchall()
                 results = [self._row_to_dict(row) for row in rows]
                 if len(results) >= n or sample_pct >= 100:
                     logger.info(
                         f"Sampled {len(results)} domain-filtered profiles "
-                        f"(requested {n}, domains={domains}, sample={sample_pct}%)"
+                        f"(requested {n}, domains={domains}, sample={sample_pct}%, seed={seed})"
                     )
                     return results
                 logger.info(f"Only got {len(results)}/{n} from {sample_pct}% sample, retrying...")
@@ -165,13 +192,15 @@ class ParquetProfileReader:
                 logger.warning(f"Domain sampling ({sample_pct}%) failed: {e}")
                 if sample_pct >= 100:
                     logger.warning("Falling back to random sampling")
-                    return self.sample_random(n)
+                    return self.sample_random(n, seed=seed)
 
-    def sample_random(self, n: int) -> List[Dict]:
+    def sample_random(self, n: int, seed: Optional[int] = None) -> List[Dict]:
         """Random sample from entire dataset.
 
         Uses DuckDB USING SAMPLE for efficient reservoir sampling.
+        Passing `seed` ⇒ `REPEATABLE(...)` để query lặp lại được.
         """
+        repeat_clause = f" REPEATABLE ({int(seed)})" if seed is not None else ""
         query = f"""
             SELECT
                 CAST(json->>'persona' AS VARCHAR) as persona,
@@ -180,11 +209,11 @@ class ParquetProfileReader:
             FROM '{self.parquet_path}'
             WHERE CAST(json->>'persona' AS VARCHAR) IS NOT NULL
               AND length(CAST(json->>'persona' AS VARCHAR)) > 50
-            USING SAMPLE {n}
+            USING SAMPLE reservoir({n} ROWS){repeat_clause}
         """
         rows = self.conn.execute(query).fetchall()
         results = [self._row_to_dict(row) for row in rows]
-        logger.info(f"Sampled {len(results)} random profiles (requested {n})")
+        logger.info(f"Sampled {len(results)} random profiles (requested {n}, seed={seed})")
         return results
 
     def sample_by_keywords(self, keywords: List[str], n: int) -> List[Dict]:

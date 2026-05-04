@@ -24,9 +24,9 @@ if sys.platform == 'win32':
 # Fix imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.services.parquet_reader import ParquetProfileReader
+from ecosim_common.parquet_reader import ParquetProfileReader
 from app.services.profile_generator import ProfileGenerator, BEHAVIOR_RULES, MBTI_TYPES
-from app.services.name_pool import NamePool
+from ecosim_common.name_pool import NamePool
 from app.models.simulation import AgentProfile
 
 

@@ -14,79 +14,137 @@
 #
 # Dev hosts: nếu chạy local không qua Docker, thay `core:5001` bằng
 # `localhost:5001` và `simulation:5002` bằng `localhost:5002`.
-
 {
-    # Disable auto HTTPS — EcoSim là internal service, không cần TLS ở đây
-    auto_https off
-    # Admin API off trong prod (tránh exposing qua port 2019)
-    admin off
+	# Disable auto HTTPS — EcoSim là internal service, không cần TLS ở đây
+	auto_https off
+	# Admin API off trong prod (tránh exposing qua port 2019)
+	admin off
 }
 
-# Upstream vars — override qua env cho local dev:
-#   CORE_UPSTREAM=localhost:5001 SIM_UPSTREAM=localhost:5002 caddy run ...
+# Upstream vars — compile-time env substitution với default localhost cho local dev.
+# Caddy syntax `{$VAR:default}` expand tại lúc load config; `{env.VAR}` là runtime
+# placeholder và KHÔNG hỗ trợ default chứa dấu `:` (gây lỗi "dial tcp :0").
+# Docker override qua docker-compose: CORE_UPSTREAM=core:5001, SIM_UPSTREAM=simulation:5002
 (upstream_core) {
-    reverse_proxy {env.CORE_UPSTREAM:core:5001}
+	reverse_proxy {$CORE_UPSTREAM:localhost:5001} {
+		# SSE streaming (Report log) — flush từng event ngay
+		flush_interval -1
+		# 30 phút cho LLM chains: report ReACT (8+ sections × tool calls trên
+		# KG + sentiment + survey), campaign upload+parse (LLM extract spec từ
+		# PDF dài). Trước là 600s nhưng full report có thể chạm 20-25 phút.
+		transport http {
+			read_timeout 1800s
+			write_timeout 1800s
+			dial_timeout 10s
+		}
+	}
 }
 (upstream_sim) {
-    reverse_proxy {env.SIM_UPSTREAM:simulation:5002} {
-        # SSE streaming: disable buffer để forward event kịp thời
-        flush_interval -1
-        # Long timeouts cho LLM chains (report ReACT, graph build, sim prepare)
-        transport http {
-            read_timeout 600s
-            write_timeout 600s
-            dial_timeout 10s
-        }
-    }
+	reverse_proxy {$SIM_UPSTREAM:localhost:5002} {
+		# SSE streaming: disable buffer để forward event kịp thời
+		flush_interval -1
+		# 30 phút cho LLM chains: graph build (Graphiti add_episode + LLM extract
+		# entities/edges từ N sections — có thể 15-20 phút trên doc lớn), sim
+		# prepare (DuckDB sample + N profile enrichment LLM calls), survey
+		# conduct (1 LLM call/agent × N agents). Trước là 600s.
+		transport http {
+			read_timeout 1800s
+			write_timeout 1800s
+			dial_timeout 10s
+		}
+	}
 }
 
 :5000 {
-    # Access log — console format để đọc trực tiếp, JSON nếu ship sang Loki
-    log {
-        output stdout
-        format console
-        level INFO
-    }
+	# Access log — console format để đọc trực tiếp, JSON nếu ship sang Loki
+	log {
+		output stdout
+		format console
+		level INFO
+	}
 
-    # Gateway liveness (independent of backends)
-    handle /api/health/gateway {
-        respond `{"status":"ok","service":"gateway"}` 200 {
-            header Content-Type application/json
-        }
-    }
+	# ── CORS (dev) ──────────────────────────────────────────────
+	# Cho phép browser ở `http://localhost:5173` (Next.js dev server)
+	# gọi trực tiếp gateway, bypass Next dev's internal rewrite proxy
+	# vốn drop connection trên long-running LLM calls (graph build,
+	# campaign upload parse, sim prepare). Trong Docker không cần CORS
+	# vì Next rewrite cùng origin.
+	#
+	# Header set TRƯỚC handle blocks — applied to mọi response sau đó.
+	# Origin reflect từ `Origin` request header để hỗ trợ cả 5173 và
+	# các port dev khác (3000, 5174, ...). Trong prod siết lại whitelist.
+	@cors_preflight method OPTIONS
+	handle @cors_preflight {
+		header {
+			Access-Control-Allow-Origin "{http.request.header.Origin}"
+			Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization, Cache-Control"
+			Access-Control-Allow-Credentials "true"
+			Access-Control-Max-Age "86400"
+			Vary "Origin"
+		}
+		respond "" 204
+	}
+	header {
+		Access-Control-Allow-Origin "{http.request.header.Origin}"
+		Access-Control-Allow-Credentials "true"
+		Vary "Origin"
+		# Cho client đọc thêm header khi cần (rare, nhưng harmless)
+		Access-Control-Expose-Headers "X-Sim-Id, X-Campaign-Id, X-Survey-Id"
+	}
 
-    # Aggregate health — forward tới Core (trả {status, services})
-    handle /api/health {
-        import upstream_core
-    }
+	# Gateway liveness (independent of backends)
+	handle /api/health/gateway {
+		header Content-Type application/json
+		respond `{"status":"ok","service":"gateway"}` 200
+	}
 
-    # Campaign + Report → Core
-    handle /api/campaign/* {
-        import upstream_core
-    }
-    handle /api/report/* {
-        import upstream_core
-    }
+	# Aggregate health — forward tới Core (trả {status, services})
+	handle /api/health {
+		import upstream_core
+	}
 
-    # Sim family → Simulation (SSE-aware)
-    handle /api/sim/* {
-        import upstream_sim
-    }
-    handle /api/graph/* {
-        import upstream_sim
-    }
-    handle /api/survey/* {
-        import upstream_sim
-    }
-    handle /api/interview/* {
-        import upstream_sim
-    }
-    handle /api/analysis/* {
-        import upstream_sim
-    }
+	# Campaign DELETE cascade → Sim service (cần FalkorDB access).
+	# `handle` matcher có ưu tiên cao hơn nếu list trước. Caddy first-match
+	# theo thứ tự khai báo trong cùng `handle` group.
+	@delete_campaign {
+		method DELETE
+		path /api/campaign/*
+	}
+	handle @delete_campaign {
+		import upstream_sim
+	}
 
-    # Catch-all
-    handle {
-        respond "Gateway: no route for {uri}" 404
-    }
+	# Campaign GET/POST + Report + Dashboard → Core
+	handle /api/campaign/* {
+		import upstream_core
+	}
+	handle /api/report/* {
+		import upstream_core
+	}
+	handle /api/dashboard/* {
+		import upstream_core
+	}
+
+	# Sim family → Simulation (SSE-aware)
+	handle /api/sim/* {
+		import upstream_sim
+	}
+	handle /api/graph/* {
+		import upstream_sim
+	}
+	handle /api/survey/* {
+		import upstream_sim
+	}
+	handle /api/interview/* {
+		import upstream_sim
+	}
+	handle /api/analysis/* {
+		import upstream_sim
+	}
+
+	# Catch-all
+	handle {
+		respond "Gateway: no route for {uri}" 404
+	}
 }

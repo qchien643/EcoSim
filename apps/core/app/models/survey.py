@@ -25,6 +25,21 @@ class QuestionCategory(str, Enum):
     ECONOMIC = "economic"
 
 
+class ReportSection(str, Enum):
+    """Map câu hỏi survey tới section nào của Report sẽ cite answer.
+
+    Dùng bởi SurveyQuestionGenerator để đảm bảo mỗi Report section có data
+    support. `_tool_survey_result` group questions by field này cho LLM dễ cite.
+    """
+
+    EXECUTIVE = "executive"           # Section 1: tổng hợp (hiếm — thường tổng từ sections khác)
+    CONTEXT = "context"                # Section 2: demographic, cohort (MBTI/age/domain)
+    CONTENT = "content"                # Section 3: topic relevance, share of voice, narrative
+    KPI = "kpi"                        # Section 4: measurable behaviors (intent, retention, referral)
+    RESPONSE = "response"              # Section 5: crisis reaction, sentiment, attribution
+    RECOMMENDATION = "recommendation"  # Section 6: future intent, suggestions
+
+
 class SurveyQuestion(BaseModel):
     """A single survey question."""
     id: str = ""
@@ -32,6 +47,12 @@ class SurveyQuestion(BaseModel):
     question_type: QuestionType = QuestionType.OPEN_ENDED
     options: List[str] = Field(default_factory=list)  # for multiple_choice
     category: QuestionCategory = QuestionCategory.GENERAL
+    # Tier B+ redesign: rationale cho auto-generated questions — giải thích
+    # vì sao câu hỏi này hữu ích cho context sim. Empty string cho manual questions.
+    rationale: str = ""
+    # Tier B++ redesign: tag target Report section để Report cite đúng context.
+    # Empty = general (không gắn section cụ thể).
+    report_section: str = ""
 
     def format_instruction(self) -> str:
         """Return format instruction for LLM based on question type."""
@@ -44,6 +65,54 @@ class SurveyQuestion(BaseModel):
             return f"Choose one of: [{opts}], then explain your reasoning."
         else:
             return "Provide a detailed answer (2-3 sentences)."
+
+
+# ═══════════════════════════════════════════════
+# Canonical DEFAULT_QUESTIONS — single source of truth
+# ═══════════════════════════════════════════════
+# Dùng ở `apps/core/app/services/survey_engine.py` và proxy qua
+# `GET /api/survey/default-questions`. Trước đây duplicate ở 2 chỗ với
+# category strings không khớp enum — unified ở đây.
+
+DEFAULT_QUESTIONS: List["SurveyQuestion"] = [
+    SurveyQuestion(
+        id="q1",
+        text="Bạn đánh giá mức độ tác động của chiến dịch này đến hoạt động kinh doanh/tiêu dùng của bạn như thế nào?",
+        question_type=QuestionType.SCALE_1_10,
+        category=QuestionCategory.ECONOMIC,
+        report_section=ReportSection.KPI.value,
+    ),
+    SurveyQuestion(
+        id="q2",
+        text="Bạn có thay đổi hành vi mua sắm/kinh doanh sau khi xảy ra biến cố không?",
+        question_type=QuestionType.YES_NO,
+        options=["Yes", "No"],
+        category=QuestionCategory.BEHAVIOR,
+        report_section=ReportSection.RESPONSE.value,
+    ),
+    SurveyQuestion(
+        id="q3",
+        text="Cảm nhận chung của bạn về chiến dịch này là gì?",
+        question_type=QuestionType.MULTIPLE_CHOICE,
+        options=["Rất tích cực", "Tích cực", "Trung lập", "Tiêu cực", "Rất tiêu cực"],
+        category=QuestionCategory.SENTIMENT,
+        report_section=ReportSection.RESPONSE.value,
+    ),
+    SurveyQuestion(
+        id="q4",
+        text="Theo bạn, đâu là rủi ro lớn nhất mà chiến dịch này có thể gặp phải?",
+        question_type=QuestionType.OPEN_ENDED,
+        category=QuestionCategory.ECONOMIC,
+        report_section=ReportSection.RECOMMENDATION.value,
+    ),
+    SurveyQuestion(
+        id="q5",
+        text="Nếu có biến cố tương tự xảy ra trong tương lai, bạn sẽ phản ứng như thế nào?",
+        question_type=QuestionType.OPEN_ENDED,
+        category=QuestionCategory.BEHAVIOR,
+        report_section=ReportSection.RECOMMENDATION.value,
+    ),
+]
 
 
 class AgentResponse(BaseModel):

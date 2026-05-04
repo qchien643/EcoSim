@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # EcoSim - Stop All Services
 # Usage: .\stop.ps1 [-KeepDocker] [-Only <service>]
 # ============================================================
@@ -29,7 +29,7 @@ function Kill-Tree {
 # Track killed PIDs to avoid double-kill
 $killedPids = [System.Collections.Generic.HashSet[int]]::new()
 
-# ── 1. Kill by port ──
+# -- 1. Kill by port --
 $ports = @(
     @{ Port = 5000; Name = "API Gateway";        Filter = "gateway" },
     @{ Port = 5001; Name = "Core Service";        Filter = "core" },
@@ -55,7 +55,7 @@ foreach ($entry in $ports) {
     }
 }
 
-# ── 2. Kill by window title ──
+# -- 2. Kill by window title --
 $titles = @(
     @{ Pattern = "EcoSim - Core Service";       Filter = "core" },
     @{ Pattern = "EcoSim - Simulation Service";  Filter = "sim" },
@@ -79,14 +79,39 @@ foreach ($entry in $titles) {
     }
 }
 
-# ── 3. Kill orphan python/node from EcoSim ──
-if ($Only -eq "" -or $Only -eq "sim" -or $Only -eq "core" -or $Only -eq "gateway") {
+# -- 3. Kill orphan python from EcoSim. Patterns are SCOPED to the
+#    requested service so `-Only gateway` doesn't nuke Core / Sim too.
+#    -Only "" (all)   => match every EcoSim python process
+#    -Only "core"     => only `run.py`
+#    -Only "sim"      => only `sim_service` / `run_simulation`
+#    -Only "gateway"  => only legacy `gateway.py`
+$pyPatterns = @()
+if ($Only -eq "" -or $Only -eq "core")    { $pyPatterns += "run\.py" }
+if ($Only -eq "" -or $Only -eq "sim")     { $pyPatterns += "sim_service"; $pyPatterns += "run_simulation" }
+if ($Only -eq "" -or $Only -eq "gateway") { $pyPatterns += "gateway\.py" }
+
+if ($pyPatterns.Count -gt 0) {
+    $combined = ($pyPatterns -join "|")
     $pyProcs = Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue
     foreach ($p in $pyProcs) {
         if ($killedPids.Contains([int]$p.ProcessId)) { continue }
         $cmd = $p.CommandLine
-        if ($cmd -and ($cmd -match "sim_service" -or $cmd -match "run\.py" -or $cmd -match "gateway\.py" -or $cmd -match "run_simulation")) {
-            Write-Host "  [ORPHAN] Killing python.exe (PID $($p.ProcessId))" -ForegroundColor Yellow
+        if ($cmd -and $cmd -match $combined) {
+            Write-Host "  [ORPHAN] Killing python.exe (PID $($p.ProcessId)) - matched /$combined/" -ForegroundColor Yellow
+            Kill-Tree -ProcessId $p.ProcessId
+            [void]$killedPids.Add([int]$p.ProcessId)
+            $killed++
+        }
+    }
+}
+
+if ($Only -eq "" -or $Only -eq "gateway") {
+    $caddyProcs = Get-CimInstance Win32_Process -Filter "Name='caddy.exe'" -ErrorAction SilentlyContinue
+    foreach ($p in $caddyProcs) {
+        if ($killedPids.Contains([int]$p.ProcessId)) { continue }
+        $cmd = $p.CommandLine
+        if ($cmd -and $cmd -match "Caddyfile") {
+            Write-Host "  [ORPHAN] Killing caddy.exe (PID $($p.ProcessId)) - Gateway" -ForegroundColor Yellow
             Kill-Tree -ProcessId $p.ProcessId
             [void]$killedPids.Add([int]$p.ProcessId)
             $killed++
@@ -95,20 +120,28 @@ if ($Only -eq "" -or $Only -eq "sim" -or $Only -eq "core" -or $Only -eq "gateway
 }
 
 if ($Only -eq "" -or $Only -eq "frontend") {
-    $nodeProcs = Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue
-    foreach ($p in $nodeProcs) {
-        if ($killedPids.Contains([int]$p.ProcessId)) { continue }
-        $cmd = $p.CommandLine
-        if ($cmd -and $cmd -match "EcoSim.*frontend") {
-            Write-Host "  [ORPHAN] Killing node.exe (PID $($p.ProcessId)) - Frontend" -ForegroundColor Yellow
-            Kill-Tree -ProcessId $p.ProcessId
-            [void]$killedPids.Add([int]$p.ProcessId)
-            $killed++
+    # Next.js dev spawns several node workers (compiler, server, esbuild).
+    # Match any node/esbuild whose CommandLine references the EcoSim frontend dir
+    # OR which is the standalone next/server.js process.
+    $jsProcNames = @("node.exe", "esbuild.exe")
+    foreach ($name in $jsProcNames) {
+        $procs = Get-CimInstance Win32_Process -Filter "Name='$name'" -ErrorAction SilentlyContinue
+        foreach ($p in $procs) {
+            if ($killedPids.Contains([int]$p.ProcessId)) { continue }
+            $cmd = $p.CommandLine
+            if ($cmd -and ($cmd -match "EcoSim[\\/]apps[\\/]frontend" -or
+                            $cmd -match "next/dist/bin/next" -or
+                            $cmd -match "\.next[\\/]standalone[\\/]server\.js")) {
+                Write-Host "  [ORPHAN] Killing $name (PID $($p.ProcessId)) - Frontend" -ForegroundColor Yellow
+                Kill-Tree -ProcessId $p.ProcessId
+                [void]$killedPids.Add([int]$p.ProcessId)
+                $killed++
+            }
         }
     }
 }
 
-# ── 4. FalkorDB (Docker) ──
+# -- 4. FalkorDB (Docker) --
 if (-not $KeepDocker -and ($Only -eq "" -or $Only -eq "falkordb")) {
     $container = docker ps -q -f "name=ecosim-falkordb" 2>$null
     if ($container) {
@@ -118,7 +151,7 @@ if (-not $KeepDocker -and ($Only -eq "" -or $Only -eq "falkordb")) {
     }
 }
 
-# ── Summary ──
+# -- Summary --
 Write-Host ""
 if ($killed -eq 0) {
     Write-Host "  No EcoSim services were running." -ForegroundColor DarkGray

@@ -2,13 +2,15 @@
 
 Đây là file tài liệu dày nhất vì cơ chế ra quyết định của EcoSim tập trung toàn bộ ở đây. Nếu bạn chỉ đọc một file, đọc file này.
 
+Pipeline đã trải qua một đợt refactor Tier B (ngày 2026-04-24) — các số liệu + công thức + artifacts dưới đây phản ánh **code thực tế**. Nếu thấy claim sai lệch, file này là nguồn chính; chỉnh docs + code cùng lúc.
+
 ## Tổng quan
 
 ```mermaid
 flowchart LR
     Start[POST /api/sim/start] --> Sp[sim_runner spawn subprocess]
     Sp --> R[apps/simulation/run_simulation.py]
-    R --> Init[Round 0: inject initial posts]
+    R --> Init[Round 0: inject seed post via author strategy]
     Init --> Loop[Round 1..N]
     Loop --> End{N rounds done?}
     End -->|No| Loop
@@ -19,146 +21,170 @@ Subprocess dùng `.venv` riêng của OASIS (`apps/simulation/.venv/Scripts/pyth
 
 ## 1. Cấu trúc một round
 
-Mỗi round có 5 phase, được điều khiển từ `main loop` trong [apps/simulation/run_simulation.py:755-1000](../apps/simulation/run_simulation.py#L755-L1000):
+Mỗi round có 5 phase:
 
 ```mermaid
 flowchart TD
     Start[Round N start] --> P0[Phase 0: Crisis check<br/>scheduled + pending runtime]
     P0 --> P1[Phase 1: Reflection<br/>mỗi 3 rounds nếu enable]
-    P1 --> P2[Phase 2: Posting<br/>conditional post + LLM content]
-    P2 --> P3[Phase 3: ChromaDB re-index<br/>new posts]
-    P3 --> P4[Phase 4: Interactions<br/>feed + comment + like]
-    P4 --> P5[Phase 5: Persistence<br/>actions.jsonl + memory + drift]
+    P1 --> P2[Phase 2: Posting<br/>should_post * period_mult]
+    P2 --> P3[Phase 3: ChromaDB re-index<br/>persistent per-sim]
+    P3 --> P4[Phase 4: Interactions<br/>feed + like + parallel comment LLM]
+    P4 --> P5[Phase 5: Persistence<br/>atomic_append_jsonl + memory_stats + drift]
     P5 --> Next[Round N+1]
 ```
 
 ### Phase 0 — Crisis check
 
-[run_simulation.py:763-821](../apps/simulation/run_simulation.py#L763-L821)
+[apps/simulation/run_simulation.py](../apps/simulation/run_simulation.py) Phase 0 block:
 
 ```mermaid
 flowchart LR
     Schd[crisis_scenarios.json<br/>trigger_round == N?] -->|Yes| Fire[Fire scheduled crisis]
     Runtime[pending_crisis.json] -->|có?| Fire
-    Fire --> Post[Generate breaking news post<br/>auto-author: 'system' hoặc influencer agent]
-    Fire --> Perturb[Perturb interest vectors<br/>toàn bộ agents]
+    Fire --> Author[Resolve author<br/>via resolve_author_id]
+    Author --> Post[Generate breaking news post]
+    Fire --> Score[compute_agent_relevance<br/>Jaccard token overlap]
+    Score --> Perturb[Perturb interest vector × relevance<br/>mỗi agent]
     Fire --> Append[Append crisis context<br/>vào persona agents affected]
 ```
 
 Crisis runtime injection qua `POST /api/sim/{id}/inject-crisis` — ghi `pending_crisis.json`, subprocess đọc mỗi đầu round.
 
+**Author strategy** ([apps/simulation/crisis_engine.py](../apps/simulation/crisis_engine.py) `resolve_author_id`):
+- `"agent_0"` (default) — hardcode agent 0.
+- `"influencer"` — agent có `followers` cao nhất trong profiles.
+- `"system"` — alias cho `agent_0` (chưa có system user thật).
+
+Cấu hình qua `simulation_config.json.crisis_author_strategy` (áp cho cả seed post Round 0 và breaking news).
+
+**Relevance filter** — Tier B fix: crisis không còn perturb uniform toàn đàn. `compute_agent_relevance(event, profiles)` tính Jaccard giữa:
+- crisis terms: `interest_keywords` ∪ `affected_domains` ∪ title tokens ≥ 3 ký tự
+- agent terms: `interests` ∪ `general_domain` ∪ `specific_domain`
+
+Kết quả scale ∈ `[0.2, 1.0]` — floor 0.2 để mọi agent vẫn biết tin nóng, nhưng agent match sẽ bị tác động mạnh hơn (weight_boost + decay_factor đều nhân với relevance).
+
 ### Phase 1 — Reflection (conditional)
 
-Chỉ chạy nếu `enable_reflection=true` VÀ `round_num % REFLECTION_INTERVAL == 0` (mặc định 3).
-
-[run_simulation.py:826-845](../apps/simulation/run_simulation.py#L826-L845)
+Chỉ chạy nếu `enable_reflection=true` VÀ `round_num % reflection_interval == 0` (mặc định 3).
 
 ```mermaid
 flowchart LR
     Mem[AgentMemory buffer<br/>last 5 rounds] --> LLM[LLM reflect<br/>summarize recent behavior]
-    LLM --> Upd[Update agent.persona<br/>thêm insight]
+    LLM --> Insights[insights list, max 3 per agent]
+    Insights --> Evolved[get_evolved_persona<br/>= base + insights]
+    Evolved --> Persist[Tier B: persist về profiles.json<br/>mỗi reflection cycle]
 ```
 
-Kết quả: persona "tiến hoá" theo thời gian. Agent nhận ra patterns như "tôi like nhiều post về tech → có lẽ tôi quan tâm mạnh hơn tôi tưởng".
+[apps/simulation/agent_cognition.py `AgentReflection`](../apps/simulation/agent_cognition.py)
 
-### Phase 2 — Posting (rule-based + LLM content)
+Base persona KHÔNG modified. Insights append lên top. Tier B: sau mỗi reflection cycle, `profiles.json` được atomic write kèm `persona_evolved` + `reflection_insights` — sim có thể resume khi crash.
+
+### Phase 2 — Posting
 
 Đây là điểm khác biệt lớn nhất so với OASIS.
 
 ```mermaid
 flowchart TD
-    ForEach[Với mỗi agent trong round] --> Calc[Tính xác suất post<br/>posts_per_week / 168<br/>× MBTI post_mult<br/>× period_multiplier]
+    ForEach[Với mỗi agent trong round] --> Period[Lookup period_multipliers<br/>cho giờ hiện tại]
+    Period --> Calc[should_post<br/>= posts_per_week × hours_per_round / 168<br/>× MBTI post_mult × period_mult]
     Calc --> Roll{random.random < prob?}
     Roll -->|No| Skip[Skip phase post cho agent này]
-    Roll -->|Yes| Content[_generate_post_content<br/>LLM call]
-    Content --> Write[Write post<br/>SQLite + actions.jsonl]
-    Write --> Idx[ChromaDB add]
+    Roll -->|Yes| Ctx[Collect context:<br/>persona + memory + top-5 interests<br/>+ crisis_note + hot_topics + narrative]
+    Ctx --> Content[_generate_post_content<br/>LLM call, temp=0.8, max_tokens=220]
+    Content --> Write[Write post<br/>SQLite + atomic_append_jsonl]
+    Write --> Idx[ChromaDB add<br/>with near-duplicate dedup]
 ```
 
-**Công thức xác suất post** ([interest_feed.py:324-336](../apps/simulation/interest_feed.py#L324-L336)):
+**Công thức xác suất post** ([apps/simulation/interest_feed.py](../apps/simulation/interest_feed.py) `get_post_probability`):
 
 ```python
-def should_post(profile, rng, post_mult=1.0):
-    # posts_per_week từ profile (default ~7)
-    # chia 168 (số giờ/tuần) → prob mỗi round 1h
-    base = get_post_probability(profile)  # [:320]
-    prob = min(1.0, base * post_mult)
-    return rng.random() < prob
+def get_post_probability(profile, hours_per_round=24.0):
+    posts_per_week = profile.get("posts_per_week", 3)
+    hours_per_week = 7 * 24  # 168
+    return min(1.0, posts_per_week * hours_per_round / hours_per_week)
 ```
 
-Ví dụ: agent có `posts_per_week=14`, MBTI ENFP (`post_mult=1.2`), period peak (`×1.5`):
+Trước Tier B công thức là `posts_per_week / 7.0` — agent `posts_per_week ≥ 7` luôn post mỗi round (sai 24×). Đã fix: giờ scale theo `hours_per_round = simulation_hours / num_rounds` (thường 7 với config mặc định 168h/24 rounds).
+
+Ví dụ agent `posts_per_week=14`, MBTI ENFP (`post_mult=1.2`), giờ peak (`period_mult=1.5`), `hours_per_round=7`:
 ```
-prob = (14/168) * 1.2 * 1.5 = 0.15  (15% mỗi round)
+base = 14 * 7 / 168 = 0.583
+prob = 0.583 * 1.2 * 1.5 = 1.05 → clamp 1.0 (100% round đó)
 ```
 
-LLM chỉ được gọi khi đã quyết định post, ở `_generate_post_content()` ([run_simulation.py:613-644](../apps/simulation/run_simulation.py#L613-L644)). Prompt có:
-- Agent persona + recent memory
-- Current interest keywords (top-5 từ interest vector)
-- Crisis context (nếu persona đã bị perturbed)
-- Hot topics từ event config
-- Narrative direction hint
+**Period multipliers** — Tier B H3 fix: `_period_mult_for_round(round_num)` tính `current_hour = (round_num * HOURS_PER_ROUND) % 24`, lookup bucket trong `time_config.period_multipliers`. Bucket wrap midnight (ví dụ `"22-00"`) được xử lý đúng.
+
+**LLM post prompt** — Tier B H1 enrichment, inject full 7 components:
+- Agent persona (+ insights từ reflection nếu có)
+- Recent memory từ AgentMemory (Round X-Y buffer)
+- Top 5 interest keywords từ drift tracker
+- Crisis note (`get_persona_modifier`) nếu active crisis
+- Hot topics từ `event_config`
+- Narrative direction từ `event_config`
+- Topic template (rotating từ 8 templates)
+
+Temperature=0.8, max_tokens=220 được set trên `model_config_dict`.
 
 ### Phase 3 — ChromaDB re-index
 
-[run_simulation.py:928](../apps/simulation/run_simulation.py#L928)
+**Tier B C2+C3 fix**: `PostIndexer(sim_id, persist_dir=sim_dir/chroma)` — collection name `ecosim_{sim_id}` (không còn shared `ecosim_posts`), dùng `PersistentClient` nên survive subprocess crash. `_indexed_ids` được rebuild từ collection khi reopen.
 
-Posts mới tạo ở Phase 2 được embed và thêm vào ChromaDB collection của simulation. Embedding model: `all-MiniLM-L6-v2` (default ChromaDB).
+**Dedup**: `index_post` kiểm semantic distance < `dedup_threshold=0.15`, post gần identical bị skip (log + mark indexed để khỏi kiểm lại).
 
-Collection key: `posts_{sim_id}` — tồn tại trong memory suốt run, flush về disk khi sim kết thúc.
+Embedding model: `all-MiniLM-L6-v2` (default ChromaDB).
 
 ### Phase 4 — Interactions
 
 ```mermaid
 flowchart TD
-    ForEach[Với mỗi agent active trong round] --> Feed[Semantic feed query]
+    ForEach[Với mỗi agent trong round] --> Feed[query_unified ChromaDB]
     Feed --> Decide[decide_agent_actions rule-based]
-    Decide --> Actions[List of actions:<br/>like / comment / follow / skip]
-    Actions --> For[For each action]
-    For --> Type{action type?}
-    Type -->|like / follow| Direct[Direct write to SQLite]
-    Type -->|comment| LLMGen[LLM generate comment text<br/>ONLY for high-relevance posts]
-    LLMGen --> Direct
+    Decide --> Plans[List of plans:<br/>like / comment / skip]
+    Plans --> Gather[asyncio.gather:<br/>parallel _generate_comment<br/>Semaphore 10]
+    Gather --> Assemble[Map comments back to agents]
+    Assemble --> Step[env.step with final_actions]
 ```
 
-**Semantic feed query** ([interest_feed.py:203-254](../apps/simulation/interest_feed.py#L203-L254)):
+**Semantic feed query** ([apps/simulation/interest_feed.py](../apps/simulation/interest_feed.py) `query_unified`):
 
 ```python
-# Score composite: semantic distance bớt đi cho post phổ biến, 
-# cộng thêm decay cho post đã có comment nhiều
-score = semantic_distance - popularity_bonus + comment_decay
-
-# ChromaDB query top-K posts theo score
-results = collection.query(
-    query_texts=[interest_vector_str],
-    n_results=recommendation_count_per_round
-)
+final_dist = semantic_dist - popularity_bonus + comment_decay
+# popularity_bonus = min(0.25, followers / 20000)
+# comment_decay = previous_comments * 0.3
 ```
 
-**decide_agent_actions** — áp dụng thresholds similarity ([interest_feed.py:401-403](../apps/simulation/interest_feed.py#L401-L403)):
+**Thresholds similarity** (distance sau re-rank):
 
 | Distance band | Xác suất Like | Xác suất Comment |
 |---------------|---------------|------------------|
 | `< 0.7` (Strong match) | 100% | 50% |
 | `0.7 ≤ d < 1.0` (Moderate) | 75% | 15% |
 | `1.0 ≤ d < 1.3` (Weak) | 30% | 0% |
-| `d ≥ 1.3` (No match) | 10% (chance) | 0% |
+| `d ≥ 1.3` (No match) | 10% | 0% |
 
-Tất cả xác suất × `MBTI like_mult` và `comment_mult`.
+Tất cả xác suất × `MBTI like_mult` / `comment_mult`.
 
-**LLM được gọi cho comment** ([run_simulation.py:646-674](../apps/simulation/run_simulation.py#L646-L674)) — chỉ cho posts có distance < 1.0 (strong hoặc moderate). Comment cho weak match không có ý nghĩa content.
+**Feed size** (`get_feed_size(daily_hours, feed_mult)`):
+- Base theo daily_hours: 0.5h→3 posts, 1h→5, 1.5h→7, 2h→10, 3h→15, >3h→20
+- × MBTI `feed_mult`: P=1.2, J=0.9 → peak size 24 (P với >3h), min 18 (J với >3h). Agent ít thời gian: P=3.6 ~ J=2.7.
+
+**LLM được gọi cho comment** — chỉ cho posts có distance < 1.0 (strong hoặc moderate). Tier B M1: các comment call chạy **song song** qua `asyncio.gather` với `Semaphore(10)` — N=20 agents, 2 comments/agent, 3s/call giảm từ serial 120s xuống ~12s.
 
 ### Phase 5 — Persistence
 
-- **SQLite trace**: `trace(user_id, action, info, created_at)` ([run_simulation.py:147](../apps/simulation/run_simulation.py#L147))
-- **actions.jsonl export**: 1 dòng = 1 action ([run_simulation.py:507-584](../apps/simulation/run_simulation.py#L507-L584))
-- **AgentMemory**: flush recent actions → 1-line summary ([agent_cognition.py:60-88](../apps/simulation/agent_cognition.py#L60-L88))
-- **Interest drift**: KeyBERT update interest vectors (chi tiết dưới)
-- **FalkorDB graph memory**: nếu `enable_graph_cognition` ([run_simulation.py:487-488](../apps/simulation/run_simulation.py#L487-L488))
-- **Progress json**: `{current_round, total_rounds, status: "running"}`
+- **SQLite trace**: `trace(user_id, action, info, created_at)`
+- **actions.jsonl** (Tier B C4): `atomic_append_jsonl` 1 record/lần, track offset trong state; KHÔNG còn full-rewrite (trước đó crash giữa write = mất toàn bộ).
+- **AgentMemory**: flush recent actions → 1-line summary
+- **memory_stats.json** (Tier B C6): dump mỗi round qua `AgentMemory.dump_stats()` — `{current_round, num_agents, max_buffer, total_rounds_logged, avg_summary_len, buffer_fullness_by_agent}`.
+- **Interest drift**: KeyBERT update interest vectors, wrap try/except để KeyBERT fail không crash sim (Tier B H5).
+- **Evolved persona persist**: mỗi reflection cycle ghi `profiles.json` với `persona_evolved` + `reflection_insights` (Tier B H4).
+- **FalkorDB graph memory**: nếu `enable_graph_cognition`, queue via `FalkorGraphMemoryUpdater`. **KHÔNG cleanup sau sim** — giữ data cho post-simulation (Report, Interview, Survey).
+- **Progress json**: `{current_round, total_rounds, status: "running", crisis_summary}`
 
 ## 2. Cognitive traits từ MBTI
 
-[apps/simulation/agent_cognition.py:150-250](../apps/simulation/agent_cognition.py#L150-L250)
+[apps/simulation/agent_cognition.py](../apps/simulation/agent_cognition.py) `get_behavior_modifiers` + `get_cognitive_traits`
 
 MBTI được map thành 8 multipliers/traits:
 
@@ -166,196 +192,96 @@ MBTI được map thành 8 multipliers/traits:
 |-----------|-------|--------|
 | **E/I** | `post_mult`, `comment_mult` | Extravert post/comment nhiều hơn (E: ×1.2, I: ×0.8) |
 | **F/T** | `like_mult` | Feeler like nhiều hơn (F: ×1.3, T: ×0.9) |
-| **P/J** | `feed_mult` | Perceiver explore rộng hơn (P: top-20, J: top-10) |
-| **All types** | `impressionability` | Khả năng boost interest khi engage (0.1-0.9) |
-| **All types** | `forgetfulness` | Rate decay interest cũ (0.1-0.9) |
+| **P/J** | `feed_mult` | Perceiver explore rộng hơn (P: ×1.2, J: ×0.9) |
+| **All types** | `impressionability` | Khả năng boost interest khi engage (**code: 0.05-0.3**) |
+| **All types** | `forgetfulness` | Rate decay interest cũ (**code: 0.05-0.3**) |
 | **All types** | `curiosity` | Weight interest mới (0.1-0.9) |
-| **All types** | `conviction` | Floor protect profile interests (0.1-0.9) |
+| **All types** | `conviction` | Floor protect profile interests (0.1-0.9, floor = conviction * 0.3) |
 
-Ví dụ INTJ: low `impressionability` (0.2), low `forgetfulness` (0.2), medium `curiosity` (0.4), high `conviction` (0.8). Sở thích thay đổi chậm, bám core identity.
-
-Đối lập ENFP: high `impressionability` (0.7), medium `forgetfulness` (0.5), high `curiosity` (0.8), low `conviction` (0.3). Sở thích nhảy liên tục.
+⚠️ **Caveat**: current mapping dùng dict-overwrite per MBTI char (không phải merge composition). Với bảng hiện tại, ENFJ và ENFP chỉ khác `feed_mult` (0.9 vs 1.2) — 16 types collapse xuống không tới 16 hành vi thật sự. Cần test distribution khi modify map để không lẫn.
 
 ## 3. KeyBERT Adaptive Interest Drift
 
-Đây là cơ chế "học" của agent — sau mỗi round, interest vector được update dựa trên những gì agent đã engage.
-
-[apps/simulation/agent_cognition.py:308-482](../apps/simulation/agent_cognition.py#L308-L482) (setup), [agent_cognition.py:589-648](../apps/simulation/agent_cognition.py#L589-L648) (update logic)
+[apps/simulation/agent_cognition.py](../apps/simulation/agent_cognition.py) `InterestVectorTracker`
 
 ### Setup KeyBERT
 
-```python
-# agent_cognition.py:326
-keybert = KeyBERT(model='all-MiniLM-L6-v2')
-
-# agent_cognition.py:396-402
-keywords = keybert.extract_keywords(
-    engaged_posts_text,
-    keyphrase_ngram_range=(1, 3),  # unigram → trigram
-    use_mmr=True,                   # Maximal Marginal Relevance
-    diversity=0.5,                  # cân giữa relevance và diversity
-    top_n=10
-)
-```
+- Lazy singleton, load lần đầu ~5-10s (`all-MiniLM-L6-v2` từ SentenceTransformer)
+- Fallback N-gram extraction nếu KeyBERT không load được
 
 ### Update per-round rules
-
-```mermaid
-flowchart TD
-    Start[Round N kết thúc] --> Extract[Extract keywords từ<br/>posts agent đã engage<br/>via KeyBERT]
-    Extract --> Boost[BOOST: engaged_interest += impressionability]
-    Boost --> Decay[DECAY: non_engaged *= 1 - forgetfulness]
-    Decay --> Floor[FLOOR: profile_interests capped by conviction]
-    Floor --> New[NEW: keywords mới += curiosity]
-    New --> Prune[PRUNE: weight < 0.03 → remove<br/>trừ profile interests]
-    Prune --> Snap[Snapshot vào _history]
-```
-
-**Công thức chi tiết** ([agent_cognition.py:589-648](../apps/simulation/agent_cognition.py#L589-L648)):
 
 ```python
 for keyword, weight in interests.items():
     if keyword in engaged_this_round:
-        # BOOST
-        weight += agent.traits.impressionability
+        weight += traits.impressionability
+        weight = min(1.0, weight)  # clamp
     else:
-        # DECAY
-        weight *= (1.0 - agent.traits.forgetfulness)
+        weight *= (1.0 - traits.forgetfulness)
 
-    # FLOOR (bảo vệ core identity)
     if keyword in profile_interests:
-        weight = max(weight, agent.traits.conviction)
+        floor = traits.conviction * 0.3
+        weight = max(floor, weight)
 
-# NEW
-for kw in new_keywords_from_engagement:
-    if kw not in interests:
-        interests[kw] = agent.traits.curiosity
-
-# PRUNE (sparse vector)
-interests = {
-    kw: w for kw, w in interests.items()
-    if w >= 0.03 or kw in profile_interests
-}
+# NEW: keywords mới += traits.curiosity
+# PRUNE: weight < 0.03 và source != "profile" → remove
 ```
 
-Snapshot mỗi round được lưu vào `_history[agent_id][round_num]` để visualize drift sau simulation.
+Crisis perturbation: `inject_crisis_interests(agent_id, scaled_perturbation, round)` với `weight_boost` và `decay_factor` đã scale theo relevance (Tier B).
 
-### Ví dụ drift over rounds
+### Snapshot
 
-Agent INTJ (low impressionability, low forgetfulness), profile interest = `{"tech": 0.8, "tài chính": 0.7}`:
-
-| Round | Engaged | Interest vector (top) |
-|-------|---------|-----------------------|
-| 0 | — | tech 0.80, tài chính 0.70 |
-| 1 | tech posts | **tech 0.90**, tài chính 0.63 |
-| 2 | tech, AI posts | tech 0.95, **AI 0.40**, tài chính 0.57 |
-| 5 | không engage tài chính | tech 0.95, AI 0.55, **tài chính 0.50** (floor by conviction 0.5) |
-
-Với agent ENFP cùng profile:
-
-| Round | Engaged | Interest vector (top) |
-|-------|---------|-----------------------|
-| 0 | — | tech 0.80, tài chính 0.70 |
-| 1 | meme, giải trí | **meme 0.80, giải trí 0.80**, tech 0.40, tài chính 0.35 |
-| 2 | meme, thời trang | meme 0.95, thời trang 0.80, giải trí 0.40, tech 0.20 (prune sắp tới) |
-
-Thấy rõ: INTJ bám core, ENFP nhảy sang topic mới rất nhanh.
+`_history[agent_id][round_num]` giữ vector trọn đời. Memory ~1.2 MB cho N=100, 24 rounds.
 
 ## 4. Cross-round Memory
 
-[apps/simulation/agent_cognition.py:23-109](../apps/simulation/agent_cognition.py#L23-L109)
+[apps/simulation/agent_cognition.py](../apps/simulation/agent_cognition.py) `AgentMemory`
 
-### AgentMemory — FIFO buffer
-
-```python
-class AgentMemory:
-    def __init__(self, max_rounds=5):
-        self.buffer = deque(maxlen=max_rounds)
-
-    def flush_round(self, agent_id, round_num, actions):
-        summary = _summarize_actions(actions)  # 1-line string
-        self.buffer.append({
-            "round": round_num,
-            "summary": summary
-        })
-
-    def inject_prompt(self):
-        return "Your recent activity:\n" + "\n".join(
-            f"Round {m['round']}: {m['summary']}" for m in self.buffer
-        )
-```
-
-Memory được prepend vào system prompt mỗi khi LLM được gọi (post content, comment, reflection). Agent "nhớ" 5 round gần nhất.
-
-Stats về memory usage ghi vào `memory_stats.json`: avg_summary_len, buffer_fullness_by_round, total_injections.
+- `MAX_BUFFER=5` FIFO buffer per agent (hardcoded, Tier C sẽ promote config)
+- `end_round(round_num)`: rule-based string summary (không LLM)
+- `get_context(agent_id)`: format `"Your recent activity:\nRound X: ...\nRound Y: ..."` inject vào prompts
+- `dump_stats(path, num_agents, current_round)`: ghi `memory_stats.json` (Tier B C6)
 
 ### FalkorDB Graph Memory (optional)
 
 Khi `enable_graph_cognition=true`:
 
-[apps/simulation/falkor_graph_memory.py](../apps/simulation/falkor_graph_memory.py) + [run_simulation.py:299-320](../apps/simulation/run_simulation.py#L299-L320)
+[apps/simulation/falkor_graph_memory.py](../apps/simulation/falkor_graph_memory.py) + run_simulation.py Phase 5
 
-- Database riêng: `ecosim_agent_memory` (không dùng `ecosim` vì conflict với campaign KG)
-- `FalkorGraphMemoryUpdater`: batch write, `batch_size=5`, `flush_interval=10s`
-- Schema: nodes (Agent, Post, Topic, Event), edges (AUTHORED, ENGAGED_WITH, FOLLOWS, MENTIONED)
-- Read: `GraphCognitiveHelper.get_social_context(agent_id)` → append snippet vào persona khi LLM sinh content ([run_simulation.py:891-893](../apps/simulation/run_simulation.py#L891-L893))
+- Database `ecosim_agent_memory` (graphiti default_db)
+- `FalkorGraphMemoryUpdater`: batch worker thread, `batch_size=5`, `flush_interval=10s`
+- Schema auto-extracted bởi graphiti-core (không hardcode)
+- Read: `GraphCognitiveHelper.get_social_context(agent_name)` → append snippet vào persona
+- **Data giữ lại sau sim** — post-simulation (Report, Interview, Survey) query từ đây
 
-Ví dụ social context:
-```
-Recent social context:
-- Bạn đã comment post của @anna3 (2 round trước)
-- @long_tech đang follow bạn
-- Topic "black friday" đang hot (15 posts trong round này)
-```
-
-Giúp agent có awareness network-level không gói gọn trong FIFO memory của chính mình.
-
-## 5. Crisis injection
+## 5. Crisis injection (detail)
 
 [apps/simulation/crisis_engine.py](../apps/simulation/crisis_engine.py)
 
-### Hai nguồn crisis
+7 template + custom. `get_events_for_round(round)` + `load_pending_events(sim_dir, round)` cho scheduled và real-time.
 
-```mermaid
-flowchart LR
-    Prep[Prepare step:<br/>CrisisInjector LLM sinh] --> File[crisis_scenarios.json<br/>trigger_round fixed]
-    API[POST /api/sim/id/inject-crisis<br/>Frontend UI] --> Pend[pending_crisis.json]
-    File --> Check[Round start check]
-    Pend --> Check
-    Check -->|fire| Fire[Fire crisis]
-```
-
-### Fire crisis
-
-[run_simulation.py:780-800](../apps/simulation/run_simulation.py#L780-L800)
-
-1. **Generate breaking news post** — tác giả là "system" hoặc một agent "influencer" nổi bật
-2. **Perturb interest vectors** — thêm/sửa weights theo `interest_perturbation`
-3. **Append persona context** — các agents affected được inject "Recent news: [crisis body]" vào persona ([run_simulation.py:886-887](../apps/simulation/run_simulation.py#L886-L887))
-
-Crisis log ghi vào `crisis_log.jsonl` và có thể query qua `GET /api/sim/{id}/crisis-log`.
+Key methods:
+- `get_interest_perturbation(event)` → `{keywords, weight_boost, decay_factor, source}`
+- `compute_agent_relevance(event, profiles)` → `{agent_id: [0.2, 1.0]}` (Tier B)
+- `resolve_author_id(strategy, profiles)` → agent_id cho crisis post (Tier B)
 
 ## 6. Persistence artifacts
 
-```mermaid
-flowchart LR
-    Loop[Round N] --> SQLite[(oasis_simulation.db<br/>trace / post / comment)]
-    Loop --> JSONL[actions.jsonl<br/>incremental append]
-    Loop --> Progress[progress.json<br/>current_round, status]
-    Loop --> Mem[memory_stats.json<br/>flush mỗi round]
-    Loop -->|tracked agents| Track[agent_tracking.txt<br/>cognitive snapshot]
-    Loop -->|if graph_cognition| FalkorMem[(ecosim_agent_memory)]
 ```
-
-### SQLite schema
-
-```sql
-CREATE TABLE trace (user_id INT, action TEXT, info JSON, created_at TIMESTAMP);
-CREATE TABLE post (post_id INT PRIMARY KEY, user_id INT, content TEXT, ...);
-CREATE TABLE comment (comment_id INT PRIMARY KEY, post_id INT, user_id INT, ...);
-CREATE TABLE user (user_id INT PRIMARY KEY, name TEXT, bio TEXT, ...);
-CREATE TABLE like_table (user_id INT, post_id INT, PRIMARY KEY(user_id, post_id));
-CREATE TABLE follow (follower_id INT, followee_id INT, PRIMARY KEY(follower_id, followee_id));
+data/simulations/{sim_id}/
+├── profiles.json                  ← có persona_evolved + reflection_insights (Tier B)
+├── simulation_config.json
+├── campaign_context.txt
+├── oasis_simulation.db            ← SQLite trace/post/comment/like_table/follow
+├── actions.jsonl                  ← atomic_append_jsonl, 1 action/line (Tier B)
+├── progress.json                  ← atomic_write_json
+├── memory_stats.json              ← Tier B C6: dump mỗi round
+├── crisis_log.json                ← active crises log
+├── crisis_scenarios.json
+├── pending_crisis.json            ← runtime injection (deleted after consumed)
+├── agent_tracking.txt             ← cognitive snapshot cho tracked_agent_id
+└── chroma/                        ← ChromaDB PersistentClient (Tier B C3)
+    └── ...
 ```
 
 ### actions.jsonl line format
@@ -367,57 +293,46 @@ CREATE TABLE follow (follower_id INT, followee_id INT, PRIMARY KEY(follower_id, 
   "action_type": "create_comment",
   "info": {
     "post_id": 87,
-    "post_content": "Black Friday năm nay có gì hot?",
-    "post_author_name": "Trần Văn A",
-    "comment_content": "Mình thấy freeship không còn nữa, buồn ghê..."
+    "content": "Mình thấy freeship không còn nữa, buồn ghê..."
   },
   "timestamp": "2026-04-22T14:32:01"
 }
 ```
 
-Action types: `create_post`, `create_comment`, `like_post`, `follow_user`, `repost`.
+Action types: `create_post`, `create_comment`, `like_post`, `follow_user`, `repost`, `sign_up`, `refresh`, `do_nothing`.
 
-### agent_tracking.txt (debugging)
+### memory_stats.json format
 
-Chỉ ghi cho các `tracked_agents` cấu hình trong `simulation_config.json`:
-
-```
-=== Agent 42 (INTJ) at Round 5 ===
-MBTI: INTJ
-Traits: impressionability=0.2, forgetfulness=0.2, curiosity=0.4, conviction=0.8
-Interest top-5: tech 0.95, AI 0.60, tài chính 0.50, startup 0.45, Shopee 0.35
-Memory buffer (last 5):
-  Round 1: posted about Black Friday hype
-  Round 2: commented on 3 tech posts
-  ...
-Evolved persona (after reflection):
-  Nguyễn Văn X, 32 tuổi, đam mê công nghệ ngày càng sâu...
+```json
+{
+  "current_round": 8,
+  "num_agents": 20,
+  "max_buffer": 5,
+  "total_rounds_logged": 87,
+  "avg_summary_len": 42.3,
+  "total_injections": 0,
+  "buffer_fullness_by_agent": {"0": 5, "1": 4, "2": 3, "...": "..."}
+}
 ```
 
 ## 7. SSE streaming progress
 
 `GET /api/sim/{id}/stream` — Server-Sent Events cho frontend real-time progress.
 
-Subprocess không trực tiếp push SSE; thay vào đó ghi `progress.json` + `actions.jsonl`. Simulation Service serve SSE bằng cách poll file + yield event:
+Subprocess ghi `progress.json` + `actions.jsonl` atomic. Simulation Service serve SSE bằng cách poll file + yield event:
 
 ```
 event: round_start
 data: {"round": 5, "total": 24, "status": "running"}
-
 event: action
 data: {"user_id": 42, "action_type": "create_post", "post_id": 87}
-
 event: crisis
 data: {"scenario_id": "crisis_001", "title": "Rò rỉ dữ liệu..."}
-
-event: round_complete
-data: {"round": 5, "actions_count": 127, "elapsed_s": 42.1}
-
 event: done
 data: {"status": "completed", "total_rounds": 24, "total_actions": 2840}
 ```
 
-Gateway forwarding SSE: [apps/gateway/gateway.py:117](../apps/gateway/gateway.py#L117) (no buffering).
+Gateway (Caddy) có `flush_interval -1` để không buffer SSE.
 
 ## 8. Trace code đầy đủ
 
@@ -427,39 +342,45 @@ POST /api/sim/start (sim_id)
      ├─ SimManager.get(sim_id)  status READY → RUNNING
      └─ subprocess.Popen([OASIS_VENV_PYTHON, run_simulation.py, --sim-dir])
         └─ apps/simulation/run_simulation.py main()
-           ├─ Load simulation_config.json + profiles.json + crisis_scenarios.json
-           ├─ Init ChromaDB collection + AgentMemory + KeyBERT
-           ├─ Optional: FalkorGraphMemoryUpdater
-           ├─ Round 0: inject initial_posts (ManualAction)
+           ├─ Load config: num_rounds, time_config, event_config, crisis_events
+           ├─ HOURS_PER_ROUND = simulation_hours / num_rounds
+           ├─ Init ChromaDB PersistentClient (sim_dir/chroma) + AgentMemory + KeyBERT
+           ├─ Optional: FalkorGraphMemoryUpdater (batch thread)
+           ├─ Round 0: resolve seed author (strategy) → inject seed post
            ├─ For round 1..N:
-           │  ├─ Phase 0: check + fire crisis         [:763]
-           │  ├─ Phase 1: reflection (if eligible)    [:826]
+           │  ├─ Phase 0: check + fire crisis
+           │  │  ├─ resolve_author_id → breaking news post
+           │  │  └─ compute_agent_relevance → scaled perturbation
+           │  ├─ Phase 1: reflection (if eligible)
            │  ├─ Phase 2: posting
-           │  │  ├─ time-based agent selection
-           │  │  ├─ should_post() rule-based          [interest_feed.py:324]
-           │  │  └─ _generate_post_content LLM         [run_simulation.py:613]
-           │  ├─ Phase 3: ChromaDB re-index           [:928]
+           │  │  ├─ _period_mult_for_round
+           │  │  ├─ should_post(post_mult, period_mult, hours_per_round)
+           │  │  └─ _generate_post_content (persona + memory + interests + crisis + hot_topics + narrative)
+           │  ├─ Phase 3: ChromaDB re-index (incremental + dedup)
            │  ├─ Phase 4: interactions
-           │  │  ├─ query_posts_for_agent              [interest_feed.py:203]
-           │  │  ├─ decide_agent_actions              [interest_feed.py:401]
-           │  │  └─ _generate_comment LLM (if d<1.0)  [run_simulation.py:646]
+           │  │  ├─ query_unified
+           │  │  ├─ decide_agent_actions
+           │  │  └─ asyncio.gather(_generate_comment...) Semaphore 10
            │  └─ Phase 5: persistence
-           │     ├─ append actions.jsonl
-           │     ├─ AgentMemory.flush_round
-           │     ├─ InterestDrift.update_all          [agent_cognition.py:589]
-           │     ├─ graph_updater.add_action (opt)    [run_simulation.py:487]
+           │     ├─ atomic_append_jsonl actions
+           │     ├─ AgentMemory.end_round + dump_stats
+           │     ├─ InterestVectorTracker.update_after_round (try/except)
+           │     ├─ graph_updater.add_action (queue, non-blocking)
+           │     ├─ persist evolved persona → profiles.json (every reflection cycle)
            │     └─ progress.json write
            └─ SimManager.set_completed
 ```
 
 ## Gotchas
 
-- **Subprocess env**: `run_simulation.py` cần `LLM_API_KEY` từ `.env` parent process. Simulation Service pass qua `subprocess.Popen(env=...)` — verify không strip env.
-- **ChromaDB persistence**: Collection chỉ exist trong process subprocess. Nếu sim crash, restart phải re-index từ đầu (đọc SQLite posts).
-- **KeyBERT slow start**: Lần đầu load model `all-MiniLM-L6-v2` mất ~5-10s. Nếu test nhiều simulation nhỏ, giữ model cache.
+- **Subprocess env**: `run_simulation.py` cần `LLM_API_KEY` từ `.env` parent process. Simulation Service pass qua `subprocess.Popen(env=...)`.
+- **ChromaDB persistence** (Tier B): Collection nằm ở `sim_dir/chroma/` — survive crash. Nếu xóa sim_dir, ChromaDB mất cùng lúc (điều này OK vì sim lost).
+- **KeyBERT slow start**: Lần đầu load model `all-MiniLM-L6-v2` mất ~5-10s. Singleton cached cho cả process.
 - **Time-based selection bias**: period_multipliers có thể tạo "sóng" không tự nhiên (agent toàn post 19:00). Nếu muốn smooth, giảm variance trong TimeConfig prompt.
-- **Crisis perturbation quá mạnh**: interest_perturbation values > 0.5 có thể làm mọi agent converge cùng topic → monoculture. Cap ở ±0.3 hợp lý.
-- **Graph memory OOM**: với 100 agents × 24 rounds, FalkorDB `ecosim_agent_memory` có thể ~100k nodes + 500k edges. Batch write (`batch_size=5, flush_interval=10s`) đã giảm tải; tăng nếu LLM wait.
-- **LLM rate limit**: Scripts gọi 100-500 LLM/round với 20 agents. Upgrade tier hoặc dùng local model qua Ollama (`LLM_BASE_URL=http://localhost:11434/v1`).
+- **Crisis perturbation (Tier B fix)**: giờ scale theo agent relevance (Jaccard token overlap với `affected_domains` + `interest_keywords` + title). Agent không match vẫn có floor 0.2 để không hoàn toàn "mù tin".
+- **Graph memory KHÔNG cleanup**: post-simulation (Report, Interview, Survey) đọc từ `ecosim_agent_memory` → giữ lại là intentional.
+- **LLM rate limit**: Parallel comment generation (Semaphore 10) có thể bùng nổ calls nếu N lớn. Giảm concurrency nếu rate-limit, hoặc dùng local model qua Ollama (`LLM_BASE_URL=http://localhost:11434/v1`).
+- **Evolved persona in profiles.json** (Tier B): field `persona_evolved` + `reflection_insights` được append — khi resume sim, code phải dùng `persona_evolved` nếu có (hiện chưa implement auto-resume, cần manual).
+- **actions.jsonl atomic append** (Tier B): chỉ append record mới, không rewrite. Nếu reset sim ⇒ phải xóa file cũ trước (code tự làm ở Round 0).
 
 Đi tiếp → [06_post_simulation.md](06_post_simulation.md)

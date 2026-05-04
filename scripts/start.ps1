@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # EcoSim - Start All Services
 # Usage: .\start.ps1 [-SkipDocker] [-Only <service>]
 #
@@ -23,6 +23,12 @@ function Should-Run($name) {
     return ($Only -eq "" -or $Only -eq $name)
 }
 
+# Helper: Build a cmd.exe /c argument string from parts joined by " && ".
+# Avoids the PS 5.1 parser quirk with `" escape-quotes inside long strings.
+function New-CmdArgs($title, $command) {
+    return "/c title $title && $command"
+}
+
 # -- 1. FalkorDB (Docker) --
 if ((Should-Run "falkordb") -and -not $SkipDocker) {
     Write-Host "[1/5] FalkorDB (Docker, port 6379)" -ForegroundColor Green
@@ -45,7 +51,9 @@ if ((Should-Run "falkordb") -and -not $SkipDocker) {
 if (Should-Run "core") {
     Write-Host "[2/5] Core Service (Flask, port 5001)" -ForegroundColor Green
 
-    Start-Process cmd.exe -ArgumentList "/c title EcoSim - Core Service (5001) && `"$ROOT\venv\Scripts\python.exe`" `"$ROOT\apps\core\run.py`"" -WorkingDirectory "$ROOT\apps\core"
+    $corePy = "$ROOT\venv\Scripts\python.exe"
+    $args = New-CmdArgs "EcoSim - Core Service (5001)" "`"$corePy`" run.py"
+    Start-Process cmd.exe -ArgumentList $args -WorkingDirectory "$ROOT\apps\core"
     Write-Host "       Started." -ForegroundColor Green
     Write-Host ""
 }
@@ -54,7 +62,9 @@ if (Should-Run "core") {
 if (Should-Run "sim") {
     Write-Host "[3/5] Simulation Service (FastAPI, port 5002)" -ForegroundColor Green
 
-    Start-Process cmd.exe -ArgumentList "/c title EcoSim - Simulation Service (5002) && `"$ROOT\apps\simulation\.venv\Scripts\python.exe`" -m uvicorn sim_service:app --host 0.0.0.0 --port 5002" -WorkingDirectory "$ROOT\apps\simulation"
+    $simPy = "$ROOT\apps\simulation\.venv\Scripts\python.exe"
+    $args = New-CmdArgs "EcoSim - Simulation Service (5002)" "`"$simPy`" -m uvicorn sim_service:app --host 0.0.0.0 --port 5002"
+    Start-Process cmd.exe -ArgumentList $args -WorkingDirectory "$ROOT\apps\simulation"
     Write-Host "       Started." -ForegroundColor Green
     Write-Host ""
 }
@@ -63,32 +73,47 @@ if (Should-Run "sim") {
 if (Should-Run "gateway") {
     Write-Host "[4/5] API Gateway (Caddy, port 5000)" -ForegroundColor Green
 
-    # Local dev: upstream pointer về localhost thay vì container hostname
+    # Local dev: upstream pointer to localhost instead of container hostname
     $env:CORE_UPSTREAM = "localhost:5001"
     $env:SIM_UPSTREAM  = "localhost:5002"
 
     $caddyCmd = Get-Command caddy.exe -ErrorAction SilentlyContinue
     if ($caddyCmd) {
-        Start-Process cmd.exe -ArgumentList "/c title EcoSim - API Gateway (Caddy, 5000) && set CORE_UPSTREAM=localhost:5001 && set SIM_UPSTREAM=localhost:5002 && caddy run --config `"$ROOT\apps\gateway\Caddyfile`" --adapter caddyfile" -WorkingDirectory "$ROOT\apps\gateway"
+        $gwInner = "set CORE_UPSTREAM=localhost:5001 && set SIM_UPSTREAM=localhost:5002 && caddy run --config Caddyfile --adapter caddyfile"
+        $args = New-CmdArgs "EcoSim - API Gateway (Caddy, 5000)" $gwInner
+        Start-Process cmd.exe -ArgumentList $args -WorkingDirectory "$ROOT\apps\gateway"
         Write-Host "       Started (Caddy)." -ForegroundColor Green
     } else {
         Write-Host "       Caddy not in PATH; falling back to legacy Python gateway (gateway.py.bak)" -ForegroundColor Yellow
         $legacy = "$ROOT\apps\gateway\gateway.py.bak"
         if (Test-Path $legacy) {
-            Start-Process cmd.exe -ArgumentList "/c title EcoSim - API Gateway (legacy Python, 5000) && `"$ROOT\venv\Scripts\python.exe`" `"$legacy`"" -WorkingDirectory "$ROOT\apps\gateway"
+            $legacyPy = "$ROOT\venv\Scripts\python.exe"
+            $args = New-CmdArgs "EcoSim - API Gateway (legacy Python, 5000)" "`"$legacyPy`" gateway.py.bak"
+            Start-Process cmd.exe -ArgumentList $args -WorkingDirectory "$ROOT\apps\gateway"
             Write-Host "       Started (legacy)." -ForegroundColor Green
         } else {
-            Write-Host "       Neither caddy.exe nor gateway.py.bak found — gateway not started." -ForegroundColor Red
+            Write-Host "       Neither caddy.exe nor gateway.py.bak found - gateway not started." -ForegroundColor Red
         }
     }
     Write-Host ""
 }
 
-# -- 5. Frontend (Vite, port 5173) --
+# -- 5. Frontend (Next.js 16 dev server, port 5173) --
 if (Should-Run "frontend") {
-    Write-Host "[5/5] Frontend (Vite dev server, port 5173)" -ForegroundColor Green
+    Write-Host "[5/5] Frontend (Next.js dev server, port 5173)" -ForegroundColor Green
 
-    Start-Process cmd.exe -ArgumentList "/c title EcoSim - Frontend (5173) && cd /d `"$ROOT\apps\frontend`" && npm run dev" -WorkingDirectory "$ROOT\apps\frontend"
+    $fePath = "$ROOT\apps\frontend"
+
+    # Auto-install if node_modules missing (first-run convenience)
+    if (-not (Test-Path "$fePath\node_modules")) {
+        Write-Host "       node_modules not found - running 'npm install' first." -ForegroundColor Yellow
+        Push-Location $fePath
+        npm install --no-audit --no-fund
+        Pop-Location
+    }
+
+    $args = New-CmdArgs "EcoSim - Frontend (Next.js, 5173)" "npm run dev"
+    Start-Process cmd.exe -ArgumentList $args -WorkingDirectory $fePath
     Write-Host "       Started." -ForegroundColor Green
     Write-Host ""
 }

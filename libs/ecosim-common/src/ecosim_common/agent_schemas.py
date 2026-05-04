@@ -7,7 +7,7 @@ profile.json có shape ổn định cho runtime (`apps/simulation/run_simulation
 
 from __future__ import annotations
 
-from typing import List, Literal, Optional
+from typing import List, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -97,19 +97,16 @@ class AgentProfile(BaseModel):
     specific_domain: str = ""
     interests: List[str] = Field(default_factory=list)
 
-    # Runtime — behavior
-    active_hours: List[int] = Field(default_factory=list, description="Giờ 0-23 agent có xu hướng online")
+    # Runtime — behavior. Chỉ giữ field có consumer thực tế trong sim:
+    # - posts_per_week / daily_hours: gate posting + size feed
+    # - activity_level: inject prompt interview LLM context
+    # - followers: popularity re-rank trong feed
+    # Removed `active_hours` + `posting_probability` (zero consumer trong
+    # apps/simulation/run_simulation.py + interest_feed.py — pre-compute dead).
     activity_level: float = Field(0.5, ge=0.0, le=1.0)
-    posting_probability: float = Field(0.3, ge=0.0, le=1.0)
     posts_per_week: int = Field(3, ge=0, le=100)
     daily_hours: float = Field(1.5, ge=0.0, le=24.0)
     followers: int = Field(0, ge=0)
-
-    @field_validator("active_hours")
-    @classmethod
-    def _validate_hours(cls, v: List[int]) -> List[int]:
-        cleaned = sorted({int(h) for h in v if 0 <= int(h) <= 23})
-        return cleaned or list(range(8, 23))  # fallback 8h-22h
 
 
 class BatchEnrichmentResponse(BaseModel):

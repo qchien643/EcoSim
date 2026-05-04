@@ -43,7 +43,6 @@ logging.basicConfig(
 
 # ── FastAPI App ──
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="EcoSim Simulation Service",
@@ -51,22 +50,42 @@ app = FastAPI(
     version="1.0.0",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Phase 5: bootstrap metadata index (idempotent, best-effort).
+try:
+    from ecosim_common.metadata_index import bootstrap_from_filesystem
+    _stats = bootstrap_from_filesystem()
+    logging.getLogger("sim-svc").info("Metadata index bootstrap: %s", _stats)
+except Exception as _e:
+    logging.getLogger("sim-svc").warning(
+        "Metadata bootstrap failed (best-effort): %s", _e,
+    )
+
+# Phase 6.3: auto-evict cron (idempotent, env-gated).
+try:
+    from sim_evict_cron import start_evict_cron
+    start_evict_cron()
+except Exception as _e:
+    logging.getLogger("sim-svc").warning(
+        "Evict cron start failed (best-effort): %s", _e,
+    )
+# NOTE: CORS đã được Caddy gateway xử lý ở apps/gateway/Caddyfile.
+# Bật CORSMiddleware ở đây sẽ tạo duplicate `Access-Control-Allow-Origin`
+# (Caddy add `http://localhost:5173`, FastAPI add `*`) → browser block với
+# "header contains multiple values 'http://localhost:5173, *', but only one
+# is allowed". Browser nói chuyện với backend chỉ qua gateway :5000.
 
 # ── Include Routers ──
 from api.simulation import router as sim_router
-from api.graph import router as graph_router
+from api.graph import router as graph_router, campaign_router as campaign_lifecycle_router
 from api.survey import router as survey_router
 from api.report import router as report_router
 from api.interview import router as interview_router
 
 app.include_router(sim_router)
 app.include_router(graph_router)
+# DELETE /api/campaign/<id> cascade — Caddy gateway routes DELETE method
+# /api/campaign/* sang Sim service (vì cần FalkorDB access). GET/POST vẫn về Core.
+app.include_router(campaign_lifecycle_router)
 app.include_router(survey_router)
 app.include_router(report_router)
 app.include_router(interview_router)

@@ -22,81 +22,74 @@ router = APIRouter(prefix="/api/analysis", tags=["Campaign Analysis"])
 
 # apps/simulation/api/report.py → api → simulation → apps → EcoSim
 ECOSIM_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-DATA_DIR = os.path.join(ECOSIM_ROOT, "data")
-SIMS_DIR = os.path.join(DATA_DIR, "simulations")
-
-DB_NAMES = ["oasis_simulation.db", "sim.db", "simulation.db"]
 
 
-def _find_db_in_dir(sim_dir: str) -> str | None:
-    """Return the first DB file found in a sim directory, or None."""
-    for name in DB_NAMES:
-        db = os.path.join(sim_dir, name)
-        if os.path.exists(db):
-            return db
-    return None
+def _sim_paths(sim_id: str) -> dict:
+    """Resolve all sim file paths from meta.db.
+
+    Phase 10 moved sims under `data/campaigns/<cid>/sims/<sid>/`. The old
+    `data/simulations/<sid>/` flat layout no longer exists. Always go through
+    meta.db so `oasis_db_path` / `actions_path` point at the right place.
+    """
+    try:
+        from ecosim_common.path_resolver import resolve_simulation_paths
+        return dict(resolve_simulation_paths(sim_id, fallback=True))
+    except Exception:
+        return {}
 
 
 def _find_sim_db(sim_id: str = "") -> str:
-    """Find the simulation database path."""
-    # Specific sim_id requested
-    if sim_id:
-        for prefix in ["", "sim_"]:
-            d = os.path.join(SIMS_DIR, f"{prefix}{sim_id}")
-            if os.path.isdir(d):
-                db = _find_db_in_dir(d)
-                if db:
-                    return db
-
-    # Fallback: scan all sim dirs for latest one with a DB
-    if os.path.isdir(SIMS_DIR):
-        dirs = sorted(os.listdir(SIMS_DIR), reverse=True)
-        for d in dirs:
-            full = os.path.join(SIMS_DIR, d)
-            if os.path.isdir(full):
-                db = _find_db_in_dir(full)
-                if db:
-                    return db
-
-    raise HTTPException(404, "No simulation database found in any directory")
+    """Resolve OASIS SQLite path via meta.db."""
+    if not sim_id:
+        # Fallback: pick the most recently accessed completed sim from meta.db
+        try:
+            from ecosim_common.metadata_index import list_simulations as _ls
+            for s in _ls(limit=50) or []:
+                p = (s.get("oasis_db_path") or "").strip()
+                if p and os.path.exists(p):
+                    return p
+        except Exception:
+            pass
+        raise HTTPException(404, "No simulation database found in meta.db")
+    p = _sim_paths(sim_id).get("oasis_db_path") or ""
+    if p and os.path.exists(p):
+        return p
+    raise HTTPException(404, f"No DB for sim {sim_id}")
 
 
 def _find_actions(sim_id: str = "") -> str:
-    """Find actions.jsonl path."""
-    # If sim_id is given, try its directory
-    if sim_id:
-        for prefix in ["", "sim_"]:
-            p = os.path.join(SIMS_DIR, f"{prefix}{sim_id}", "actions.jsonl")
-            if os.path.exists(p):
-                return p
-
-    # Fallback: same dir as the DB
-    try:
-        db_path = _find_sim_db(sim_id)
-        sim_dir = os.path.dirname(db_path)
-        p = os.path.join(sim_dir, "actions.jsonl")
-        if os.path.exists(p):
-            return p
-    except Exception:
-        pass
-    return ""
+    """Resolve actions.jsonl path via meta.db."""
+    if not sim_id:
+        # Same fallback strategy as _find_sim_db
+        try:
+            from ecosim_common.metadata_index import list_simulations as _ls
+            for s in _ls(limit=50) or []:
+                p = (s.get("actions_path") or "").strip()
+                if p and os.path.exists(p):
+                    return p
+        except Exception:
+            pass
+        return ""
+    return _sim_paths(sim_id).get("actions_path") or ""
 
 
 @router.get("/simulations")
 async def list_simulations():
-    """List available simulation directories that have a database."""
+    """List available simulations + which artifacts each one has on disk."""
     results = []
-    if os.path.isdir(SIMS_DIR):
-        for d in sorted(os.listdir(SIMS_DIR), reverse=True):
-            full = os.path.join(SIMS_DIR, d)
-            if os.path.isdir(full):
-                db = _find_db_in_dir(full)
-                has_actions = os.path.exists(os.path.join(full, "actions.jsonl"))
-                results.append({
-                    "sim_id": d,
-                    "has_db": db is not None,
-                    "has_actions": has_actions,
-                })
+    try:
+        from ecosim_common.metadata_index import list_simulations as _ls
+        for s in _ls(limit=200) or []:
+            sid = s.get("sid") or ""
+            db_p = s.get("oasis_db_path") or ""
+            act_p = s.get("actions_path") or ""
+            results.append({
+                "sim_id": sid,
+                "has_db": bool(db_p) and os.path.exists(db_p),
+                "has_actions": bool(act_p) and os.path.exists(act_p),
+            })
+    except Exception as e:
+        logger.warning("list_simulations meta.db query fail: %s", e)
     return {"simulations": results}
 
 
@@ -116,9 +109,9 @@ async def get_report_summary(
         report = gen.generate_full_report(num_rounds)
         report["sim_db"] = db_path
 
-        # Auto-save results to the sim directory
-        sim_dir = os.path.dirname(db_path)
-        _save_analysis_to_dir(sim_dir, report)
+        # Auto-save results to the sim directory (paths via meta.db)
+        if sim_id:
+            _save_analysis_to_dir(sim_id, report)
 
         return report
 
@@ -129,19 +122,57 @@ async def get_report_summary(
         raise HTTPException(500, detail=f"Analysis failed: {type(e).__name__}: {str(e)}")
 
 
-def _save_analysis_to_dir(sim_dir: str, data: dict):
-    """Save analysis results as JSON in the simulation directory."""
+def _save_analysis_to_dir(sim_id: str, data: dict):
+    """Save analysis results as JSON in the simulation directory.
+
+    Paths resolved from meta.db (`sentiment_path` for the canonical new
+    location, `sim_dir` for the legacy mirror). Old signature took `sim_dir`
+    directly; callers now pass `sim_id` so this function owns the lookup.
+    """
+    paths = _sim_paths(sim_id)
+    sim_dir = paths.get("sim_dir") or ""
+    new_path = paths.get("sentiment_path") or ""
+    if not sim_dir or not new_path:
+        logger.warning("save_analysis: meta.db missing sim_dir/sentiment_path for %s", sim_id)
+        return
+
     try:
         save_data = {
             "timestamp": datetime.now().isoformat(),
             "results": data,
         }
-        path = os.path.join(sim_dir, "analysis_results.json")
-        with open(path, "w", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(new_path), exist_ok=True)
+        with open(new_path, "w", encoding="utf-8") as f:
             json.dump(save_data, f, ensure_ascii=False, indent=2, default=str)
-        logger.info(f"Analysis results saved to {path}")
+        # Legacy mirror at sim_dir/analysis_results.json — kept for back-compat
+        # readers that haven't migrated to the analysis/ subfolder.
+        legacy_path = os.path.join(sim_dir, "analysis_results.json")
+        with open(legacy_path, "w", encoding="utf-8") as f:
+            json.dump(save_data, f, ensure_ascii=False, indent=2, default=str)
+        logger.info("Analysis results saved to %s (+ legacy mirror)", new_path)
     except Exception as e:
         logger.warning(f"Failed to save analysis results: {e}")
+        return
+
+    # Sync sentiment per-round vào metadata DB (best-effort)
+    try:
+        from ecosim_common.metadata_index import upsert_sentiment_round
+        per_round = (
+            data.get("per_round")
+            or (data.get("results", {}) if isinstance(data.get("results"), dict) else {}).get("per_round")
+            or []
+        )
+        for r in per_round:
+            if not isinstance(r, dict):
+                continue
+            upsert_sentiment_round(
+                sim_id, int(r.get("round", 0)),
+                int(r.get("positive", 0)),
+                int(r.get("negative", 0)),
+                int(r.get("neutral", 0)),
+            )
+    except Exception as _me:
+        logger.warning("Metadata sync (sentiment) fail: %s", _me)
 
 
 @router.post("/save")
@@ -150,20 +181,27 @@ async def save_analysis(
     data: dict = Body(..., description="Analysis results to save"),
 ):
     """Save analysis results to the simulation directory."""
-    db_path = _find_sim_db(sim_id)
-    sim_dir = os.path.dirname(db_path)
-    _save_analysis_to_dir(sim_dir, data)
-    return {"status": "saved", "sim_dir": sim_dir}
+    if not sim_id:
+        raise HTTPException(400, "sim_id is required")
+    _save_analysis_to_dir(sim_id, data)
+    return {"status": "saved", "sim_id": sim_id}
 
 
 @router.get("/cached")
 async def get_cached_analysis(
     sim_id: str = Query("", description="Simulation ID"),
 ):
-    """Load previously saved analysis results."""
-    db_path = _find_sim_db(sim_id)
-    sim_dir = os.path.dirname(db_path)
-    path = os.path.join(sim_dir, "analysis_results.json")
+    """Load previously saved analysis results (paths via meta.db).
+
+    Prefers the new `<sim_dir>/analysis/sentiment.json` location; falls back
+    to the legacy `analysis_results.json` mirror for older sims that ran
+    before the analysis/ subfolder was introduced.
+    """
+    paths = _sim_paths(sim_id) if sim_id else {}
+    sim_dir = paths.get("sim_dir") or ""
+    new_path = paths.get("sentiment_path") or ""
+    legacy_path = os.path.join(sim_dir, "analysis_results.json") if sim_dir else ""
+    path = new_path if (new_path and os.path.exists(new_path)) else legacy_path
 
     if not os.path.exists(path):
         return {"cached": False, "results": None}

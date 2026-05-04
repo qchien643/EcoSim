@@ -92,31 +92,119 @@ class EcoSimConfig:
         return cls.repo_root() / "data"
 
     @classmethod
-    def upload_dir(cls) -> Path:
+    def campaigns_dir(cls) -> Path:
+        """Per-campaign data root. Was `data/uploads/`, đổi sang `data/campaigns/`
+        ở Phase 5 (folder reorg). Override qua env `CAMPAIGNS_DIR` hoặc legacy
+        `UPLOAD_DIR` (backward compat).
+        """
         cls.init()
-        # Ưu tiên UPLOAD_DIR env; mặc định là data/uploads
-        custom = os.environ.get("UPLOAD_DIR")
+        custom = os.environ.get("CAMPAIGNS_DIR") or os.environ.get("UPLOAD_DIR")
         if custom:
             p = Path(custom)
             return p if p.is_absolute() else cls.repo_root() / custom
-        return cls.data_dir() / "uploads"
+        return cls.data_dir() / "campaigns"
 
+    # Legacy alias — keep cho code chưa migrate. Internal dùng campaigns_dir().
+    @classmethod
+    def upload_dir(cls) -> Path:
+        return cls.campaigns_dir()
+
+    # ── Legacy alias — sim folder bây giờ nested dưới campaign ──
+    # Phase 10: data/simulations/ KHÔNG còn dùng. Sim folder = data/campaigns/<cid>/sims/<sid>/.
+    # Giữ helper này tạm cho code chưa migrate (deprecated, sẽ remove ở Phase 11).
     @classmethod
     def sim_dir(cls) -> Path:
+        """DEPRECATED — sim folders giờ nested dưới campaigns/<cid>/sims/.
+        Dùng path_resolver.compute_simulation_paths(sid, cid) để lấy sim_dir đúng.
+        """
         return cls.data_dir() / "simulations"
+
+    # ── Phase 10: SQLite metadata index — ground truth cho routing ──
+    @classmethod
+    def meta_db_path(cls) -> Path:
+        cls.init()
+        custom = os.environ.get("META_DB_PATH")
+        if custom:
+            p = Path(custom)
+            return p if p.is_absolute() else cls.repo_root() / custom
+        return cls.data_dir() / "meta.db"
+
+    # ── Phase 10: campaign + sim folder helpers (convention-based) ──
+    # Khuyến nghị: dùng path_resolver.compute_*_paths() / resolve_*_paths()
+    # thay vì helpers này — đã có DB-backed routing đầy đủ.
+    @classmethod
+    def campaign_dir(cls, campaign_id: str) -> Path:
+        if not campaign_id:
+            raise ValueError("campaign_id required")
+        return cls.campaigns_dir() / campaign_id
+
+    @classmethod
+    def campaign_source_dir(cls, campaign_id: str) -> Path:
+        return cls.campaign_dir(campaign_id) / "source"
+
+    @classmethod
+    def campaign_extracted_dir(cls, campaign_id: str) -> Path:
+        return cls.campaign_dir(campaign_id) / "extracted"
+
+    @classmethod
+    def campaign_kg_dir(cls, campaign_id: str) -> Path:
+        return cls.campaign_dir(campaign_id) / "kg"
+
+    @classmethod
+    def campaign_sims_dir(cls, campaign_id: str) -> Path:
+        """Parent dir chứa N sims của 1 campaign."""
+        return cls.campaign_dir(campaign_id) / "sims"
+
+    @classmethod
+    def sim_kg_dir(cls, sim_id: str, campaign_id: Optional[str] = None) -> Path:
+        """Phase 10: nested layout. Cần campaign_id để build path đúng.
+
+        Backward-compat: nếu campaign_id không truyền, query meta.db lookup cid.
+        Tránh dùng pattern này — dùng path_resolver.compute_simulation_paths().
+        """
+        if not sim_id:
+            raise ValueError("sim_id required")
+        if campaign_id:
+            return cls.campaign_dir(campaign_id) / "sims" / sim_id / "kg"
+        # Lookup cid từ meta.db
+        try:
+            from .metadata_index import get_simulation
+            sim = get_simulation(sim_id)
+            if sim and sim.get("cid"):
+                return cls.campaign_dir(sim["cid"]) / "sims" / sim_id / "kg"
+        except Exception:
+            pass
+        # Last resort: legacy flat path (warning)
+        return cls.data_dir() / "simulations" / sim_id / "kg"
+
+    @classmethod
+    def reference_dir(cls) -> Path:
+        """Reference data (parquet pool, name lists, MBTI distribution)."""
+        return cls.data_dir() / "reference"
 
     @classmethod
     def parquet_profile_path(cls) -> Path:
+        """Profile parquet location. Was `data/dataGenerator/`, đổi sang
+        `data/reference/` ở Phase 5 (clearer purpose).
+        Backward compat: nếu data/dataGenerator/profile.parquet vẫn tồn tại
+        (chưa migrate), dùng nó. Override qua env PARQUET_PROFILE_PATH.
+        """
         cls.init()
         custom = os.environ.get("PARQUET_PROFILE_PATH")
         if custom:
             p = Path(custom)
             return p if p.is_absolute() else cls.repo_root() / custom
-        return cls.data_dir() / "dataGenerator" / "profile.parquet"
+        new_path = cls.data_dir() / "reference" / "profile.parquet"
+        if new_path.exists():
+            return new_path
+        legacy = cls.data_dir() / "dataGenerator" / "profile.parquet"
+        if legacy.exists():
+            return legacy
+        return new_path  # default to new path even if missing (caller raise)
 
     @classmethod
     def ensure_dirs(cls) -> None:
-        for d in [cls.data_dir(), cls.upload_dir(), cls.sim_dir()]:
+        for d in [cls.data_dir(), cls.campaigns_dir(), cls.reference_dir()]:
             d.mkdir(parents=True, exist_ok=True)
 
     # ── LLM ──
@@ -134,6 +222,106 @@ class EcoSimConfig:
     def llm_model_name(cls) -> str:
         cls.init()
         return os.environ.get("LLM_MODEL_NAME", "gpt-4o-mini")
+
+    @classmethod
+    def llm_fast_model_name(cls) -> str:
+        """Cheaper/faster model cho các call không cần chất lượng cao (default =
+        main model). Dùng cho: intent classification, in-character agent reply,
+        light aggregation calls — nơi prompt đã có context đầy đủ.
+
+        Override qua env `LLM_FAST_MODEL_NAME` để chỉ định model rẻ hơn,
+        ví dụ `gpt-3.5-turbo`, `gpt-4o-mini`, Groq Llama, local Ollama...
+        """
+        cls.init()
+        fast = os.environ.get("LLM_FAST_MODEL_NAME", "").strip()
+        return fast or cls.llm_model_name()
+
+    @classmethod
+    def llm_extraction_model_name(cls) -> str:
+        """Stronger model cho stages chiết xuất tài liệu (campaign spec
+        extraction Stage 1 + section entity/fact analysis Stage 3 trong
+        Knowledge Graph build pipeline).
+
+        Default `gpt-4o` — đắt hơn ~5× `gpt-4o-mini` nhưng precision cao hơn
+        khi extract entities/facts từ Vietnamese business docs (ít nhầm
+        "Brand"→"Company", catch implicit relationships tốt hơn).
+
+        Cost mitigated bởi cache: extracted/sections.json + analyzed.json
+        được persist sau lần build đầu, build sau reuse cache (skip LLM).
+
+        Override env `LLM_EXTRACTION_MODEL`. Set rỗng → fallback về
+        `LLM_MODEL_NAME` để giảm cost ở dev (entities sẽ noise hơn).
+        """
+        cls.init()
+        extr = os.environ.get("LLM_EXTRACTION_MODEL", "").strip()
+        return extr or "gpt-4o"
+
+    # ── Embedding ──
+    # Centralize embedder qua provider của LLM (OpenAI-compatible). Tránh trộn
+    # local sentence-transformers (384-dim) với OpenAI (1536-dim) gây 2 vector
+    # spaces incompatible. Default = text-embedding-3-small (rẻ, đủ tốt).
+    # Optional override base_url + api_key để fallback sang OpenAI khi
+    # primary provider không có embeddings (vd Groq chỉ có chat).
+
+    # Bảng dim cho các model OpenAI thông dụng — dùng để probe nhanh không cần
+    # API call. Nếu model không có ở đây, LLMClient.embedding_dim sẽ probe
+    # bằng 1 call thật.
+    _EMBEDDING_DIMS = {
+        "text-embedding-3-small": 1536,
+        "text-embedding-3-large": 3072,
+        "text-embedding-ada-002": 1536,
+    }
+
+    @classmethod
+    def llm_embedding_model(cls) -> str:
+        cls.init()
+        return os.environ.get("LLM_EMBEDDING_MODEL", "text-embedding-3-small").strip()
+
+    @classmethod
+    def llm_embedding_base_url(cls) -> str:
+        """Override cho embedding endpoint. Default = chat base_url."""
+        cls.init()
+        override = os.environ.get("LLM_EMBEDDING_BASE_URL", "").strip()
+        return override or cls.llm_base_url()
+
+    @classmethod
+    def llm_embedding_api_key(cls) -> str:
+        """Override cho embedding api key. Default = chat api_key."""
+        cls.init()
+        override = os.environ.get("LLM_EMBEDDING_API_KEY", "").strip()
+        return override or cls.llm_api_key()
+
+    @classmethod
+    def llm_embedding_dim_hint(cls, model: Optional[str] = None) -> Optional[int]:
+        """Lookup dim cho model đã biết. Trả None nếu không biết → caller probe."""
+        cls.init()
+        m = model or cls.llm_embedding_model()
+        return cls._EMBEDDING_DIMS.get(m)
+
+    # ── Zep Cloud (managed KG extraction) ──
+    @classmethod
+    def zep_api_key(cls) -> str:
+        """Zep Cloud API key. Empty nếu chưa config — caller phải fallback
+        sang KG_BUILDER=direct hoặc raise rõ ràng.
+        """
+        cls.init()
+        return os.environ.get("ZEP_API_KEY", "").strip()
+
+    @classmethod
+    def kg_builder(cls) -> str:
+        """KG build engine selection: zep_hybrid | direct | graphiti.
+
+        - `zep_hybrid`: Zep server-side LLM extract → FalkorDB mirror (rich, ~30-60s)
+        - `direct`: Stage 2 EcoSim extract → direct Cypher write (fast 12s, info-lossy)
+        - `graphiti`: Legacy add_episode (slow, debug only)
+
+        Default `direct` để safe dev (Zep cần API key + costs credit).
+        """
+        cls.init()
+        v = os.environ.get("KG_BUILDER", "direct").strip().lower()
+        if v not in ("zep_hybrid", "direct", "graphiti"):
+            return "direct"
+        return v
 
     # ── FalkorDB ──
     @classmethod

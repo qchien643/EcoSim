@@ -26,7 +26,13 @@ class KGRetriever:
     Fallback: Basic FalkorDB string matching (if Graphiti unavailable)
     """
 
-    def __init__(self):
+    def __init__(self, graph_name: str = ""):
+        """Args:
+            graph_name: FalkorDB graph name (= sim_<sim_id> cho per-sim KG
+                sau master+fork architecture). Bắt buộc — bỏ qua sẽ skip
+                fallback path.
+        """
+        self.graph_name = graph_name
         self._graphiti_client = None
         self._graphiti_available = None  # None = not checked yet
 
@@ -34,6 +40,62 @@ class KGRetriever:
         self._graph = None
         self._entity_cache: Dict[str, Dict] = {}
         self._entity_names: List[str] = []
+        # Auto-restore one-shot flag — tránh restore loop nếu lần đầu fail.
+        self._restore_attempted = False
+
+    # ──────────────────────────────────────────────
+    # Auto-restore guard (Phase D)
+    # ──────────────────────────────────────────────
+
+    async def _ensure_falkordb_loaded(self) -> None:
+        """Nếu graph bị wipe khỏi FalkorDB nhưng snapshot tồn tại → restore.
+
+        Áp dụng cho graph_name dạng campaign_id (master KG). Sim graph (sim_<sid>)
+        không restore qua đây — sim cần delta layer ở Phase D.4. One-shot:
+        chỉ thử 1 lần per KGRetriever instance để tránh loop nếu fail.
+        """
+        if self._restore_attempted or not self.graph_name:
+            return
+        # Sim graph naming convention: "sim_<8hex>". Skip — let kg_fork handle.
+        if self.graph_name.startswith("sim_"):
+            self._restore_attempted = True
+            return
+
+        self._restore_attempted = True
+        try:
+            # Sim service runs on different process — Core service không có
+            # kg_snapshot import path. Gọi qua HTTP nội bộ.
+            import os, urllib.request, json as _json
+            sim_url = os.getenv("SIM_SERVICE_URL", "http://localhost:5002")
+            # Cache-status check
+            req = urllib.request.Request(
+                f"{sim_url}/api/graph/cache-status?campaign_id={self.graph_name}",
+            )
+            with urllib.request.urlopen(req, timeout=2) as resp:
+                cs = _json.loads(resp.read().decode("utf-8"))
+            if cs.get("in_falkordb"):
+                return  # Already loaded, nothing to do
+            if not (cs.get("has_snapshot") and cs.get("has_chroma")):
+                return  # No snapshot to restore from
+            # Trigger restore — sync wait (max ~15s for typical graph)
+            logger.info(
+                "Auto-restoring graph %s from snapshot before query",
+                self.graph_name,
+            )
+            req = urllib.request.Request(
+                f"{sim_url}/api/graph/restore",
+                method="POST",
+                data=_json.dumps({"campaign_id": self.graph_name}).encode(),
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=60):
+                pass
+            logger.info("Auto-restore done for %s", self.graph_name)
+        except Exception as e:
+            logger.warning(
+                "Auto-restore guard failed for %s: %s — search may degrade",
+                self.graph_name, e,
+            )
 
     # ──────────────────────────────────────────────
     # Graphiti Hybrid Search (Primary)
@@ -48,7 +110,7 @@ class KGRetriever:
 
         try:
             from .graphiti_service import get_graphiti_client
-            self._graphiti_client = await get_graphiti_client()
+            self._graphiti_client = await get_graphiti_client(self.graph_name)
             self._graphiti_available = self._graphiti_client is not None
             if self._graphiti_available:
                 logger.info("KGRetriever: Graphiti hybrid search enabled")
@@ -72,6 +134,11 @@ class KGRetriever:
         """
         if not context_text:
             return ""
+
+        # Pre-query auto-restore guard (Phase D): nếu KG bị wipe khỏi FalkorDB
+        # nhưng snapshot tồn tại trên disk → restore ngầm trước khi search.
+        # Best-effort, log + continue nếu fail (search sẽ dùng fallback path).
+        await self._ensure_falkordb_loaded()
 
         # Try Graphiti hybrid search first
         client = await self._get_graphiti_client()
@@ -122,14 +189,17 @@ class KGRetriever:
     # ──────────────────────────────────────────────
 
     def _get_graph(self):
-        """Lazy connection to FalkorDB campaign graph (fallback)."""
+        """Lazy connection to FalkorDB graph (fallback path)."""
         if self._graph is None:
+            if not self.graph_name:
+                logger.warning("KGRetriever fallback skipped: no graph_name set")
+                return None
             from falkordb import FalkorDB
             client = FalkorDB(
                 host=Config.FALKORDB_HOST,
                 port=Config.FALKORDB_PORT,
             )
-            self._graph = client.select_graph("ecosim")
+            self._graph = client.select_graph(self.graph_name)
             self._load_entity_index()
         return self._graph
 

@@ -1,71 +1,97 @@
 """
-Graphiti Client Singleton — Shared Graphiti client for KG retrieval and agent seeding.
+Graphiti Client Factory — per-graph cached Graphiti instances.
 
-Uses FalkorDriver to connect to existing FalkorDB (port 6379).
-Provides async client lifecycle management.
+Trước đây là singleton hardcode `database="ecosim"` — dùng được khi cả hệ
+thống chỉ có 1 graph chung. Sau master+fork architecture, mỗi campaign 1
+master graph + N sim graphs → cần Graphiti instance riêng cho mỗi graph
+(FalkorDriver `database=` được set per-instance).
+
+Helper cache theo `graph_name` để tránh re-build indexes mỗi call. Lifecycle:
+caller responsibility — gọi `close_graphiti_client(graph_name)` hoặc
+`close_all_graphiti_clients()` ở service shutdown.
+
+Embedder + entity-extraction LLM được route qua `ecosim_common.LLMClient` để
+đồng bộ với chat env (xem libs/ecosim-common/src/ecosim_common/graphiti_factory.py).
 """
 
 import logging
-from typing import Optional
+from typing import Dict
 
 from ..config import Config
 
 logger = logging.getLogger("ecosim.graphiti_service")
 
-_client = None
-_initialized = False
+# Cache: graph_name → Graphiti instance (built lazily)
+_clients: Dict[str, object] = {}
+# graph_name nào đã thử init nhưng fail → skip retry trong cùng process
+_failed: set = set()
 
 
-async def get_graphiti_client():
-    """Get or create singleton Graphiti client with FalkorDriver."""
-    global _client, _initialized
+async def get_graphiti_client(graph_name: str):
+    """Get or create Graphiti client for a specific FalkorDB graph.
 
-    if _client is not None:
-        return _client
+    Args:
+        graph_name: FalkorDB graph name (vd `campaign_id` cho master, hoặc
+            `sim_<sim_id>` cho per-sim). Bắt buộc — không có default vì
+            sau master+fork architecture, không còn graph "ecosim" chung.
 
-    if _initialized:
-        # Already tried and failed
+    Returns:
+        Graphiti instance hoặc None nếu init failed (logged once).
+    """
+    if not graph_name:
+        logger.error(
+            "get_graphiti_client() called without graph_name. After master+fork "
+            "architecture, mỗi caller phải biết rõ mình đọc graph nào."
+        )
         return None
 
-    _initialized = True
+    if graph_name in _clients:
+        return _clients[graph_name]
+    if graph_name in _failed:
+        return None
 
     try:
-        from graphiti_core import Graphiti
-        from graphiti_core.driver.falkordb_driver import FalkorDriver
+        # Import qua shared lib để dùng chung embedder + LLM config với Sim svc
+        from ecosim_common.graphiti_factory import make_graphiti, make_falkor_driver
 
-        driver = FalkorDriver(
+        driver = make_falkor_driver(
             host=Config.FALKORDB_HOST,
-            port=str(Config.FALKORDB_PORT),  # FalkorDriver expects string
-            database="ecosim",  # MUST match graph_builder/graph_query select_graph("ecosim")
+            port=int(Config.FALKORDB_PORT),
+            database=graph_name,
         )
-
-        _client = Graphiti(graph_driver=driver)
+        client = make_graphiti(driver)
+        _clients[graph_name] = client
         logger.info(
-            f"Graphiti client initialized: FalkorDB @ "
-            f"{Config.FALKORDB_HOST}:{Config.FALKORDB_PORT} database=ecosim"
+            "Graphiti client initialized for graph='%s' (FalkorDB @ %s:%s)",
+            graph_name, Config.FALKORDB_HOST, Config.FALKORDB_PORT,
         )
-        return _client
+        return client
 
     except ImportError:
         logger.warning(
             "graphiti-core[falkordb] not installed. "
             "Run: pip install graphiti-core[falkordb]"
         )
+        _failed.add(graph_name)
         return None
     except Exception as e:
-        logger.warning(f"Graphiti client init failed: {e}")
+        logger.warning(f"Graphiti client init failed for {graph_name}: {e}")
+        _failed.add(graph_name)
         return None
 
 
-async def close_graphiti_client():
-    """Close the singleton Graphiti client."""
-    global _client, _initialized
-
-    if _client is not None:
+async def close_graphiti_client(graph_name: str) -> None:
+    """Close 1 cached Graphiti client."""
+    client = _clients.pop(graph_name, None)
+    if client is not None:
         try:
-            await _client.close()
+            await client.close()
         except Exception as e:
-            logger.debug(f"Graphiti close error: {e}")
-        _client = None
+            logger.debug(f"Graphiti close error for {graph_name}: {e}")
+    _failed.discard(graph_name)
 
-    _initialized = False
+
+async def close_all_graphiti_clients() -> None:
+    """Close tất cả cached Graphiti clients (FastAPI/Flask shutdown hook)."""
+    for name in list(_clients.keys()):
+        await close_graphiti_client(name)

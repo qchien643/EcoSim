@@ -35,6 +35,23 @@ _log_analysis.txt
 
 # Claude Code
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Next.js
+.next/
+apps/frontend/.next/
+apps/frontend/tsconfig.tsbuildinfo
+
+# Graphify scratch
+.graphify_detect.json
+.graphify_python/
+.graphify_python
+
+# DB backups
+*.rdb
+
+# Unrelated sibling project
+MiroFish/
 
 # IDE
 .vscode/

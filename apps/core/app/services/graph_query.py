@@ -28,7 +28,15 @@ class GraphQuery:
     Direct: Raw FalkorDB Cypher for entity listing and graph traversal
     """
 
-    def __init__(self):
+    def __init__(self, graph_name: str = ""):
+        """Args:
+            graph_name: FalkorDB graph name (= campaign_id master, hoặc
+                "sim_<sim_id>" cho per-sim). Bắt buộc sau master+fork
+                architecture — không còn graph "ecosim" chung. Bỏ qua sẽ
+                raise lỗi rõ ràng tại lần query đầu (vs silent wrong-graph
+                trước đây).
+        """
+        self.graph_name = graph_name
         self._graph = None
         self._graphiti_client = None
         self._graphiti_available = None
@@ -36,13 +44,20 @@ class GraphQuery:
     def _get_graph(self):
         """Get raw FalkorDB graph connection."""
         if self._graph is None:
+            if not self.graph_name:
+                logger.error(
+                    "GraphQuery() called without graph_name. After master+fork "
+                    "architecture, caller phải truyền graph_name (campaign_id "
+                    "cho master, hoặc sim_<sim_id> cho per-sim graph)."
+                )
+                return None
             try:
                 from falkordb import FalkorDB
                 client = FalkorDB(
                     host=Config.FALKORDB_HOST,
                     port=Config.FALKORDB_PORT,
                 )
-                self._graph = client.select_graph("ecosim")
+                self._graph = client.select_graph(self.graph_name)
             except Exception as e:
                 logger.warning(f"FalkorDB unavailable: {e}")
                 return None
@@ -227,7 +242,7 @@ class GraphQuery:
         from .graphiti_service import get_graphiti_client
         from graphiti_core.search.search_config_recipes import NODE_HYBRID_SEARCH_RRF
 
-        client = await get_graphiti_client()
+        client = await get_graphiti_client(self.graph_name)
         if not client:
             return []
 

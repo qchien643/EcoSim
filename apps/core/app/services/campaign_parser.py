@@ -81,8 +81,12 @@ class CampaignParser:
         return spec
 
     def _extract_campaign_spec(self, text: str) -> CampaignSpec:
-        """Use LLM to extract structured data from campaign text."""
-        # Truncate if very long (GPT-4o-mini context = 128k, but keep cost low)
+        """Use LLM extraction model (default gpt-4o) to extract structured
+        data from campaign text. Stage 1 của KG build pipeline.
+        """
+        from ecosim_common.config import EcoSimConfig
+
+        # Truncate if very long (gpt-4o context = 128k, keep cost low)
         max_chars = 8000
         input_text = text[:max_chars] if len(text) > max_chars else text
 
@@ -91,7 +95,12 @@ class CampaignParser:
             {"role": "user", "content": f"Extract campaign information from:\n\n{input_text}"},
         ]
 
-        result = self.llm.chat_json(messages, temperature=0.2, max_tokens=1500)
+        # Override model với extraction tier (gpt-4o) cho precision cao hơn
+        # khi extract entities/structured fields từ Vietnamese business docs.
+        result = self.llm.chat_json(
+            messages, temperature=0.2, max_tokens=1500,
+            model=EcoSimConfig.llm_extraction_model_name(),
+        )
         logger.debug(f"LLM extraction result keys: {list(result.keys())}")
 
         # Validate campaign_type

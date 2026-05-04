@@ -1,0 +1,21 @@
+# Repo files dùng LF mặc định trên mọi platform — tránh autocrlf trên Windows
+# khiến content-hash file metadata (Poetry, lockfiles) drift so với upstream.
+* text=auto eol=lf
+
+# Đặc biệt critical: file Poetry/pip/Docker đã được host hash, CRLF sẽ break
+# integrity checks.
+vendored/oasis/pyproject.toml text eol=lf
+vendored/oasis/poetry.lock    text eol=lf
+**/requirements*.txt          text eol=lf
+**/Dockerfile                 text eol=lf
+**/*.sh                       text eol=lf
+
+# Binary files — không touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.parquet binary
+*.rdb binary
+*.db binary

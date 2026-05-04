@@ -22,45 +22,68 @@ LAST_NAMES = [
     "Vy", "Tiết", "Kim", "Bảo", "Thiện", "An", "Thanh", "Long", "Phương", "Minh",
 ]
 
-# ── 100 Vietnamese First Names (Tên) — mixed gender ──
-FIRST_NAMES = [
-    "An", "Anh", "Bảo", "Bình", "Chi", "Cường", "Danh", "Dung", "Dũng", "Đức",
-    "Giang", "Hà", "Hải", "Hạnh", "Hiếu", "Hoà", "Hoàng", "Hùng", "Hương", "Huy",
-    "Khánh", "Khoa", "Kiên", "Lan", "Linh", "Long", "Lý", "Mai", "Minh", "My",
-    "Nam", "Nga", "Nghĩa", "Ngọc", "Nhân", "Nhi", "Nhung", "Oanh", "Phong", "Phúc",
-    "Phương", "Quân", "Quang", "Quốc", "Sơn", "Tâm", "Thảo", "Thắng", "Thanh", "Thành",
-    "Thiên", "Thịnh", "Thư", "Thuận", "Thủy", "Tiến", "Tín", "Toàn", "Trang", "Trinh",
-    "Trung", "Trúc", "Tuấn", "Tùng", "Uyên", "Vân", "Vinh", "Việt", "Vũ", "Xuân",
-    "Yến", "Hằng", "Diệu", "Thúy", "Hiền", "Tú", "Khôi", "Đạt", "Lộc", "Tài",
-    "Hoa", "Nhật", "Trâm", "Quyên", "Đan", "Thy", "Khải", "Duy", "Hưng", "Phát",
+# ── Vietnamese First Names (Tên) — split theo gender ──
+# Một số tên unisex (An, Anh, Bảo, Minh, ...) xuất hiện ở cả hai pool.
+FIRST_NAMES_MALE = [
+    "An", "Anh", "Bảo", "Bình", "Cường", "Danh", "Dũng", "Đức",
+    "Hải", "Hiếu", "Hoàng", "Hùng", "Huy",
+    "Khánh", "Khoa", "Kiên", "Long", "Lý", "Minh",
+    "Nam", "Nghĩa", "Nhân", "Phong", "Phúc",
+    "Quân", "Quang", "Quốc", "Sơn", "Tâm", "Thắng", "Thanh", "Thành",
+    "Thiên", "Thịnh", "Thuận", "Tiến", "Tín", "Toàn",
+    "Trung", "Tuấn", "Tùng", "Vinh", "Việt", "Vũ",
+    "Khôi", "Đạt", "Lộc", "Tài", "Nhật", "Khải", "Duy", "Hưng", "Phát",
+]
+
+FIRST_NAMES_FEMALE = [
+    "An", "Anh", "Bảo", "Chi", "Dung",
+    "Giang", "Hà", "Hạnh", "Hoà", "Hương",
+    "Lan", "Linh", "Mai", "My",
+    "Nga", "Ngọc", "Nhi", "Nhung", "Oanh",
+    "Phương", "Thảo", "Thư", "Thủy", "Trang", "Trinh",
+    "Trúc", "Uyên", "Vân", "Xuân",
+    "Yến", "Hằng", "Diệu", "Thúy", "Hiền", "Tú",
+    "Hoa", "Trâm", "Quyên", "Đan", "Thy",
     "Lam", "Kiều", "Châu", "Ngân", "Thùy", "Như", "Quỳnh", "Khanh", "Hân", "Phượng",
 ]
 
+# Tất cả tên (dùng khi không xác định gender)
+FIRST_NAMES = sorted(set(FIRST_NAMES_MALE + FIRST_NAMES_FEMALE))
+
 # ── Middle name particles (Đệm) for natural-sounding names ──
-MIDDLE_NAMES = [
-    "Văn", "Thị", "Minh", "Thanh", "Hoàng", "Ngọc", "Quốc", "Đức", "Hữu", "Thành",
-    "Kim", "Thuý", "Hồng", "Xuân", "Bảo", "Phúc", "Trọng", "Anh", "Thiên", "Tuấn",
+# Thị thường cho nữ, Văn thường cho nam; còn lại unisex.
+MIDDLE_NAMES_MALE = [
+    "Văn", "Minh", "Thanh", "Hoàng", "Ngọc", "Quốc", "Đức", "Hữu", "Thành",
+    "Kim", "Xuân", "Bảo", "Phúc", "Trọng", "Anh", "Thiên", "Tuấn",
 ]
+MIDDLE_NAMES_FEMALE = [
+    "Thị", "Minh", "Thanh", "Ngọc", "Kim", "Thuý", "Hồng", "Xuân",
+    "Bảo", "Phúc", "Anh", "Thiên",
+]
+MIDDLE_NAMES = sorted(set(MIDDLE_NAMES_MALE + MIDDLE_NAMES_FEMALE))
 
 
 class NamePool:
     """Collision-free Vietnamese name generator using pre-built pools.
 
+    Gender-aware: nếu gender="male"/"female" thì chỉ pick trong pool tương ứng,
+    tránh lệch giới (ví dụ "Nguyễn Thị Tuấn"). Nếu gender=None thì dùng pool unisex.
+
     Usage:
-        pool = NamePool()
-        name1 = pool.pick()  # e.g. "Nguyễn Văn An"
-        name2 = pool.pick()  # e.g. "Trần Thị Lan" (guaranteed unique)
-        pool.reset()         # clear all used names
+        pool = NamePool(seed=42)
+        name1 = pool.pick(gender="female")  # e.g. "Nguyễn Thị Lan"
+        name2 = pool.pick(gender="male")    # e.g. "Trần Văn Minh"
+        pool.reset()                         # clear all used names
     """
 
     def __init__(self, seed: int = None):
-        self._used: Set[Tuple[int, int, int]] = set()  # (last_idx, mid_idx, first_idx)
+        self._used: Set[Tuple[str, str, str]] = set()
         self._used_fullnames: Set[str] = set()
         self._rng = random.Random(seed)
 
     @property
     def capacity(self) -> int:
-        """Max unique names: 100 × 20 × 100 = 200,000."""
+        """Max unique names ~ 100 × 20 × 100 = 200,000 (union of gender pools)."""
         return len(LAST_NAMES) * len(MIDDLE_NAMES) * len(FIRST_NAMES)
 
     @property
@@ -72,40 +95,46 @@ class NamePool:
         self._used.clear()
         self._used_fullnames.clear()
 
-    def pick(self) -> str:
-        """Pick a random unique Vietnamese full name.
+    def _pools_for(self, gender: Optional[str]) -> Tuple[list, list]:
+        """Return (middle_pool, first_pool) appropriate for gender."""
+        g = (gender or "").strip().lower()
+        if g == "male":
+            return MIDDLE_NAMES_MALE, FIRST_NAMES_MALE
+        if g == "female":
+            return MIDDLE_NAMES_FEMALE, FIRST_NAMES_FEMALE
+        return MIDDLE_NAMES, FIRST_NAMES
+
+    def pick(self, gender: Optional[str] = None) -> str:
+        """Pick a unique Vietnamese full name (optionally gender-aware).
 
         Returns: "Họ Đệm Tên" e.g. "Nguyễn Văn An"
-        Raises ValueError if pool exhausted (>200k agents).
+        Raises ValueError if pool exhausted for the requested gender.
         """
-        if len(self._used) >= self.capacity:
-            raise ValueError(f"Name pool exhausted ({self.capacity} names used)")
-
+        middle_pool, first_pool = self._pools_for(gender)
         max_attempts = 50
         for _ in range(max_attempts):
-            last_idx = self._rng.randint(0, len(LAST_NAMES) - 1)
-            mid_idx = self._rng.randint(0, len(MIDDLE_NAMES) - 1)
-            first_idx = self._rng.randint(0, len(FIRST_NAMES) - 1)
-
-            key = (last_idx, mid_idx, first_idx)
+            last = self._rng.choice(LAST_NAMES)
+            middle = self._rng.choice(middle_pool)
+            first = self._rng.choice(first_pool)
+            key = (last, middle, first)
             if key not in self._used:
                 self._used.add(key)
-                fullname = f"{LAST_NAMES[last_idx]} {MIDDLE_NAMES[mid_idx]} {FIRST_NAMES[first_idx]}"
+                fullname = f"{last} {middle} {first}"
                 self._used_fullnames.add(fullname)
                 return fullname
 
-        # Fallback: linear scan for any unused combo
-        for li in range(len(LAST_NAMES)):
-            for mi in range(len(MIDDLE_NAMES)):
-                for fi in range(len(FIRST_NAMES)):
-                    key = (li, mi, fi)
+        # Fallback: linear scan within the gender pool
+        for last in LAST_NAMES:
+            for middle in middle_pool:
+                for first in first_pool:
+                    key = (last, middle, first)
                     if key not in self._used:
                         self._used.add(key)
-                        fullname = f"{LAST_NAMES[li]} {MIDDLE_NAMES[mi]} {FIRST_NAMES[fi]}"
+                        fullname = f"{last} {middle} {first}"
                         self._used_fullnames.add(fullname)
                         return fullname
 
-        raise ValueError("Name pool completely exhausted")
+        raise ValueError(f"Name pool exhausted for gender={gender!r}")
 
     def is_used(self, fullname: str) -> bool:
         """Check if a full name has already been assigned."""
