@@ -47,9 +47,12 @@ Survey có 2 mode:
 
 ## Artifact overview (post-sim)
 
-```
-data/simulations/{sim_id}/
+Phase 5 storage layout — sim artifacts nằm trong campaign tree:
+
+```text
+data/campaigns/<cid>/sims/<sid>/
 ├── analysis_results.json          ← Sentiment (cached)
+├── analysis/                      ← Detail sentiment per round
 ├── suggested_questions.json       ← Generator output (cached)
 ├── {survey_id}.json               ← Raw survey + responses
 ├── survey_results.json            ← Aggregated cho quick load
@@ -61,6 +64,8 @@ data/simulations/{sim_id}/
     ├── meta.json
     └── agent_log.jsonl
 ```
+
+**Lookup path**: Core + Sim endpoint resolve qua `meta.db` (`simulations.sim_dir` column) qua [path_resolver.py](../libs/ecosim-common/src/ecosim_common/path_resolver.py). Không hardcode `data/simulations/<sid>/` nữa — đó là legacy Phase 4 path.
 
 ## Frontend workflow
 
@@ -90,5 +95,7 @@ Components đọc persisted state phải gate qua `useHydrated()` ([apps/fronten
 - **Survey cost**: N_agents × N_questions LLM calls qua `LLM_FAST_MODEL_NAME` (fallback main). Mặc định 10 agents × 10 questions = 100 calls (~$0.02 với gpt-4o-mini).
 - **Report preflight**: nếu `auto_run_sentiment=true` (default) thì Report tự chạy Sentiment. `auto_run_survey=false` (default) để user kiểm soát chi phí.
 - **Sim KG hybrid (Phase 13/15)**: data sống trong FalkorDB sim graph (group_id=sim_id) + sim ChromaDB delta — Report, Interview, Survey đều query từ đây. Zep sim graph deleted khi sim COMPLETED (free quota).
+- **sim_dir resolution**: Core endpoint `_sim_dir_from_meta()` ([apps/core/app/api/report.py](../apps/core/app/api/report.py)) + Sim endpoint `_sim_paths()` đều dùng meta.db để resolve path. Nếu sim không có trong meta.db → fallback `Config.SIM_DIR/<sid>` (legacy, thường rỗng). Khi tạo sim mới qua Sim service, meta.db row được insert auto.
+- **Frontend Analysis empty mặc dù có data**: nếu Analysis tab "No excerpts" nhưng `analysis_results.json` có sentiments → kiểm tra `lib/api/analysis.ts` adapter đã normalize đúng chưa (flatten `per_round[].sentiment` → flat positives/neutral/negative, derive top_positive/top_negative từ `sentiment.details[]` sort by score).
 
 Đi tiếp chi tiết từng flow → [06a](06a_sentiment_analysis.md) · [06b](06b_survey.md) · [06c](06c_interview.md) · [06d](06d_report.md) · [reference](reference.md)

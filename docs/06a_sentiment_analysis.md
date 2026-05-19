@@ -34,7 +34,7 @@ Prefix `/api/analysis/*` — routed qua Simulation Service ([apps/simulation/api
 
 ## Output format
 
-`data/simulations/{sim_id}/analysis_results.json`:
+`data/campaigns/<cid>/sims/<sid>/analysis_results.json` (resolve qua meta.db `sentiment_path`):
 
 ```json
 {
@@ -114,12 +114,33 @@ Prefix `/api/analysis/*` — routed qua Simulation Service ([apps/simulation/api
 
 Nếu `auto_run_sentiment=true` (default) và `analysis_results.json` chưa có → Report tự invoke `CampaignReportGenerator.generate_full_report(num_rounds=1)` trong preflight.
 
-## Visualization
+## Visualization (Next.js 16)
 
-Frontend [AnalysisView.vue](../apps/frontend/src/views/AnalysisView.vue) render Chart.js với:
-- Pie chart sentiment distribution
-- Line chart per-round sentiment (inflection points detect crisis)
-- Composite score breakdown với radar/bar chart
+Frontend [apps/frontend/app/campaigns/[campaignId]/sims/[simId]/analysis/page.tsx](../apps/frontend/app/campaigns/[campaignId]/sims/[simId]/analysis/page.tsx) render Recharts với:
+
+- Stacked bar chart per-round (positive/neutral/negative)
+- Header strip `+N =N −N across all rounds` từ `totals`
+- 2 column "Top positive" / "Top negative" excerpts (5 mỗi bên, sort by score)
+
+**Normalize adapter** ([apps/frontend/lib/api/analysis.ts](../apps/frontend/lib/api/analysis.ts)): backend trả raw shape `sentiment.distribution + sentiment.details + per_round[].sentiment.*` (nested). Frontend page expect flat shape `{totals, top_positive, top_negative, per_round: [{round, positive, neutral, negative}]}`. Adapter `normalize()`:
+
+- Flatten `per_round[].sentiment.{positive,neutral,negative}` → flat keys
+- Sort `sentiment.details` by score → split top 10 positive + top 10 negative
+- Map `sentiment.distribution` → `totals`
+
+Khi gọi `getAnalysisCached()` hoặc `runAnalysis()` đều đi qua adapter → UI consistent.
+
+## Dashboard integration
+
+Dashboard summary ([apps/core/app/api/dashboard.py:get_sentiment_timeseries](../apps/core/app/api/dashboard.py)) query meta.db trực tiếp:
+
+```sql
+SELECT round_num, AVG(positive), AVG(negative), AVG(neutral)
+FROM sentiment_summaries
+GROUP BY round_num ORDER BY round_num
+```
+
+Column tên `round_num` (không phải `round` — đã fix bug SQL). Output dùng cho landing dashboard chart aggregate cross-sim.
 
 ## Gotchas
 

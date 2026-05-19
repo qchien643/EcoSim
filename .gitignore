@@ -1,62 +1,153 @@
-# Python
+# ─── Python ─────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 *.egg-info/
+*.egg
 dist/
 build/
+sdist/
+wheels/
+pip-wheel-metadata/
+.eggs/
+
+# Virtualenvs
 venv/
 .venv/
+env/
+.env.local
+.env.*.local
 .container/
 .venv_tools/
+apps/*/.venv/
+libs/*/.venv/
 
-# Node
+# uv / pip cache
+.uv-cache/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Type checkers / linters
+.mypy_cache/
+.pyright_cache/
+.ruff_cache/
+.pytype/
+.pylint.d/
+
+# Test / coverage
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.cache/
+nosetests.xml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ─── Node / Next.js / Frontend ──────────────────────────
 node_modules/
+*/node_modules/
 frontend/node_modules/
 frontend/dist/
+.pnp.*
+.yarn/cache
+.yarn/install-state.gz
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Environment
+.next/
+apps/frontend/.next/
+apps/frontend/out/
+apps/frontend/tsconfig.tsbuildinfo
+*.tsbuildinfo
+next-env.d.ts
+
+# ─── Environment / secrets ──────────────────────────────
 .env
+.env.*
+!.env.example
 
-# Uploads & data
+# ─── Runtime data (gitignored per project layout) ───────
 uploads/
 data/
+!data/.gitkeep
 *.jsonl
 backend/data/
 oasis/data/
+apps/*/data/
 
-# Logs
+# ChromaDB persistence
+chroma/
+chroma_delta/
+
+# OASIS SQLite
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# ─── Logs ───────────────────────────────────────────────
 log/
 */log/
+**/log/
 oasis/log/
 backend/log/
+apps/*/log/
+*.log
 *_log.txt
 *_output.txt
 _log_analysis.txt
 
-# Claude Code
-.claude/settings.local.json
-.claude/scheduled_tasks.lock
-
-# Next.js
-.next/
-apps/frontend/.next/
-apps/frontend/tsconfig.tsbuildinfo
-
-# Graphify scratch
+# ─── Graphify scratch & cache ───────────────────────────
+graphify-out/
 .graphify_detect.json
 .graphify_python/
 .graphify_python
+.graphify_labels.json
+.graphify_root
+.ast_run.py
+.refilter.py
 
-# DB backups
+# ─── Probe / scratch scripts at repo root ───────────────
+.probe_*.py
+scratch/
+tmp/
+.tmp/
+
+# ─── DB backups / dumps ─────────────────────────────────
 *.rdb
+*.dump
+*.bak
 
-# Unrelated sibling project
+# ─── Docker volumes (if any spilled to repo) ────────────
+falkordb-data/
+falkordb/dump.rdb
+
+# ─── Claude Code / agent ────────────────────────────────
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/cache/
+
+# ─── Unrelated sibling project ──────────────────────────
 MiroFish/
 
-# IDE
+# ─── IDE / editor ───────────────────────────────────────
 .vscode/
+!.vscode/settings.json.example
 .idea/
+*.swp
+*.swo
+*~
+.history/
 
-# OS
+# ─── OS ─────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+desktop.ini
+$RECYCLE.BIN/

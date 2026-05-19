@@ -25,6 +25,21 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
 from ecosim_common.atomic_io import atomic_write_json
+from ecosim_common.path_resolver import resolve_simulation_paths
+
+
+def _sim_dir(sim_id: str) -> str:
+    """Resolve canonical sim_dir via meta.db (Phase 5 layout
+    `data/campaigns/<cid>/sims/<sid>/`). Fallback về legacy `Config.SIM_DIR/<sid>/`
+    nếu sim chưa được index trong meta.db."""
+    try:
+        paths = resolve_simulation_paths(sim_id, fallback=True)
+        d = paths.get("sim_dir") or ""
+        if d:
+            return d
+    except Exception:
+        pass
+    return os.path.join(Config.SIM_DIR, sim_id)
 from ecosim_common.agent_interview import (
     BUILTIN_LOADERS,
     INTENT_CLASSIFIER_PROMPT,
@@ -2347,7 +2362,7 @@ class ReportAgent:
         - `survey_id`: pin specific survey. Empty → Report pick latest.
         """
         report_id = str(uuid.uuid4())[:8]
-        sim_dir = os.path.join(Config.SIM_DIR, sim_id)
+        sim_dir = _sim_dir(sim_id)
         report_dir = os.path.join(sim_dir, "report")
         os.makedirs(report_dir, exist_ok=True)
 
@@ -2547,7 +2562,7 @@ class ReportAgent:
 
     def chat(self, sim_id: str, message: str, chat_history: List[Dict] = None) -> Dict:
         """Post-report interactive Q&A with tool access."""
-        sim_dir = os.path.join(Config.SIM_DIR, sim_id)
+        sim_dir = _sim_dir(sim_id)
         report_path = os.path.join(sim_dir, "report", "full_report.md")
         if not os.path.exists(report_path):
             report_path = os.path.join(sim_dir, "report.md")

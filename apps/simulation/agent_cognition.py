@@ -974,7 +974,18 @@ class GraphCognitiveHelper:
 
     Toggle: enable_graph_cognition in SIM_CONFIG.
     Requires: FalkorDB running (Docker).
+
+    TẠM THỜI VÔ HIỆU HÓA (_DISABLED=True): read path hiện dùng
+    `FalkorGraphSearcher` → `graphiti_factory.make_falkor_driver()` mà import
+    `graphiti_core.driver.falkordb_driver` không tồn tại trên bất kỳ version
+    PyPI nào (đã probe 14 versions). Mọi connect attempt sẽ throw + log
+    spam "FalkorDB connection failed" cho mỗi agent mỗi round. Set
+    _DISABLED=False khi đã refactor sang direct Cypher (xem note ở
+    falkor_graph_searcher.py.connect).
     """
+
+    _DISABLED: bool = True
+    _disabled_warned: bool = False
 
     def __init__(self, falkor_host: str = "localhost",
                  falkor_port: int = 6379,
@@ -992,6 +1003,11 @@ class GraphCognitiveHelper:
         bind đúng sim graph thay vì default_db. Nếu không pass, search sẽ trả
         empty vì default_db không có entities.
         """
+        if GraphCognitiveHelper._DISABLED:
+            if not GraphCognitiveHelper._disabled_warned:
+                print("[GRAPH-COG] Disabled (placeholder until refactor sang direct Cypher).")
+                GraphCognitiveHelper._disabled_warned = True
+            return False
         if self._connected:
             return True
         try:

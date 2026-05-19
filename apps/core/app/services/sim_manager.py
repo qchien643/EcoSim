@@ -1,31 +1,65 @@
 """
 Simulation Manager — State machine + orchestration.
 
-Manages simulation lifecycle: CREATED → PREPARING → READY → RUNNING → COMPLETED
-Persists state to disk; reconstructs from filesystem on restart.
+Manages simulation lifecycle: CREATED → PREPARING → READY → RUNNING → COMPLETED.
+
+State resolution (Option A, post-Phase 5):
+  1. In-memory cache (_simulations dict)
+  2. Meta DB (`data/meta.db` → simulations table) — AUTHORITATIVE for sim_dir,
+     status, paths. Phase 5 moved sims out of `Config.SIM_DIR` and into
+     `data/campaigns/<cid>/sims/<sid>/`; meta.db indexes the new layout.
+  3. Filesystem fallback at legacy `Config.SIM_DIR/<sid>/` for sims NOT in
+     meta.db (e.g. very old runs predating the meta index).
 """
 
 import json
 import logging
 import os
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from ecosim_common.atomic_io import atomic_write_json
+from ecosim_common.metadata_index import get_simulation, list_simulations
 
 from ..config import Config
 from ..models.simulation import SimConfig, SimState, SimStatus
 
 logger = logging.getLogger("ecosim.sim_manager")
 
-# In-memory state store (populated on-demand from disk)
+# In-memory state store (populated on-demand from meta.db / disk)
 _simulations: Dict[str, SimState] = {}
+
+
+def _parse_dt(value: Any) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_status(value: Any) -> SimStatus:
+    """Coerce meta.db string → SimStatus enum, default CREATED."""
+    if not value:
+        return SimStatus.CREATED
+    try:
+        return SimStatus(str(value).lower())
+    except ValueError:
+        return SimStatus.CREATED
 
 
 class SimManager:
     """Manage simulation lifecycle."""
 
     def create(self, campaign_id: str, num_agents: int = 10) -> SimState:
-        """Create a new simulation."""
+        """Create a new simulation.
+
+        Note: production path uses `apps/simulation/api/simulation.py:_create_sim`
+        which writes meta.db + the per-campaign sim_dir. This Core-side create()
+        is kept for legacy tests; it still uses `Config.SIM_DIR` and does NOT
+        register in meta.db.
+        """
         config = SimConfig(campaign_id=campaign_id, num_agents=num_agents)
         sim_dir = os.path.join(Config.SIM_DIR, config.sim_id)
         os.makedirs(sim_dir, exist_ok=True)
@@ -56,19 +90,44 @@ class SimManager:
             logger.info(f"Sim {sim_id}: {status.value}")
 
     def get(self, sim_id: str) -> Optional[SimState]:
-        """Get simulation state (checks memory, then disk)."""
+        """Get simulation state.
+
+        Resolution order:
+          1. In-memory cache.
+          2. Meta DB row (authoritative for Phase 5 sims under
+             data/campaigns/<cid>/sims/<sid>/).
+          3. Legacy filesystem scan at Config.SIM_DIR/<sid>/.
+        """
         if sim_id in _simulations:
             return _simulations[sim_id]
 
-        # Try reconstruct from disk
-        state = self._load_from_disk(sim_id)
+        # Meta DB lookup (primary path post-Phase 5)
+        row = get_simulation(sim_id)
+        if row:
+            state = self._load_from_meta(row)
+            if state:
+                _simulations[sim_id] = state
+                return state
+
+        # Legacy fallback — sims not registered in meta.db
+        state = self._load_from_disk_legacy(sim_id)
         if state:
             _simulations[sim_id] = state
         return state
 
     def list_all(self) -> List[Dict]:
-        """List all simulations (scans data/simulations/ directory)."""
-        self._scan_disk()
+        """List all simulations (meta.db first, then legacy filesystem scan)."""
+        # Hydrate cache from meta.db
+        for row in list_simulations(limit=500):
+            sid = row.get("sid")
+            if sid and sid not in _simulations:
+                state = self._load_from_meta(row)
+                if state:
+                    _simulations[sid] = state
+
+        # Pick up any legacy on-disk sims not in meta.db
+        self._scan_disk_legacy()
+
         return [
             {
                 "sim_id": s.sim_id,
@@ -82,24 +141,68 @@ class SimManager:
             for s in _simulations.values()
         ]
 
-    # ── Disk Persistence ──
+    # ── Meta DB → SimState ──
 
-    def _scan_disk(self):
-        """Scan data/simulations/ for sim_* directories and load missing."""
+    def _load_from_meta(self, row: Dict[str, Any]) -> Optional[SimState]:
+        """Build SimState from a meta.db simulations row.
+
+        Trusts meta.db for canonical fields (sim_dir, status, paths). If
+        the on-disk config exists we still overlay it for richer detail
+        (e.g. crisis_path), but never fall back to legacy guesses.
+        """
+        try:
+            sid = row["sid"]
+            sim_dir = row.get("sim_dir") or os.path.join(Config.SIM_DIR, sid)
+            config_path = row.get("config_path") or os.path.join(sim_dir, "simulation_config.json")
+            profiles_path = row.get("profiles_path") or ""
+            crisis_path = os.path.join(sim_dir, "crisis_scenarios.json")
+
+            state = SimState(
+                sim_id=sid,
+                campaign_id=row.get("cid", "") or "",
+                status=_parse_status(row.get("status")),
+                num_agents=int(row.get("num_agents") or 0),
+                current_round=int(row.get("current_round") or 0),
+                total_rounds=int(row.get("num_rounds") or 24),
+                output_dir=sim_dir,
+                config_path=config_path if os.path.exists(config_path) else "",
+                profiles_path=profiles_path if profiles_path and os.path.exists(profiles_path) else "",
+                crisis_path=crisis_path if os.path.exists(crisis_path) else "",
+            )
+
+            created = _parse_dt(row.get("created_at"))
+            if created:
+                state.created_at = created
+
+            return state
+        except (KeyError, ValueError) as e:
+            logger.warning("Failed to hydrate sim from meta row: %s", e)
+            return None
+
+    # ── Legacy filesystem path (pre Phase 5) ──
+
+    def _scan_disk_legacy(self):
+        """Scan legacy `Config.SIM_DIR` for sim_* dirs not in meta.db.
+
+        Phase 5 moved sims into per-campaign subdirs, so this scan typically
+        finds nothing. Kept as a safety net for stale local data.
+        """
         Config.ensure_dirs()
         if not os.path.isdir(Config.SIM_DIR):
             return
 
         for entry in os.listdir(Config.SIM_DIR):
+            if not entry.startswith("sim_"):
+                continue
             sim_dir = os.path.join(Config.SIM_DIR, entry)
-            if os.path.isdir(sim_dir) and entry.startswith("sim_"):
-                if entry not in _simulations:
-                    state = self._load_from_disk(entry)
-                    if state:
-                        _simulations[entry] = state
+            if not os.path.isdir(sim_dir) or entry in _simulations:
+                continue
+            state = self._load_from_disk_legacy(entry)
+            if state:
+                _simulations[entry] = state
 
-    def _load_from_disk(self, sim_id: str) -> Optional[SimState]:
-        """Reconstruct SimState from filesystem artifacts."""
+    def _load_from_disk_legacy(self, sim_id: str) -> Optional[SimState]:
+        """Reconstruct SimState from legacy `Config.SIM_DIR/<sid>/` layout."""
         sim_dir = os.path.join(Config.SIM_DIR, sim_id)
         config_path = os.path.join(sim_dir, "simulation_config.json")
 
@@ -110,10 +213,8 @@ class SimManager:
             with open(config_path, "r", encoding="utf-8") as f:
                 config_data = json.load(f)
 
-            # Determine status from existing files
             status = self._infer_status(sim_dir)
 
-            # Count agents from profiles.csv
             num_agents = config_data.get("num_agents", 0)
             profiles_path = os.path.join(sim_dir, "profiles.csv")
             if os.path.exists(profiles_path):
@@ -121,13 +222,13 @@ class SimManager:
                 with open(profiles_path, "r", encoding="utf-8") as f:
                     num_agents = max(num_agents, sum(1 for _ in csv.reader(f)) - 1)
 
-            # Count rounds from actions
             current_round = 0
             total_rounds = config_data.get("time_config", {}).get("total_rounds", 24)
             actions_path = os.path.join(sim_dir, "actions.jsonl")
             if os.path.exists(actions_path):
                 current_round = total_rounds  # completed
 
+            crisis_path = os.path.join(sim_dir, "crisis_scenarios.json")
             state = SimState(
                 sim_id=sim_id,
                 status=status,
@@ -135,34 +236,28 @@ class SimManager:
                 num_agents=num_agents,
                 profiles_path=profiles_path if os.path.exists(profiles_path) else "",
                 config_path=config_path,
-                crisis_path=os.path.join(sim_dir, "crisis_scenarios.json")
-                    if os.path.exists(os.path.join(sim_dir, "crisis_scenarios.json")) else "",
+                crisis_path=crisis_path if os.path.exists(crisis_path) else "",
                 output_dir=sim_dir,
                 current_round=current_round,
                 total_rounds=total_rounds,
             )
 
-            # Try to parse created_at from config
-            if "created_at" in config_data:
-                try:
-                    from datetime import datetime
-                    state.created_at = datetime.fromisoformat(str(config_data["created_at"]))
-                except (ValueError, TypeError):
-                    pass
+            created = _parse_dt(config_data.get("created_at"))
+            if created:
+                state.created_at = created
 
             return state
 
         except (json.JSONDecodeError, KeyError) as e:
-            logger.warning(f"Failed to load sim {sim_id} from disk: {e}")
+            logger.warning("Failed to load legacy sim %s: %s", sim_id, e)
             return None
 
     @staticmethod
     def _infer_status(sim_dir: str) -> SimStatus:
-        """Infer simulation status from directory contents."""
+        """Infer simulation status from directory contents (legacy fallback)."""
         has_actions = os.path.exists(os.path.join(sim_dir, "actions.jsonl"))
         has_profiles = os.path.exists(os.path.join(sim_dir, "profiles.csv"))
         has_crisis = os.path.exists(os.path.join(sim_dir, "crisis_scenarios.json"))
-        has_report = os.path.exists(os.path.join(sim_dir, "report.md"))
         has_log = os.path.exists(os.path.join(sim_dir, "simulation.log"))
 
         if has_actions:

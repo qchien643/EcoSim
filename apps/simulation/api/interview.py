@@ -789,9 +789,14 @@ async def chat_with_agent(req: ChatRequest):
             )
             from datetime import datetime as _dt
 
-            # All paths via meta.db
+            # All paths via meta.db.
+            # Rename `_sim_dir_path` để KHÔNG shadow `_sim_dir` function ở
+            # module scope (line 39). Nếu shadow, Python compile body với
+            # `_sim_dir` là local → line 772 reference (trước assignment ở
+            # nhánh enrich này) sẽ UnboundLocalError ngay cả khi nhánh không
+            # chạy. Đã từng gây 500 ở /api/interview/chat.
             _meta = _sim_meta(req.sim_id)
-            _sim_dir = _meta.get("sim_dir") or ""
+            _sim_dir_path = _meta.get("sim_dir") or ""
             _db_path = _meta.get("oasis_db_path") or ""
             _cfg_path = _meta.get("config_path") or ""
 
@@ -839,7 +844,7 @@ async def chat_with_agent(req: ChatRequest):
             profile["enriched_at"] = _dt.utcnow().isoformat()
 
             # Persist
-            _profiles_path = _meta.get("profiles_path") or os.path.join(_sim_dir, "profiles.json")
+            _profiles_path = _meta.get("profiles_path") or os.path.join(_sim_dir_path, "profiles.json")
             _all_profiles = _get_profiles(req.sim_id)
             _all_profiles[req.agent_id] = profile
             with open(_profiles_path, "w", encoding="utf-8") as wf:

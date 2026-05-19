@@ -1,121 +1,126 @@
-# 01 — Tổng quan dự án
+# 01 — Tổng quan EcoSim
 
-## EcoSim là gì
+> Định vị: nền tảng **mô phỏng động lực mạng xã hội** trong phản ứng với các sự kiện xã hội (chiến dịch marketing, khủng hoảng truyền thông, chính sách công). Đầu vào là 1 tài liệu campaign brief; đầu ra là báo cáo phân tích định tính + định lượng dựa trên hành vi của agents mô phỏng.
 
-**EcoSim** mô phỏng động lực học của một mạng xã hội trong phản ứng với các sự kiện xã hội (chiến dịch marketing, khủng hoảng truyền thông, thay đổi chính sách, ra mắt sản phẩm, v.v.). Đầu vào là tài liệu mô tả bối cảnh; đầu ra là log hành vi của hàng chục/trăm agent cá nhân hoá, báo cáo phân tích, và khả năng phỏng vấn agent sau khi mô phỏng.
+## 1. Pipeline 5 bước
 
-EcoSim **không** phải là một thay thế chung cho [OASIS (camel-ai)](https://github.com/camel-ai/oasis). Nó vay mượn OASIS làm platform nền và thay thế toàn bộ cơ chế ra quyết định của agent bằng một pipeline nhận thức (cognitive pipeline) tinh vi hơn.
-
-## Pipeline 5 giai đoạn
-
-```mermaid
-flowchart LR
-    A[1 · Ingest tài liệu] --> B[2 · Knowledge Graph]
-    B --> C[3 · Khởi tạo Agent]
-    C --> D[4 · Chạy mô phỏng]
-    D --> E[5 · Phân tích hậu mô phỏng]
-    D -.ghi trở lại.-> B
-    E -.truy vấn.-> B
-    E -.đọc.-> D
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ 1. Upload    │     │ 2. Build KG  │     │ 3. Prepare   │
+│ document     │ ──▶ │ entities +   │ ──▶ │ profiles +   │
+│ → spec       │     │ edges        │     │ sim config   │
+└──────────────┘     └──────────────┘     └──────────────┘
+                                                  │
+                          ┌───────────────────────┘
+                          ▼
+                  ┌───────────────┐     ┌───────────────┐
+                  │ 4. Run        │     │ 5. Analyze    │
+                  │ round loop    │ ──▶ │ sentiment +   │
+                  │ (subprocess)  │     │ survey +      │
+                  │               │     │ report (ReACT)│
+                  └───────────────┘     └───────────────┘
 ```
 
-| Giai đoạn | Mục tiêu | Tài liệu chi tiết |
-|-----------|----------|-------------------|
-| **1. Ingest** | Parse file (PDF/MD/TXT) → chunking → LLM trích xuất campaign spec | [03_ingestion_kg.md](03_ingestion_kg.md) |
-| **2. Knowledge Graph** | LLM sinh ontology động theo loại campaign → Graphiti ingest chunks → FalkorDB | [03_ingestion_kg.md](03_ingestion_kg.md) |
-| **3. Khởi tạo Agent** | Sample persona từ parquet 20M (DuckDB) → LLM enrich + gán MBTI → sim config | [04_agent_generation.md](04_agent_generation.md) |
-| **4. Mô phỏng** | Round loop: conditional post → semantic feed → comment/like → memory → drift → crisis | [05_simulation_loop.md](05_simulation_loop.md) |
-| **5. Hậu mô phỏng** | ReACT report + survey + interview per-agent + sentiment analysis | [06_post_simulation.md](06_post_simulation.md) |
+| Bước | Trigger | Service | Output chính |
+|------|---------|---------|---------------|
+| 1. Upload | `POST /api/campaign/upload` | Core | `data/campaigns/<cid>/extracted/spec.json` (CampaignSpec) |
+| 2. Build KG | `POST /api/graph/build` | Sim | FalkorDB graph `<cid>` + `data/campaigns/<cid>/kg/snapshot.json` |
+| 3. Prepare | `POST /api/sim/prepare` | Sim | `profiles.json`, `config.json`, `crisis_scenarios.json` ở `data/campaigns/<cid>/sims/<sid>/` |
+| 4. Run | `POST /api/sim/start` (SSE `…/stream`) | Sim subprocess | `actions.jsonl`, `oasis_simulation.db`, `simulation.log` + KG delta |
+| 5. Analyze | 4 flow độc lập | Sim + Core | `analysis_results.json` (sentiment), `<survey_id>.json`, `report/full_report.md` |
 
-## Điểm khác biệt so với OASIS
+Pipeline **không bắt buộc tuần tự cứng** — sau khi sim ở `COMPLETED`, 4 flow Phase 5 (sentiment, survey, interview, report) chạy độc lập, có thể parallel hoặc tuỳ chọn.
 
-OASIS gốc nhồi toàn bộ ngữ cảnh (posts + actions + persona) vào một prompt duy nhất và để LLM quyết định tất cả. EcoSim tách cơ chế ra quyết định thành nhiều tầng, dùng LLM chỉ khi thật sự cần content generation.
+## 2. Khác biệt so với OASIS gốc
 
-| Khía cạnh | OASIS | EcoSim |
-|-----------|-------|--------|
-| **Có đăng bài hay không** | LLM quyết định | Rule-based: `posts_per_week × MBTI multiplier × period_multiplier` |
-| **Chọn bài để tương tác** | Toàn bộ feed nhồi vào prompt | Semantic search (ChromaDB) theo interest vector |
-| **Nội dung post/comment** | LLM | LLM (điểm duy nhất LLM được gọi cho actions) |
-| **Sở thích agent** | Static trong persona | **Adaptive** — KeyBERT extract từ post engagement, drift theo `impressionability/forgetfulness/curiosity/conviction` |
-| **Bộ nhớ** | Không | FIFO buffer + FalkorDB graph riêng (`ecosim_agent_memory`) |
-| **MBTI** | Không dùng | Modifiers trên post/comment/like/feed exploration |
-| **Sự kiện đột biến** | Không có | Crisis engine 7 loại (price_change, scandal, regulation, ...) scheduled hoặc injected runtime |
-| **Hậu phân tích** | Xem log | Report ReACT (4 graph/data tools) + per-agent interview + survey + sentiment analysis |
+EcoSim build trên upstream **camel-oasis** (`vendored/oasis/`) nhưng có nhiều extension. Bảng so sánh:
 
-### Conditional posting — ví dụ
+| Khía cạnh | OASIS upstream | EcoSim |
+|-----------|----------------|--------|
+| Agent action decision | LLM call mỗi vòng | **Rule-based** (`posts_per_week × MBTI × period_multiplier`) — giảm 90% LLM cost |
+| Feed recommendation | Random / collaborative filtering | **Semantic matching** qua ChromaDB embeddings (`PostIndexer`) |
+| Interest model | Static từ profile | **Adaptive KeyBERT drift** — boost engaged interests + decay unused + curiosity injection |
+| Cross-round memory | Không | **FIFO 5-round buffer** + LLM-summarized injection + reflection cycle |
+| Knowledge Graph | Không | **FalkorDB master KG** + per-sim fork (Phase 10 KG cache state machine) |
+| Crisis scenarios | Không | **LLM-generated 7 types**, perturbation theo Jaccard relevance |
+| Sentiment / Report | Không | **RoBERTa local** + **ReACT report agent** 4 tools |
+| Action persistence | SQLite chỉ runtime | **Hybrid**: SQLite + JSONL append + Zep extract → FalkorDB delta (Phase 15) |
 
-Trong OASIS, agent được chọn → LLM được hỏi "agent này có đăng gì không, nội dung gì". Trong EcoSim:
+## 3. Tech stack
 
-```mermaid
-flowchart TD
-    Pick[Chọn agent cho round] --> Prob[Tính xác suất post<br/>posts_per_week/168 × MBTI_E_mult × period_mult]
-    Prob --> Roll{random < prob?}
-    Roll -->|No| Skip[Không đăng, chuyển sang giai đoạn tương tác]
-    Roll -->|Yes| Gen[Gọi LLM sinh content<br/>dựa trên interest + persona + memory]
-    Gen --> Write[Ghi post → SQLite + actions.jsonl + ChromaDB]
-```
+| Layer | Lựa chọn | Lý do |
+|-------|----------|-------|
+| LLM provider | OpenAI-compatible (`openai` SDK + base_url tuỳ biến) | Đổi provider chỉ qua `.env` (OpenAI / Groq / Together / Ollama / OpenRouter) |
+| Model tier | 3 lớp: `LLM_MODEL_NAME` (main), `LLM_EXTRACTION_MODEL` (gpt-4o cho KG extract), `LLM_FAST_MODEL_NAME` (in-character replies) | Cân bằng cost vs precision |
+| Profile pool | Parquet 20M rows (`data/samples/dataGenerator/`) scan qua **DuckDB** | Không load full vào memory |
+| Knowledge Graph | **FalkorDB** (Redis fork) + Graphiti (cho hybrid search) | Cypher trực tiếp + vector embedding tùy chọn |
+| Vector DB | **ChromaDB** in-process, per-sim collection (`ecosim_{sim_id}`) | Embedding qua OpenAI API (centralized LLMClient) |
+| Sentiment | **RoBERTa** local (`cardiffnlp/twitter-roberta-base-sentiment`) | Không phụ thuộc LLM API; chạy offline |
+| Document parsing | PyMuPDF + LangChain text splitters | PDF + Markdown + plaintext |
+| Sim runtime | OASIS (camel-ai) subprocess | Cô lập venv riêng (Python 3.11) |
+| Frontend | **Next.js 16 (App Router)** + React 19 + TypeScript strict + Tailwind 3 + Zustand + @tanstack/react-query v5 | SSR + same-origin proxy + persist localStorage |
+| Gateway | **Caddy 2** (`apps/gateway/Caddyfile`) | SSE flush_interval=-1, 1800s timeout cho long LLM chains, CORS allow dev :5173 |
 
-Kết quả: LLM call ít hơn 3-5 lần, hành vi phân phối thực tế hơn (không phải agent nào cũng đăng mỗi round), và cấu hình tham số hoá được.
+## 4. Microservice layout (5 service)
 
-### Semantic interest matching — ví dụ
+| Service | Framework | Port | Vai trò chính |
+|---------|-----------|------|---------------|
+| **Gateway** | Caddy 2 | 5000 | Reverse proxy + CORS + SSE forwarding |
+| **Core** | Flask 3 | 5001 | Campaign upload + Report generation + Dashboard analytics |
+| **Simulation** | FastAPI + uvicorn | 5002 | Graph build, Sim CRUD/prepare/start/stream, Survey, Interview, Analysis |
+| **FalkorDB** | Redis fork (Docker) | 6379 | Graph DB — 2 databases: `<cid>` (master + per-sim fork) + `ecosim_agent_memory` (optional) |
+| **Frontend** | Next.js 16 dev/standalone | 5173 | UI campaign-centric |
 
-```mermaid
-flowchart TD
-    Feed[Agent cần chọn post để comment/like] --> Vec[Lấy interest vector hiện tại]
-    Vec --> Query[ChromaDB query<br/>n_results=K, filter theo group]
-    Query --> Rank[Rank posts theo:<br/>semantic_distance - popularity_bonus + comment_decay]
-    Rank --> Thresh{distance < 0.7?}
-    Thresh -->|Strong| Like100[Like 100%, Comment 50%]
-    Thresh -->|0.7-1.0 Moderate| Like75[Like 75%, Comment 15%]
-    Thresh -->|1.0-1.3 Weak| Like30[Like 30%]
-    Thresh -->|>1.3 No match| Like10[Like 10%]
-```
+Core và Simulation chạy **2 Python venv riêng** với 2 phiên bản Python khác nhau:
+- Core ở `apps/core/.venv/` — Python 3.14 (`requires-python>=3.10`)
+- Sim ở `apps/simulation/.venv/` — Python 3.11 (`requires-python>=3.10,<3.13` do vendored/oasis)
 
-### Adaptive interest drift
+Bootstrap qua `uv sync` per service (không cần Poetry CLI — `poetry-core` chỉ là build backend PEP 517 mà uv xử lý được).
 
-Sau mỗi round, sở thích agent được cập nhật động:
+Chi tiết kiến trúc: [02_architecture.md](02_architecture.md).
 
-1. **Extract keywords** từ post agent đã engage bằng KeyBERT (`all-MiniLM-L6-v2`, ngram 1-3, MMR diversity 0.5).
-2. **Boost** interest đã engage += `impressionability`.
-3. **Decay** interest không engage × `(1 - forgetfulness)`.
-4. **New keywords** += `curiosity` weight.
-5. **Floor** các profile interests tại mức `conviction` (bảo vệ core identity).
-6. **Prune** interests có weight < 0.03 (trừ profile interests).
+## 5. Storage layers
 
-Xem [05_simulation_loop.md](05_simulation_loop.md) cho công thức chi tiết.
+Data được phân bổ qua **5 backend** khác nhau, mỗi cái cho 1 mục đích:
 
-## Kỹ thuật stack tóm tắt
+| Backend | Đường dẫn / Endpoint | Nội dung | Vai trò |
+|---------|---------------------|----------|---------|
+| Filesystem (per-campaign) | `data/campaigns/<cid>/` | source, extracted, kg, sims | Source-of-truth structured data |
+| Filesystem (per-sim) | `data/campaigns/<cid>/sims/<sid>/` | profiles.json, oasis_simulation.db, actions.jsonl, analysis_results.json, report/ | Sim runtime artifacts |
+| SQLite Meta DB | `data/meta.db` | campaigns + simulations + simulation_agents + sentiment_summaries | **Index/lookup authoritative** — Phase 5 dùng meta.db để resolve sim_dir |
+| FalkorDB | Container `ecosim-falkordb:6379` | 3 graphs: `<cid>` (master), `sim_<sid>` (per-sim), `ecosim_agent_memory` (optional) | Cypher queries + vector index |
+| ChromaDB | `data/campaigns/<cid>/sims/<sid>/chroma/` | Collection `ecosim_{sim_id}` (post embeddings) | Semantic feed matching per-sim |
+| Zep Cloud (optional) | `https://api.getzep.com/` | Master KG graph (campaign_id) + sim_<sid> runtime graph | LLM-driven extraction pipeline |
 
-| Layer | Công nghệ |
-|-------|-----------|
-| Gateway | Caddy 2 reverse proxy (port 5000) — SSE-friendly với `flush_interval -1` |
-| Core Service | Flask 3 + Pydantic 2 (port 5001) — campaign + report |
-| Simulation Service | FastAPI + uvicorn (port 5002) — graph + sim + survey + interview + analysis |
-| Simulation runner | OASIS framework + EcoSim extensions (subprocess, `apps/simulation/.venv/`) |
-| Frontend | Next.js 16 App Router + React 19 + TS strict + Tailwind 3 + Zustand + react-query (port 5173) |
-| Graph DB | FalkorDB (Redis-based) qua `graphiti-core` — load-on-demand cache (Phase A) |
-| KG persistence | JSON snapshot + ChromaDB primary (Phase A-D) — source of truth là disk, FalkorDB ephemeral |
-| Sim runtime KG | Hybrid: structural Cypher + Zep content extraction (Phase E/13/15) |
-| Vector DB | ChromaDB persistent per-campaign + per-sim, `all-MiniLM-L6-v2` (local) |
-| Profile pool | Parquet 20M rows scan bằng DuckDB |
-| LLM | OpenAI-compatible SDK (OpenAI / Groq / Together / Ollama qua `base_url`) — 3-tier model (main + fast + extraction) |
-| Keyword extraction | KeyBERT + sentence-transformers |
-| Document parsing | PyMuPDF + LangChain text splitters |
+Chi tiết: [07_storage_and_paths.md](07_storage_and_paths.md).
 
-## Khi nào dùng EcoSim
+## 6. Trạng thái tính năng
 
-- Test trước một chiến dịch truyền thông/giá/chính sách trước khi tung thật — dự báo phản ứng.
-- Nghiên cứu lan truyền thông tin/khủng hoảng với cohort tham số hoá.
-- Thử nghiệm hiệu ứng injection crisis (scandal, regulation) lên một community đã "sống".
+| Tính năng | Trạng thái | Ghi chú |
+|-----------|------------|---------|
+| Pipeline 1-5 | ✓ Hoạt động | End-to-end với gpt-4o-mini main + gpt-4o extraction |
+| KeyBERT interest drift | ✓ Verified | `_extract_keyphrases` dùng MMR + diversity 0.5; verify ở log: "Interest vectors: N total interests tracked" |
+| FIFO memory + reflection | ✓ Hoạt động | Per-round buffer max 5, reflection cycle (interval theo config) |
+| Crisis injection | ✓ Hoạt động | 7 types, schedule + real-time; perturbation Jaccard relevance |
+| Phase 15 Zep section dispatch | ✓ Hoạt động (khi `ZEP_API_KEY` set) | 10-node pipeline; structural actions vào SQLite, content actions vào KG |
+| KG build (direct Cypher) | ✓ Hoạt động | `kg_direct_writer.write_kg_direct()` bypass Graphiti — giảm 60+ phút LLM duplicate |
+| Sentiment analysis | ✓ Hoạt động | RoBERTa local + NSS score |
+| Survey auto-generate | ✓ Hoạt động | `SurveyQuestionGenerator` tag `report_section` |
+| Interview chat | ✓ Hoạt động | Fast model (`LLM_FAST_MODEL_NAME`) cho per-agent reply |
+| Report ReACT | ✓ Hoạt động | 2-phase (outline + per-section), 4 tools, evidence store |
+| **Graph cognition** | ⛔ **Disabled** | `agent_cognition.py:GraphCognitiveHelper._DISABLED=True` — import `graphiti_core.driver.falkordb_driver` không tồn tại trên PyPI (14 versions probed). Refactor sang direct Cypher pending |
 
-## Khi nào KHÔNG nên dùng
+## 7. Đọc tiếp
 
-- Cần kết quả chính xác thống kê — đây là công cụ định tính, agent base thuần LLM có bias.
-- Ngân sách LLM eo hẹp — dù đã giảm call, một simulation 100 agents × 24 rounds vẫn ~2-5k LLM call.
-- Không có dữ liệu persona thật — parquet 20M profiles là xương sống; không có thì agent giả quá.
-
-## Đi tiếp
-
-- Cài đặt: [../README.md](../README.md)
-- Hiểu services mapping → port → endpoint: [02_architecture.md](02_architecture.md)
-- Làm việc cùng Claude Code agent: [../CLAUDE.md](../CLAUDE.md)
+| Để hiểu | File |
+|---------|------|
+| Cài đặt + chạy | [../README.md](../README.md) |
+| Kiến trúc microservice chi tiết | [02_architecture.md](02_architecture.md) |
+| Upload → KG pipeline (Stage 1-3) | [03_ingestion_kg.md](03_ingestion_kg.md) |
+| Agent generation (Tier B) | [04_agent_generation.md](04_agent_generation.md) |
+| Round loop + cognition + Phase 15 | [05_simulation_loop.md](05_simulation_loop.md) |
+| Post-sim flows hub | [06_post_simulation.md](06_post_simulation.md) |
+| Sentiment, Survey, Interview, Report | [06a-06d](06a_sentiment_analysis.md) |
+| Storage + Paths + Meta DB | [07_storage_and_paths.md](07_storage_and_paths.md) |
+| API endpoints + env vars + schemas | [reference.md](reference.md) |
+| Claude Code agent guidance | [../CLAUDE.md](../CLAUDE.md) |

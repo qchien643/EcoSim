@@ -1,0 +1,58 @@
+[project]
+name = "ecosim-simulation"
+version = "0.1.0"
+description = "EcoSim Simulation Service — FastAPI + camel-oasis runtime"
+# Range bị giới hạn bởi vendored/oasis/pyproject.toml (`python = ">=3.10.0,<3.13"`).
+# Đừng nới rộng cho đến khi upstream camel-oasis support Python mới hơn.
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    # OASIS multi-agent runtime — path dep, editable. Kéo theo camel-ai,
+    # sentence-transformers, neo4j, slack_sdk, unstructured, pandas, etc.
+    "camel-oasis",
+
+    # KeyBERT — semantic keyphrase extraction cho InterestVectorTracker
+    # (apps/simulation/agent_cognition.py). Không có thì cognitive fallback
+    # về N-gram extractor, chất lượng kém hơn.
+    "keybert>=0.9",
+
+    # FastAPI runtime — uvicorn đã được kéo theo qua camel-oasis transitive,
+    # nhưng khai báo tường minh ở đây để không phụ thuộc transitive resolution.
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+
+    # Knowledge Graph stack (apps/simulation/api/graph.py + falkor_graph_*.py
+    # + agent_memory_graph.py truy cập FalkorDB trực tiếp; Graphiti dùng cho
+    # hybrid search trong campaign_knowledge.py + falkor_graph_searcher.py).
+    # NOTE: `graphiti_core.driver.falkordb_driver.FalkorDriver` không tồn tại
+    # ở bất kỳ version PyPI nào — import fail silent, graph-cog feature
+    # degrade về N-gram fallback. Không pin để uv dùng latest.
+    # Extra `[falkordb]` đã bị remove ở graphiti 0.11+ — declare falkordb riêng.
+    "graphiti-core>=0.5",
+    "falkordb>=1.0",
+
+    # ChromaDB — PostIndexer semantic matching (apps/simulation/interest_feed.py
+    # → ChromaDB collection per-sim, persist ở data/simulations/<sid>/chroma/).
+    "chromadb>=0.5",
+
+    # Zep Cloud — managed KG extraction cho master + sim runtime (Phase 13/15).
+    # Bắt buộc vì apps/simulation/zep_*.py import unconditionally.
+    "zep-cloud>=3.20",
+
+    # Shared library
+    "ecosim-common",
+]
+
+[tool.uv.sources]
+camel-oasis = { path = "../../vendored/oasis", editable = true }
+ecosim-common = { path = "../../libs/ecosim-common", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Service code chạy như scripts; wheel build chỉ để uv chấp nhận project mode.
+packages = ["api"]
+
+[tool.uv]
+package = true

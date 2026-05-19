@@ -12,6 +12,10 @@ dependencies = [
     "openai>=1.0",
     "httpx>=0.25",
     "pydantic>=2.0",
+    # parquet_reader.ParquetProfileReader scan parquet 20M rows bằng DuckDB.
+    # Là public API của package — declare ở đây để mọi consumer (Core + Sim)
+    # đều tự pull về, không phải khai báo lại trong từng service pyproject.
+    "duckdb>=1.0",
 ]
 
 [project.optional-dependencies]

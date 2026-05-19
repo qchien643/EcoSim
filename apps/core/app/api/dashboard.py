@@ -165,23 +165,23 @@ def get_sentiment_timeseries():
         with get_conn() as conn:
             if sid:
                 rows = conn.execute(
-                    "SELECT round, positive, negative, neutral FROM sentiment_summaries "
-                    "WHERE sid = ? ORDER BY round",
+                    "SELECT round_num, positive, negative, neutral FROM sentiment_summaries "
+                    "WHERE sid = ? ORDER BY round_num",
                     (sid,),
                 ).fetchall()
             elif cid:
                 rows = conn.execute(
-                    "SELECT ss.round, AVG(ss.positive), AVG(ss.negative), AVG(ss.neutral) "
+                    "SELECT ss.round_num, AVG(ss.positive), AVG(ss.negative), AVG(ss.neutral) "
                     "FROM sentiment_summaries ss "
                     "JOIN simulations s ON s.sid = ss.sid "
-                    "WHERE s.cid = ? GROUP BY ss.round ORDER BY ss.round",
+                    "WHERE s.cid = ? GROUP BY ss.round_num ORDER BY ss.round_num",
                     (cid,),
                 ).fetchall()
             else:
                 # Aggregate across all
                 rows = conn.execute(
-                    "SELECT round, AVG(positive), AVG(negative), AVG(neutral) "
-                    "FROM sentiment_summaries GROUP BY round ORDER BY round"
+                    "SELECT round_num, AVG(positive), AVG(negative), AVG(neutral) "
+                    "FROM sentiment_summaries GROUP BY round_num ORDER BY round_num"
                 ).fetchall()
             series = [
                 {"round": int(r[0]),

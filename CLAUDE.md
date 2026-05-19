@@ -26,7 +26,7 @@
 - `file_parser.FileParser` + `CampaignDocumentParser` — document parsing (3-tier chunking + section-based)
 - `atomic_io.atomic_write_json` / `atomic_append_jsonl` — tránh race condition khi nhiều service ghi cùng `data/simulations/{sim_id}/`
 
-**Vendored upstream** ở [vendored/oasis/](vendored/oasis/) — camel-oasis (camel-ai) package được tách khỏi app code. `apps/simulation/run_simulation.py` bootstrap `vendored/oasis` vào `sys.path` để `import oasis` hoạt động. `poetry install` chạy từ `vendored/oasis/` — venv vẫn ở `apps/simulation/.venv/` để tách biệt với venv của Core (`venv/` ở root).
+**Vendored upstream** ở [vendored/oasis/](vendored/oasis/) — camel-oasis (camel-ai) package được tách khỏi app code. `apps/simulation/run_simulation.py` bootstrap `vendored/oasis` vào `sys.path` để `import oasis` hoạt động. Bootstrap venv qua `uv sync` trong `apps/simulation/` — `pyproject.toml` declare `camel-oasis` như editable path dep (`{ path = "../../vendored/oasis", editable = true }`). `poetry-core` là PEP 517 build backend; uv xử lý được trực tiếp, **không cần Poetry CLI**. Venv ở `apps/simulation/.venv/` (Python 3.11) tách biệt với Core venv ở `apps/core/.venv/` (Python 3.14).
 
 Bootstrap: `apps/core/run.py`, `apps/simulation/sim_service.py`, `apps/simulation/run_simulation.py` tự walk up tìm `libs/ecosim-common/src` và inject vào `sys.path`. Docker image set `PYTHONPATH=/app/libs/ecosim-common/src:/app/vendored/oasis`.
 
@@ -86,6 +86,8 @@ EcoSim/
 │   │   └── Dockerfile + requirements.txt   ← chỉ dùng khi fallback
 │   │
 │   ├── core/                          ← Core Service :5001 (Flask)
+│   │   ├── pyproject.toml + uv.lock   ← ★ uv project mode (Python 3.10+, default 3.14)
+│   │   ├── .venv/                     ← ★ uv-managed venv
 │   │   ├── run.py
 │   │   ├── app/
 │   │   │   ├── __init__.py            ← blueprint: campaign_bp + report_bp
@@ -121,8 +123,9 @@ EcoSim/
 │   │   ├── sim_zep_writer.py          ← Phase 13: ZepContentBuffer + finalize_sim_zep (semantic-only path)
 │   │   ├── ingest_campaign.py / deploy.py
 │   │   ├── test_crisis.py / test_full_integration.py
-│   │   ├── Dockerfile                 ← context = repo root, copy vendored/oasis + apps/simulation
-│   │   └── .venv/                     ← ★ Poetry venv (built từ vendored/oasis/pyproject.toml)
+│   │   ├── Dockerfile                 ← context = repo root, uv-based build (copy vendored/oasis + libs/ecosim-common + apps/simulation)
+│   │   ├── pyproject.toml + uv.lock   ← ★ uv project mode — declare camel-oasis + ecosim-common qua path source
+│   │   └── .venv/                     ← ★ uv-managed venv (Python 3.11)
 │   │
 │   └── frontend/                      ← Frontend — Next.js 16 :5173
 │       ├── app/                        ← App Router (campaign-centric IA)
@@ -150,7 +153,6 @@ EcoSim/
 │       └── package.json                ← Next 16 + React 19 + TS strict
 │
 
-├── venv/                              ← Core Service Python venv (gitignored)
 └── data/                              ← gitignored runtime
     ├── samples/, dataGenerator/       ← parquet profile pool
     ├── uploads/                       ← per-campaign storage (xem §11 "Per-campaign layout")
@@ -227,18 +229,18 @@ Quick-start local dev (Windows):
 Chỉ backend + 1 service (phát triển nhanh):
 ```bash
 docker compose up -d falkordb
-cd apps/core && python run.py                                   # :5001
-cd apps/simulation && .venv/Scripts/python -m uvicorn sim_service:app --port 5002  # :5002
-caddy run --config apps/gateway/Caddyfile                       # :5000
-cd apps/frontend && npm run dev                                 # :5173 (Next.js)
+cd apps/core && uv run python run.py                                 # :5001 (Python 3.14)
+cd apps/simulation && uv run uvicorn sim_service:app --port 5002     # :5002 (Python 3.11)
+caddy run --config apps/gateway/Caddyfile                            # :5000
+cd apps/frontend && npm run dev                                      # :5173 (Next.js)
 ```
 
-Nếu cần rebuild venv simulation:
+Bootstrap / rebuild venv qua uv:
 ```bash
-cd vendored/oasis && poetry install   # tạo .venv ở apps/simulation/.venv — xem Dockerfile để hiểu flow
-cd ../../apps/simulation && .venv/Scripts/python -m pip install -r requirements-extra.txt   # EcoSim-only deps (keybert ...)
+cd apps/core && uv sync                       # Core — Python 3.10+ (uv pick highest available)
+cd apps/simulation && uv sync --python 3.11   # Sim — pin 3.10–3.12 (vendored/oasis range)
 ```
-Trên Linux dùng `.venv/bin/python` thay `.venv/Scripts/python.exe`. Bỏ bước thứ hai = `[COGNITION] KeyBERT not installed, using N-gram fallback` (cognitive vẫn chạy nhưng chất lượng kém).
+`uv sync` đọc `pyproject.toml` + `uv.lock`, tạo `.venv/`, cài deps editable cho path deps (`libs/ecosim-common` cho cả 2; `vendored/oasis` cho Sim). Không cần Poetry CLI ở host — `poetry-core` chỉ là PEP 517 build backend mà uv xử lý được. Bỏ qua bước Sim = `[COGNITION] KeyBERT not installed, using N-gram fallback` (cognitive vẫn chạy nhưng chất lượng kém).
 
 Test:
 ```bash
@@ -288,7 +290,7 @@ cd apps/core && python -m pytest tests/ -v
 - **Extraction tier model**: `LLM_EXTRACTION_MODEL` (default `gpt-4o`) đắt hơn ~5× main model nhưng tăng precision cho Vietnamese business docs (ít nhầm "Brand"→"Company", catch implicit relationships). Chỉ chạy ở Stage 1 (CampaignParser._extract_campaign_spec) + Stage 3 (CampaignSectionAnalyzer.analyze). Mọi LLM call khác vẫn dùng `LLM_MODEL_NAME` để tiết kiệm.
 - **FalkorDB phải chạy** (`docker compose up -d falkordb`) trước khi Core/Simulation boot — không có fallback.
 - **Subprocess env**: `sim_service` spawn `run_simulation.py` cần `LLM_API_KEY` + `PYTHONPATH` (bao gồm `libs/ecosim-common/src` + `vendored/oasis`). `run_simulation.py` auto-bootstrap walker để tìm cả hai khi chạy độc lập.
-- **Simulation .venv separate**: `run_simulation.py` chạy bằng `apps/simulation/.venv/Scripts/python.exe`, không phải venv của Core (`venv/` ở root). Nếu miss dependency, `cd vendored/oasis && poetry install` để rebuild venv.
+- **Hai venv riêng, hai Python khác nhau**: Core ở `apps/core/.venv/` (Python 3.14, requires-python `>=3.10`); Sim ở `apps/simulation/.venv/` (Python 3.11, requires-python `>=3.10,<3.13` do `vendored/oasis` pin). `run_simulation.py` luôn chạy bằng `apps/simulation/.venv/Scripts/python.exe`. Nếu miss dependency, rebuild bằng `cd apps/<service> && uv sync`. Không có root `venv/` nữa — nếu thấy thư mục `venv/` ở root là di tích từ setup pip cũ, có thể xoá an toàn.
 - **FalkorDB 2 databases**: `ecosim` (campaign KG, dùng trong Core/Sim) vs `ecosim_agent_memory` (agent memory, chỉ khi `enable_graph_cognition=true`). Đừng nhầm.
 - **Atomic writes**: file state trong `data/simulations/{sim_id}/` dùng `ecosim_common.atomic_io.atomic_write_json` (1-shot) hoặc `atomic_append_jsonl` (incremental). `actions.jsonl` hiện append từng record — đừng rewrite file.
 - **Long LLM chains**: `report_agent.py` dùng batch calls. Rate-limit → tăng `max_retries` ở `LLMClient`.

@@ -43,7 +43,12 @@ services:
 
   # ── Core Service — Campaign + Report (Port 5001) ──
   core:
-    build: ./apps/core
+    build:
+      # Context = repo root: Dockerfile cần COPY cả libs/ecosim-common
+      # (path dep trong apps/core/pyproject.toml) ở build time để uv sync
+      # resolve được trước khi container chạy.
+      context: .
+      dockerfile: apps/core/Dockerfile
     container_name: ecosim-core
     ports:
       - "5001:5001"

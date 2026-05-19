@@ -248,9 +248,9 @@ EcoSim/
 │   │   ├── ingest_campaign.py / deploy.py
 │   │   ├── test_crisis.py / test_full_integration.py
 │   │   ├── scripts/                           ← Sim-only utilities
-│   │   ├── requirements-extra.txt             ← EcoSim-only deps (keybert, etc.)
-│   │   ├── Dockerfile                         ← context = repo root
-│   │   └── .venv/                             ← Poetry venv (built từ vendored/oasis/pyproject.toml)
+│   │   ├── pyproject.toml + uv.lock           ← uv project (Python 3.11, declares camel-oasis + keybert + ecosim-common as deps)
+│   │   ├── Dockerfile                         ← context = repo root, uv-based build
+│   │   └── .venv/                             ← uv-managed venv (Python 3.11)
 │   │
 │   └── frontend/                              ← Frontend — Next.js 16 + TS strict
 │       ├── package.json                       ← Next 16, React 19, Tailwind 3, Zustand, react-query
@@ -397,7 +397,7 @@ Enum định nghĩa ở [apps/core/app/models/simulation.py](../apps/core/app/mo
 
 Run:
 ```bash
-cd apps/core && python -m pytest tests/ -v
+cd apps/core && uv run pytest tests/ -v
 ```
 
 Coverage hiện tại khiêm tốn — chủ yếu integration smoke. Không có unit test cho `interest_feed`, `agent_cognition`, `crisis_engine`.
@@ -408,8 +408,8 @@ Coverage hiện tại khiêm tốn — chủ yếu integration smoke. Không có
 
 [scripts/start.ps1](../scripts/start.ps1) — spawn terminals:
 1. `docker compose up -d falkordb`
-2. Core: `cd apps/core && python run.py` (port 5001)
-3. Simulation: `cd apps/simulation && .venv/Scripts/python -m uvicorn sim_service:app --port 5002`
+2. Core: `cd apps/core && uv run python run.py` (port 5001, Python 3.14)
+3. Simulation: `cd apps/simulation && uv run uvicorn sim_service:app --port 5002` (port 5002, Python 3.11)
 4. Gateway: `caddy run --config apps/gateway/Caddyfile` (port 5000)
 5. Frontend: `cd apps/frontend && npm run dev` (port 5173, Next.js)
 
@@ -443,7 +443,7 @@ Probe Zep API connectivity + verify `ZEP_API_KEY` valid trước khi chạy Phas
 |---------|---------------|------|---------|
 | `falkordb` | `falkordb/falkordb` | 6379 | — |
 | `gateway` | `caddy` (or `./apps/gateway` for Flask fallback) | 5000 | core, simulation |
-| `core` | `./apps/core` (build context = repo root) | 5001 | — |
+| `core` | `apps/core/Dockerfile` (build context = repo root) | 5001 | — |
 | `simulation` | `./apps/simulation` (build context = repo root để copy `vendored/oasis` + `libs/ecosim-common`) | 5002 | falkordb |
 | `frontend` | `./apps/frontend` | 5173 | gateway *(Next.js standalone container, env `GATEWAY_UPSTREAM=http://gateway:5000`)* |
 

@@ -225,7 +225,7 @@ Bibliography cuối:
 
 ## Output artifacts
 
-`data/simulations/{sim_id}/report/`:
+`data/campaigns/<cid>/sims/<sid>/report/` (resolve qua meta.db `report_dir`):
 
 | File | Format | Mô tả |
 |------|--------|-------|
@@ -295,7 +295,8 @@ Khi user đã có report và muốn hỏi thêm:
 
 ## Gotchas
 
-- **Report requires SIM_COMPLETED**: nếu gọi khi `RUNNING` → 400.
+- **Report requires SIM_COMPLETED**: nếu gọi khi `RUNNING` → 400. Verify qua `/api/sim/status`.
+- **sim_dir resolution** (Phase 5 fix): `ReportAgent.generate()` dùng helper `_sim_dir(sim_id)` ([apps/core/app/services/report_agent.py:27-43](../apps/core/app/services/report_agent.py#L27)) gọi `resolve_simulation_paths(sim_id, fallback=True)` (meta.db) — không hardcode `Config.SIM_DIR/<sid>/` nữa. SimManager `get()` ([apps/core/app/services/sim_manager.py](../apps/core/app/services/sim_manager.py)) cũng dùng meta.db primary, legacy filesystem fallback. **Triệu chứng nếu broken**: POST /generate returns 200 nhưng `report/full_report.md` không có trên disk (write to wrong path) → GET /api/report/<sid> trả 404 "Report not generated yet".
 - **auto_run_sentiment cost**: local RoBERTa model, zero API call cho scoring. Safe để default true.
 - **auto_run_survey cost**: 100+ LLM calls. Mặc định false — user phải explicit opt-in.
 - **ReACT evidence-citation mismatch**: LLM có thể quên cite `(EV-n)`. `evidence_refs` track qua `_record_evidence` độc lập với LLM output, bibliography vẫn render đủ.
@@ -303,5 +304,7 @@ Khi user đã có report và muốn hỏi thêm:
 - **profiles.json vs .csv**: Tier B code ghi `profiles.json`. Report load ưu tiên JSON, fallback CSV legacy.
 - **Sparse content hint** (Tier B C1): `sim_data_query(content)` trả `_hint` nếu < 5 items, gợi ý chuyển sang `narrative_quotes`/`topic_cluster`.
 - **Section 5 evidence density**: nếu cả sentiment + survey đều missing và `auto_run=false`, section 5 sẽ thiếu quantitative claims → report yếu. Warning log rõ trong `agent_log.jsonl`.
+- **Frontend outline shape mismatch**: backend trả `{outline: {title, summary, sections: [...]}}` (object) nhưng frontend `getReportOutline` expect array. Adapter ở [apps/frontend/lib/api/report.ts](../apps/frontend/lib/api/report.ts) unwrap `.sections` + stamp 1-based `index` (match `section_01.md` naming).
+- **Triệu chứng "nội dung đều là không thu thập được"**: nếu report content full "không thu thập được dữ liệu" → tool calls return empty → kiểm tra `_load_sim_data(sim_dir)` đọc đúng `sim_dir` không. Nguyên nhân thường gặp: sim_dir resolver legacy → đọc empty folder → `actions.jsonl` not found → 0 actions/agents/rounds.
 
 Đi tiếp → [06a — Sentiment](06a_sentiment_analysis.md) · [06b — Survey](06b_survey.md) · [06c — Interview](06c_interview.md)

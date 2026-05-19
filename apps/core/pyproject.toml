@@ -1,0 +1,54 @@
+[project]
+name = "ecosim-core"
+version = "0.1.0"
+description = "EcoSim Core Service — Flask, Campaign + Report"
+requires-python = ">=3.10"
+dependencies = [
+    # Web framework
+    "flask>=3.0",
+    "flask-cors>=4.0",
+    "python-dotenv>=1.0",
+
+    # LLM
+    "openai>=1.0",
+
+    # Knowledge Graph.
+    # NOTE: `from graphiti_core.driver.falkordb_driver import FalkorDriver` ở
+    # ecosim_common/graphiti_factory.py + apps/simulation/campaign_knowledge.py
+    # đã được kiểm tra: KHÔNG version nào trên PyPI (0.5..0.29) có submodule
+    # `driver`. Import fail silent → graph-cog feature degrade.
+    # Cũng KHÔNG dùng extra `[falkordb]` — extra này đã bị remove ở graphiti
+    # 0.11+. FalkorDB client declare riêng dưới đây.
+    "graphiti-core>=0.5",
+    "falkordb>=1.0",
+
+    # Document parsing
+    "PyMuPDF>=1.23",
+
+    # Data validation
+    "pydantic>=2.0",
+
+    # Utilities
+    "pandas>=2.0",
+    "tqdm>=4.0",
+
+    # Shared library — installed editable from libs/.
+    # Pull duckdb (ParquetProfileReader) transitively từ ecosim-common.
+    "ecosim-common",
+]
+
+[tool.uv.sources]
+ecosim-common = { path = "../../libs/ecosim-common", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Service code is run as scripts (run.py), not packaged. Wheel build only
+# satisfies uv's project-mode requirement; we never publish this.
+packages = ["app"]
+
+[tool.uv]
+# Pin a single resolved lock per service for reproducibility.
+package = true

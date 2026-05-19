@@ -106,7 +106,7 @@ LLM sinh 8-12 câu đa dạng với các rules:
 {
   "sim_id": "sim_abc",
   "count": 10,
-  "saved_to": "data/simulations/sim_abc/suggested_questions.json",
+  "saved_to": "data/campaigns/<cid>/sims/sim_abc/suggested_questions.json",
   "questions": [
     {
       "id": "q1",
@@ -202,12 +202,14 @@ Cross-analysis: matrix `agent × question` cho frontend table view.
 
 ## Artifact paths
 
-```
-data/simulations/{sim_id}/
+```text
+data/campaigns/<cid>/sims/<sid>/
 ├── suggested_questions.json     ← generator output (cached)
 ├── {survey_id}.json             ← raw survey + all responses
 └── survey_results.json          ← aggregated (fast load, preferred)
 ```
+
+Path resolve qua meta.db (`simulations.sim_dir`).
 
 ## Tích hợp với Report
 

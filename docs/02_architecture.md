@@ -268,20 +268,25 @@ EcoSim/
 
 Runtime artifacts nằm trong `data/` đã được gitignore.
 
-## KG persistence layer (Phase A-D)
+## KG persistence layer (Phase A-D + Phase 10 cache state machine)
 
-**Source of truth = disk** (`uploads/<cid>/kg/snapshot.json` ~300KB structure + `chroma/` 3 collections ~2.4MB). FalkorDB `<cid>` graph là **load-on-demand cache** cho Graphiti hybrid search. Khi mất FalkorDB volume → `POST /api/graph/restore?campaign_id=X` reload từ disk (~5s, no API calls).
+**Source of truth = disk** (`data/campaigns/<cid>/kg/snapshot.json` ~300KB structure + `chroma/` 3 collections ~2.4MB). FalkorDB `<cid>` graph là **load-on-demand cache** cho Graphiti hybrid search. Khi mất FalkorDB volume → `POST /api/graph/restore?campaign_id=X` reload từ disk (~5s, no API calls).
 
-**Tri-state cache status** qua `GET /api/graph/cache-status?campaign_id=X`:
-- `fresh` — JSON snapshot chưa build → cần `POST /api/graph/build`
-- `snapshot_only` — disk có snapshot, FalkorDB rỗng → frontend hiện "restore" button
-- `active` — FalkorDB đã load, query được
+**KG cache status state machine** qua `GET /api/graph/cache-status?campaign_id=X` (Phase 10 replaces tri-state cũ):
 
-**Atomic invariant**: snapshot.json present ⇒ chroma đầy đủ (chroma upsert + fsync trước, JSON ghi last). Migration cũ: `POST /api/graph/snapshot?campaign_id=X` dump from FalkorDB (one-time).
+```
+not_built → building → pending | forking → ready | error | mutating | completed
+```
+
+Frontend [apps/frontend/lib/types/backend.ts](../apps/frontend/lib/types/backend.ts) — `KGStatus` enum. Build flow query progress mỗi 1.5s qua `useBuildGraph` hook khi `isBuilding`.
+
+**Atomic invariant**: snapshot.json present ⇒ chroma đầy đủ (chroma upsert + fsync trước, JSON ghi last).
 
 **Sim KG = delta-only persistence** ([apps/simulation/sim_kg_snapshot.py](../apps/simulation/sim_kg_snapshot.py)): chỉ entities/edges sinh mới trong sim, không duplicate master. Cascade restore: master → fork → apply delta.
 
 Code: [apps/simulation/kg_snapshot.py](../apps/simulation/kg_snapshot.py), [apps/simulation/sim_kg_snapshot.py](../apps/simulation/sim_kg_snapshot.py), [apps/simulation/kg_fork.py](../apps/simulation/kg_fork.py).
+
+> **⛔ Graphiti FalkorDriver disabled**: `from graphiti_core.driver.falkordb_driver import FalkorDriver` không tồn tại trên bất kỳ version PyPI nào (đã probe 14 versions từ 0.5 đến 0.29). Cả [libs/ecosim-common/src/ecosim_common/graphiti_factory.py](../libs/ecosim-common/src/ecosim_common/graphiti_factory.py) lẫn [apps/simulation/campaign_knowledge.py](../apps/simulation/campaign_knowledge.py) đều có try/except wrap. 16+ write site khác bypass Graphiti hoàn toàn bằng `from falkordb import FalkorDB` (raw Cypher). Read-side semantic search (hybrid BM25+vector) hiện degrade về raw Cypher pattern matching trong [apps/core/app/services/kg_retriever.py](../apps/core/app/services/kg_retriever.py).
 
 ## Sim runtime hybrid (Phase E/13/15)
 
@@ -301,13 +306,19 @@ Trong sim runtime, content actions (post/comment ≥ 30 chars) được Zep extr
 
 - **Disk (KG snapshot + ChromaDB)** là source of truth cho campaign KG. FalkorDB là cache có thể wipe + restore.
 - **FalkorDB** chỉ giữ live cache giữa Core + Simulation: campaign KG (loaded on demand), sim runtime hybrid graph.
-- **Filesystem** (`data/simulations/{sim_id}/` + `data/uploads/{campaign_id}/`) là hợp đồng giữa Simulation Service, subprocess runner, và Core Service.
+- **Filesystem (Phase 5 layout)** — per-campaign tree:
+  - `data/campaigns/<cid>/source/` + `extracted/` + `kg/` + `sims/<sid>/` (sim runtime artifacts).
+  - Path không còn ở legacy `data/simulations/<sid>/` — Core đã chuyển sang resolve qua meta.db (xem [path_resolver.py](../libs/ecosim-common/src/ecosim_common/path_resolver.py)).
+- **Meta DB (`data/meta.db`, SQLite)** — index/lookup AUTHORITATIVE:
+  - Tables: `campaigns`, `simulations`, `simulation_agents`, `sentiment_summaries` + views.
+  - 40+ path columns per sim row (`sim_dir`, `oasis_db_path`, `report_dir`, ...) → endpoint resolve path qua `resolve_simulation_paths(sid)` thay vì hardcode.
+  - Bootstrap auto từ filesystem trên Core boot (`metadata_index.bootstrap_from_filesystem()`).
 - **Zep Cloud** (optional, sim runtime) — content extraction; sim graph deleted khi sim COMPLETED.
-- **Không có message queue** — không có nhu cầu pub/sub giữa services; tất cả truy cập qua file + DB.
+- **Không có message queue** — không có nhu cầu pub/sub giữa services; tất cả truy cập qua file + DB + meta.db.
 
 ## Lý do microservice
 
-- **Isolation Python env**: OASIS dùng `camel-ai`, poetry, `.venv` riêng ở `apps/simulation/.venv/`. Core dùng `pip + requirements.txt`. Giữ 2 env giúp không conflict dependency.
+- **Isolation Python env**: Core và Simulation chạy 2 venv riêng do uv quản lý, 2 Python version khác nhau. Core ở `apps/core/.venv/` (Python 3.14, `requires-python>=3.10`). Simulation ở `apps/simulation/.venv/` (Python 3.11, `requires-python>=3.10,<3.13` — pin bởi `vendored/oasis/pyproject.toml`). Mỗi service có `pyproject.toml` + `uv.lock` độc lập. `camel-oasis` được declare như editable path dep trong `apps/simulation/pyproject.toml` (`{ path = "../../vendored/oasis", editable = true }`); `libs/ecosim-common` tương tự cho cả 2 service. Không cần Poetry CLI ở host.
 - **Scaling Simulation độc lập**: simulation heavy (LLM + ChromaDB + graph updater). Core Service nhẹ.
 - **Tách deployment**: cần scale lên cloud thì Simulation deploy lên GPU node, Core lên web node.
 
@@ -319,5 +330,6 @@ Trong sim runtime, content actions (post/comment ≥ 30 chars) được Zep extr
 | **Local dev (Windows)** | `.\scripts\start.ps1` — spawn 5 terminal cho gateway/core/simulation/frontend + docker FalkorDB |
 | **Chỉ backend phát triển** | `cd apps/core && python run.py` + `cd apps/simulation && .venv/Scripts/python -m uvicorn sim_service:app --port 5002` |
 | **Test endpoint trực tiếp** | Gọi thẳng `localhost:5001` (Core) hoặc `localhost:5002` (Sim) bỏ qua gateway |
+| **Frontend dev với long-running API** | `apps/frontend/.env.local` đặt `NEXT_PUBLIC_GATEWAY_URL=http://localhost:5000` để browser bypass Next dev rewrite proxy (proxy này drop connection trên upload+parse 30-90s, graph build 5-20 phút) |
 
 Chi tiết ports + env vars: [reference.md](reference.md).

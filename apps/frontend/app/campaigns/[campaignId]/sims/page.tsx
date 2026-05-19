@@ -122,7 +122,8 @@ export default function SimsPage({
       render: (_, v) => formatDate(v as string),
     },
     {
-      key: 'sim_id',
+      // `_actions` để tránh duplicate React key với cột đầu (cũng dùng `sim_id`).
+      key: '_actions',
       header: '',
       width: '52px',
       align: 'right',
