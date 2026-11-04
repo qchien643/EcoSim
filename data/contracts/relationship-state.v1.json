@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "projectdut/relationship-state-v1",
+  "title": "ProjectDut Initial Brand Relationship",
+  "description": "The initial relationship between one simulated agent and one advertised brand. It is separate from the immutable persona.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["awareness", "familiarity", "attitude", "purchase_history"],
+  "properties": {
+    "awareness": {
+      "type": "string",
+      "enum": ["unknown", "aware"]
+    },
+    "familiarity": {
+      "type": "string",
+      "enum": ["none", "low", "established"]
+    },
+    "attitude": {
+      "type": "string",
+      "enum": ["not_formed", "positive", "neutral", "negative"]
+    },
+    "purchase_history": {
+      "type": "string",
+      "enum": ["none", "has_purchased"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"awareness": {"const": "unknown"}}
+      },
+      "then": {
+        "properties": {
+          "familiarity": {"const": "none"},
+          "attitude": {"const": "not_formed"},
+          "purchase_history": {"const": "none"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"familiarity": {"const": "none"}}
+      },
+      "then": {
+        "properties": {"purchase_history": {"const": "none"}}
+      }
+    },
+    {
+      "if": {
+        "properties": {"familiarity": {"const": "established"}}
+      },
+      "then": {
+        "properties": {"awareness": {"const": "aware"}}
+      }
+    },
+    {
+      "if": {
+        "properties": {"purchase_history": {"const": "has_purchased"}}
+      },
+      "then": {
+        "properties": {
+          "awareness": {"const": "aware"},
+          "familiarity": {"const": "established"}
+        }
+      }
+    }
+  ]
+}

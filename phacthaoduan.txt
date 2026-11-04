@@ -1,0 +1,60 @@
+data : Matrix-persona-1m
+
+project chúng ta hiện tại chưa có tên và biệt danh nó là projectDut2026 . chúng ta đang xây dựng một hệ thống mô phỏng phản ứng của người dùng và dự đoán xu hường mua của người dùng , trong ngành các ngành hàng  .
+hệ hống sẽ chạy qua nhiều phiên , mỗi phiên sẽ có các agent hoạt động , các agent xem qua các bài viết quảng cáo và phản ứng ,sau đó ghé qua shop và mua hàng  
+
+hệ thống : 
+bộ data matrix ai hiện có , một người dùng được biểu diễn qua hơn 1 ngàn trường , chúng ta sẽ có thể sẽ phải viết mô tả các trường . từ các trường mẹ là gì các tác dụng gì  , sau đó đến lần lượt các trường con , để tránh việc các trường thông tin cùng chung một trường mẹ có thông tin lặp đi lặp lại .
+
+1 ) 
+-đầu tiên chúng ta sẽ chuẩn bị : 
++ lọc qua các đặc điểm của người dùng tìm các đặc điểm liên quan tới tần suất hoạt động của từng người 
++dựa trên các thông tin này để ước lượng một ngày họ hoạt động trên mạng xã hội bao nhiêu giờ 
++dựa số giờ hoạt động trong một người chúng ta sẽ tính ra xác suất một người có thể hoạt động trong một phiên 
+-tương tự như vậy chúng ta sẽ tìm ra số lượng các sản phẩm trong shop mà agent có thể xem qua , cũng như tỉ lệ họ sẽ mua 
+- chúng ta sẽ chuẩn bị các bộ tag  để mô tả về các sản phẩm , bạn sẽ xây dựng bộ tag này , sau đó chạy vòng for , qua mỗi persona thì chạy một vòng lặp , với mỗi tag thì tìm top 15 các trường mô tả một người dùng dễ bị ảnh hưởng bởi tag hiện tại nhất .
+- tương tự vậy , chúng ta sẽ chuẩn bị các bộ tag để mô tả các bài viết mà công ty có thể đăng lên , mục tiêu các tag này là để cho thuật toán đề xuất hoạt động về sau .các tag trên một bài viết có thể là mô tả phong cách quảng cáo , giống như việc cùng là quảng cáo nhưng nếu có phong cách phù hợp thì người dùng sẽ xem ấy 
+- tương tự vậy , chúng ta cũng phải cung cấp mức điểm sàn cho các hành động của mỗi agent , qua các bước hành động như mua hoặc xem bài viết , nếu nó dưới điểm sàn thì không làm ,...
+
+2) trước tiên là chúng ta sẽ tạo một con agent gốc do chúng ta điều khiển . đây là công ty đang muốn quảng cáo , phải nhận bản báo cảo mô tả chiến dịch , dựa trên đó mà chúng ta sẽ sinh các bài viết seeding dưới nhiều góc độ . chúng ta sẽ chuẩn bị các bài viết mà agent công ty này có thể đăng tải . cũng như chúng ta sẽ chuẩn bị gian hàng các sản phẩm cùng với các tag cho từng sản phẩm . 
+
+3) xác suất đăng bài quảng cáo mỗi phiên sẽ được user cung cấp , số lượng agent sẽ có trong mô phỏng do người dùng cung cấp , cơ cấu agent tham gia sẽ được cung cấp (bao nhiêu phần trăm người ghét (vì sao ), bao nhiêu người mới chưa từng gặp ,bao nhiêu người đã biết trước đó nhưng chưa mua hàng , bao nhiêu người đã mua hàng trước đó 
+ĐI SÂU VÀO CƠ CHẾ :
+-Cơ chế thay đổi suy nghĩ qua các phiên và ghi nhận :
+phần này tôi đang khá bí 
+- Cơ chế đề xuất : 
++ hiện tại với schema các trường đã có quy định sẵn value nó là enums mô tả mức độ của một thuộc tính mô tả người dùng. chúng ta cung cấp context là các hoạt động người dùng đã làm trong round này , với các bài viết  chúng ta không cần đưa nội dung vaò , chỉ cần mô tả nó qua các tag ,chúng ta chỉ liệt kê các bài viết  đã đọc ,mỗi bài thì note thêm , đã thả cảm xúc là like hay dislike hay comment hay không làm gì  , đã có quyết định vào xem shop hay chưa ,sau khi vào xem thì đã xem các sản phẩm nào , trong các sản phẩm đã xem thử đã mua sản phẩm nào . dựa trên context này chúng ta sẽ đánh giá xem các trường nào sẽ có thể thay đổi giá trị , cũng như giá trị của nó sẽ tăng hay giảm , ở đây còn cần phải cân nhắc cả yêu tố các bài viết đã xem trước đó và các hành động trước đó để đề xuất . một người có thể thấy một baai viết nhiều lần nhưng cần có trọng số giảm dần chứ không mỗi vòng lặp người dùng sẽ đọc lại các bài viết y chang . 
++ dựa trên các đặc điểm người dùng , chọn ra các tag bài viết hợp mà người dùng chú ý nhất (vì người ghét thương hiệu này cũng đọc bài viết chứ không chỉ mỗi người thích ), sau đó mới chọn ra các bài viết một vài tag hoặc tất cả  đó , sau đó mới đo độ tương đồng về nội dung bài với mô tả của agent để tính điểm , sau đó sẽ có cơ chế sắp xếp để đánh giá độ phù hợp mỗi bài viết với agent dựa trên các tiêu chí như số tag phù hợp , độ tương đồng nội dung , số lượng tương tác like,dislike , số lượng các comment tích hoặc tiêu cực 
+-Cơ chế ra quyết định :  đây là điểm tôi học tập từ posim ,  mỗi agent có một cơ chế từ lúc suy nghĩ đến lúc ra quyết định , với mỗi bước thì chỉ cần cung cấp một context đủ cho nó ra quyết định , đầu tiên sẽ là bước cho agent viết ra suy nghĩ khi thấy các mô tả (tag) của một bài viết , đầu vào là các trường thông tin mô tả bản thân có độ tương đồng với các tag bài viết ,đầu ra là suy nghĩ của agent 
+bước thứ hai là cho agent đọc bài viết cùng với suy nghĩ ban đầu từ bước 1 và nêu cảm nhận của họ , đầu vào là suy nghĩ trước khi đọc , nội dung bài viết đầu ra là suy nghĩ sau khi đọc bài viết 
+buớc ba là cho agent chọn hành động phản ứng là like,dislike ,comment ,một người có thể làm 1 trong 2 hành động là like hoặc dislike , một agent có thể vừa thả cảm xúc vừa comment , mặc định là nếu agent commment thì họ đã like hoặc dislike trước đó  : đầu vào là context agent có mới đọc bài viết có các tag gì , suy nghĩ sau khi đọc bài viết là gì , output là hành động 
+bước bốn là cho agent chọn có nên ghé vào shop để mua hàng không : đầu vào là context agent mới đọc bài viết có các tag gì , suy nghĩ sau khi đọc bài viết là gì , output là có hoặc không
+-cơ chế comment : sẽ có những người không thích sản phẩm trước đây và họ sẽ chê bai một số khía cạnh sản phẩm hoặc thương hiệu , một số sẽ comment khen , cơ chế này tôi chưa rõ . context sẽ là cung cấp lí do agent khác sản phẩm này 
+-Cơ chế gợi ý mặt hàng cho khách : ở đây còn tùy vào input , loại mặt hàng mà công ty đang quảng cáo là gì , họ mới ra mắt cửa hàng hay mới ra mắt một loại sản phẩm mới . xây dựng cơ chế đề xuất có mức độ ưu tiên  các sản phẩm mới ra-> các sản phẩm có sẵn , với mỗi mặt hàng thì có cơ chế sắp xếp và chọn ra các mặt hàng phù hợp với mức điểm như cơ chế đề xuất bài viết .
+-cơ chế mua hàng cũng giống như cơ chế suy nghĩ qua từng bước trước khi hành động, chỉ cung cấp những thứ đủ và cần thiết , lưu ý là những người ghét thì họ vẫn có thể ghé cửa hàng để xem thử các sản phẩm ,phần suy nghĩ chê bai của họ khi thấy các loại sản phẩm cũng có thể là một điểm rất hay để cải thiện sản phẩm 
+-cơ chế lưu trữ thông tin của mỗi agent : 
+ cần thiết kế schema lưu trữ gồm các mốc : mỗi agent trong mỗi phiên sẽ lưu các bài viết họ đã đọc , mỗi bài bài viết thì lưu một chuỗi có thứ tự các suy nghĩ và hành động của người dùng : lưu lại các suy nghĩ của họ qua từng bước và hành động của họ .
+ nếu sau khi đọc bài viết mà vào shop thì phải lưu thêm các mốc suy nghĩ hành động giống như khi viết bài .
+ -cơ chế dashboard và livestream : 
+ một người dùng thường thích được thấy sản phẩm hoạt động trực tiếp , để tạo cảm giác như vậy mà tránh làm chậm hệ thống thì sau khi chạy xong một phiên thì ta sẽ đồng thời tiếp tục chạy phiên tiếp theo và cập nhật giao diện phiên theo dữ liệu vừa được lưu .
+ -cơ chế dashboard là cơ chế chúng ta xây dựng các chart biến động theo từng phiên cho biết doanh thu , sức mua từng sản phẩm biến đổi ra sao , hoặc các chart liên quan feature mà các data analysis hoặc digital marketing  dùng để phân tích về xu hướng phát triển về mặt truyền thông của sản phẩm . qua mỗi phiên thì hãy tính toán các feature này rồi lưu lại , phục vụ cho việc hiển thị cho người dùng thấy 
+
+quy trình cách hoạt động : 1) nhận input thì người muốn mô phỏng :
+2) sinh các bài viết sẽ đăng và lộ trình đăng vào các phiên 
+3) mô phỏng : 
+bắt đầu mỗi phiên thì sẽ là bước chuẩn bị mô phỏng : 
+ -chọn ra các agent hoạt động phiên này 
+ - agent công ty có đăng bài không ? ( trừ lượt đầu tiên chắc chắn sẽ đăng bài một số bài viết )
+ - qua mỗi agent thì chuẩn bị các bài viết mà  agent sẽ đọc ( agent sẽ không đọc hết tất cả bài viết có trên mạng xã hội mà họ sẽ chọn ra các bài viết họ chú ý) , số lượng bài viết một người có thể xem sẽ phụ thuộc vào tần suất hoạt động của họ 
+ bước mô phỏng :
+ cho các agent đọc qua các bài viết ,và hành động
+ bước lưu lại :
+ lưu các hoạt động phiên vừa rồi lại .
+ cập nhật giao diện để tạo cảm giác livestream cho người dùng
+ 
+ phần ui : một màn hình cho người dùng up bản mô tả chiến dịch của họ lên , chọn các điều chỉnh của họ ,một màn hình cho người dùng xem qua các bài viết được sinh ra và lộ trình đăng , cho phép người dùng thay đổi nội dung cũng như lộ trình đăng bài .
+một màn hình để xem mô phỏng :  chia đôi màn hình : bên trái là phần mạng xã hội ảo , nơi các bài quảng cáo được đăng lên , bên phải là nơi chúng ta xem chart , các bài viết sẽ có số like , dislike và comment được hiển thị qua từng phiên .
+ 
+ 
+
+

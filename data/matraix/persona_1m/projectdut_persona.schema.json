@@ -1,0 +1,1954 @@
+{
+  "format": "projectdut_persona_context_schema",
+  "format_version": 2,
+  "product": "projectDut2026",
+  "purpose": "A reduced persona schema selected from the MatrAIx source schema.",
+  "source_schema": "persona_codes.schema.json",
+  "source_schema_version": 2,
+  "description_provenance": {
+    "status": "draft",
+    "language": "en",
+    "basis": "Descriptions are derived from id, label, category, and values in the source schema.",
+    "scope": "Project-level supplemental descriptions; not official MatrAIx definitions or causal claims."
+  },
+  "tag_mapping_status": "draft_agent_flow_v2_input_tags",
+  "tag_mapping_file": "../../tags/agent_flow_tag_persona.mapping.v2.json",
+  "tag_mapping_note": "The current mapping selects persona context fields for enterprise, article, and product input tags. Thought, emotion, and attention-reason tags are state outputs, not persona mappings. Per-persona context ranking is not implemented.",
+  "field_count": 70,
+  "principles": [
+    "Source IDs and enum values are preserved.",
+    "Descriptions state the semantic scope of each field.",
+    "Product relevance is stored separately from field semantics.",
+    "Missing values remain missing; they are not converted to another enum.",
+    "The subset does not include brand/product state or event history."
+  ],
+  "groups": {
+    "activity_and_exposure": {
+      "description": "Attributes related to demographics, time, platforms, and attention capacity.",
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "fields": [
+        "age_bracket",
+        "region",
+        "urbanicity",
+        "socioeconomic_band",
+        "life_stage",
+        "lstyle_screen_time",
+        "lstyle_social_battery",
+        "lstyle_primary_social",
+        "big5_activity_level",
+        "lstyle_work_schedule",
+        "lstyle_sleep_schedule",
+        "cog_attention_span"
+      ]
+    },
+    "attention_and_cognition": {
+      "description": "Attributes related to personality, cognition, and information-processing tendencies.",
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "fields": [
+        "trait_curiosity",
+        "trait_open_mindedness",
+        "trait_prudence",
+        "trait_self_regulation",
+        "trait_adaptability",
+        "big5_cautiousness",
+        "big5_trust",
+        "big5_excitement_seeking",
+        "bfi2_facet_sociability",
+        "bfi2_facet_assertiveness",
+        "bfi2_facet_intellectual_curiosity",
+        "bfi2_facet_anxiety",
+        "bfi2_facet_emotional_volatility",
+        "risk_tolerance",
+        "decision_style",
+        "cog_skepticism",
+        "cog_ambiguity_tolerance",
+        "cog_decision_speed",
+        "cog_detail_orientation",
+        "need_for_cognition",
+        "need_for_closure"
+      ]
+    },
+    "purchase_and_preference": {
+      "description": "Attributes related to economic motivation, preferences, and shopping tendencies.",
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "fields": [
+        "economic_motivation",
+        "lstyle_shopping_style",
+        "lstyle_frugality",
+        "pref_quality_vs_quantity",
+        "pref_save_vs_spend",
+        "pref_novelty_vs_familiarity",
+        "pref_routine_vs_variety",
+        "pref_stability_vs_change",
+        "pref_plan_vs_spontaneous",
+        "pref_early_vs_late",
+        "att_brand_loyalty",
+        "att_advertising",
+        "att_online_reviews",
+        "att_influencers",
+        "att_consumerism",
+        "schwartz_value_stimulation",
+        "schwartz_value_security",
+        "schwartz_value_hedonism"
+      ]
+    },
+    "social_reaction_and_comment": {
+      "description": "Attributes related to communication, emotional expression, and disagreement handling.",
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "fields": [
+        "cog_directness",
+        "cog_politeness",
+        "cog_conflict_approach",
+        "cog_storytelling",
+        "cog_verbosity",
+        "cog_precision_of_language",
+        "cog_emoji_use",
+        "cog_emotional_expressiveness",
+        "cog_empathy_expression",
+        "att_advertising",
+        "att_online_reviews"
+      ]
+    },
+    "cafe_domain": {
+      "description": "Attributes related to coffee, caffeine, food, and beverages.",
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "fields": [
+        "topic_coffee",
+        "lstyle_coffee_ritual",
+        "lstyle_caffeine",
+        "topic_tea",
+        "topic_cooking",
+        "topic_baking",
+        "skill_cooking",
+        "skill_baking",
+        "ind_food_beverage",
+        "ind_restaurants"
+      ]
+    }
+  },
+  "exclusions": {
+    "duplicate_constructs": [
+      "cog_curiosity",
+      "cog_open_mindedness",
+      "cog_patience",
+      "bfi2_domain_open_mindedness",
+      "bfi2_domain_conscientiousness",
+      "bfi2_domain_extraversion",
+      "bfi2_domain_negative_emotionality",
+      "dominant_trait",
+      "mbti_type"
+    ],
+    "sensitive_or_product_specific": [
+      "health_chronic_condition",
+      "health_mental_health",
+      "health_dietary_restriction",
+      "demo_sexual_orientation",
+      "demo_ethnicity_broad",
+      "demo_religion_affiliation",
+      "political_lean",
+      "religiosity",
+      "neurotype"
+    ],
+    "not_relevant_to_current_product": [
+      "developer_fields",
+      "programming_fields",
+      "political_topics",
+      "unrelated_media_and_sports"
+    ]
+  },
+  "columns": [
+    {
+      "id": "age_bracket",
+      "label": "Age bracket",
+      "category": "Demographic: Core",
+      "values": [
+        "Under 5",
+        "5-12",
+        "13-17",
+        "18-24",
+        "25-34",
+        "35-44",
+        "45-54",
+        "55-64",
+        "65-74",
+        "75-84",
+        "85+"
+      ],
+      "description": "Age group.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "region",
+      "label": "Region",
+      "category": "Demographic: Core",
+      "values": [
+        "North America",
+        "Latin America",
+        "Western Europe",
+        "Eastern Europe",
+        "Sub-Saharan Africa",
+        "MENA",
+        "South Asia",
+        "East Asia",
+        "Southeast Asia",
+        "Oceania"
+      ],
+      "description": "Broad geographic region.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "urbanicity",
+      "label": "Urbanicity",
+      "category": "Demographic: Core",
+      "values": [
+        "Dense urban",
+        "Suburban",
+        "Small town",
+        "Rural",
+        "Nomadic / remote"
+      ],
+      "description": "Type of residential setting.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "socioeconomic_band",
+      "label": "Socioeconomic band",
+      "category": "Demographic: Core",
+      "values": [
+        "Low income",
+        "Lower-middle",
+        "Middle",
+        "Upper-middle",
+        "High income"
+      ],
+      "description": "Socioeconomic group.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "life_stage",
+      "label": "Life stage",
+      "category": "Demographic: Life Events",
+      "values": [
+        "Student",
+        "Early career",
+        "Parent of young kids",
+        "Mid-life",
+        "Career change",
+        "Empty nester",
+        "Retirement"
+      ],
+      "description": "Life stage.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "lstyle_screen_time",
+      "label": "Daily screen time",
+      "category": "Interests: Culture",
+      "values": [
+        "<2 hrs",
+        "2-4 hrs",
+        "4-8 hrs",
+        "8+ hrs"
+      ],
+      "description": "Approximate daily screen-time range.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "lstyle_social_battery",
+      "label": "Social battery",
+      "category": "Interests: Culture",
+      "values": [
+        "Strong introvert",
+        "Introvert",
+        "Ambivert",
+        "Extrovert",
+        "Strong extrovert"
+      ],
+      "description": "Introversion or extraversion tendency, as represented by the field's categories.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "lstyle_primary_social",
+      "label": "Primary social platform",
+      "category": "Interests: Culture",
+      "values": [
+        "Instagram",
+        "TikTok",
+        "X / Twitter",
+        "Facebook",
+        "LinkedIn",
+        "YouTube",
+        "Reddit",
+        "None"
+      ],
+      "description": "Primary social-media platform.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "big5_activity_level",
+      "label": "Activity level",
+      "category": "Personality: Big Five",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Activity level in the Big Five personality model.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "lstyle_work_schedule",
+      "label": "Work schedule",
+      "category": "Behavior: Work",
+      "values": [
+        "9-to-5",
+        "Flexible hours",
+        "Shift work",
+        "On-call",
+        "Freelance",
+        "Unemployed"
+      ],
+      "description": "Work-schedule type.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "lstyle_sleep_schedule",
+      "label": "Sleep schedule",
+      "category": "Behavior: Time",
+      "values": [
+        "Early bird",
+        "Night owl",
+        "Irregular",
+        "Flexible",
+        "Shift-based"
+      ],
+      "description": "Sleep-schedule type.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_attention_span",
+      "label": "Attention span",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very long",
+        "Long",
+        "Average",
+        "Short",
+        "Very short"
+      ],
+      "description": "Tendency to sustain attention.",
+      "selection_groups": [
+        "activity_and_exposure"
+      ],
+      "product_relevance": [
+        "agent_activation",
+        "content_exposure"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "trait_curiosity",
+      "label": "Character: Curiosity",
+      "category": "Personality: Character",
+      "values": [
+        "Signature",
+        "Strong",
+        "Moderate",
+        "Slight",
+        "Absent"
+      ],
+      "description": "Curiosity as a character trait.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "trait_open_mindedness",
+      "label": "Character: Open-mindedness",
+      "category": "Personality: Character",
+      "values": [
+        "Signature",
+        "Strong",
+        "Moderate",
+        "Slight",
+        "Absent"
+      ],
+      "description": "Openness to different viewpoints or options.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "trait_prudence",
+      "label": "Character: Prudence",
+      "category": "Personality: Character",
+      "values": [
+        "Signature",
+        "Strong",
+        "Moderate",
+        "Slight",
+        "Absent"
+      ],
+      "description": "Prudence as a character trait.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "trait_self_regulation",
+      "label": "Character: Self-regulation",
+      "category": "Personality: Character",
+      "values": [
+        "Signature",
+        "Strong",
+        "Moderate",
+        "Slight",
+        "Absent"
+      ],
+      "description": "Tendency to regulate behavior or reactions.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "trait_adaptability",
+      "label": "Character: Adaptability",
+      "category": "Personality: Character",
+      "values": [
+        "Signature",
+        "Strong",
+        "Moderate",
+        "Slight",
+        "Absent"
+      ],
+      "description": "Tendency to adapt to change.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "big5_cautiousness",
+      "label": "Cautiousness",
+      "category": "Personality: Big Five",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Cautiousness in the Big Five model.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "big5_trust",
+      "label": "Trust",
+      "category": "Personality: Big Five",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "General tendency to trust in the Big Five model.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "big5_excitement_seeking",
+      "label": "Excitement-seeking",
+      "category": "Personality: Big Five",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Tendency to seek stimulation or excitement.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "bfi2_facet_sociability",
+      "label": "BFI-2 Sociability",
+      "category": "Personality: Big Five",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Sociability in the BFI-2 model.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "bfi2_facet_assertiveness",
+      "label": "BFI-2 Assertiveness",
+      "category": "Personality: Big Five",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Assertiveness in the BFI-2 model.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "bfi2_facet_intellectual_curiosity",
+      "label": "BFI-2 Intellectual Curiosity",
+      "category": "Personality: Big Five",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Intellectual curiosity in the BFI-2 model.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "bfi2_facet_anxiety",
+      "label": "BFI-2 Anxiety",
+      "category": "Personality: Big Five",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Anxiety in the BFI-2 model.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "bfi2_facet_emotional_volatility",
+      "label": "BFI-2 Emotional Volatility",
+      "category": "Personality: Big Five",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Emotional volatility in the BFI-2 model.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "risk_tolerance",
+      "label": "Risk tolerance",
+      "category": "Risk & Decision",
+      "values": [
+        "Risk-averse",
+        "Cautious",
+        "Balanced",
+        "Risk-tolerant",
+        "Risk-seeking"
+      ],
+      "description": "Tolerance for risk.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "decision_style",
+      "label": "Decision style",
+      "category": "Risk & Decision",
+      "values": [
+        "Analytical",
+        "Intuitive",
+        "Consensus-driven",
+        "Directive",
+        "Deliberative"
+      ],
+      "description": "Decision-making style.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_skepticism",
+      "label": "Skepticism",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very high",
+        "High",
+        "Moderate",
+        "Low",
+        "None"
+      ],
+      "description": "Tendency to question or verify information.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_ambiguity_tolerance",
+      "label": "Ambiguity tolerance",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very high",
+        "High",
+        "Moderate",
+        "Low",
+        "None"
+      ],
+      "description": "Tolerance for incomplete or ambiguous information.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_decision_speed",
+      "label": "Decision speed",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Snap decisions",
+        "Quick",
+        "Balanced",
+        "Deliberate",
+        "Agonizes"
+      ],
+      "description": "Tendency regarding decision speed.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_detail_orientation",
+      "label": "Detail orientation",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very high",
+        "High",
+        "Moderate",
+        "Low",
+        "None"
+      ],
+      "description": "Attention to detail.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "need_for_cognition",
+      "label": "Need for Cognition",
+      "category": "Values & Motivation",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Tendency to engage in effortful cognitive processing.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "need_for_closure",
+      "label": "Need for Closure",
+      "category": "Risk & Decision",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Need for a clear or definite conclusion.",
+      "selection_groups": [
+        "attention_and_cognition"
+      ],
+      "product_relevance": [
+        "article_thought",
+        "article_emotion",
+        "product_thought"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "economic_motivation",
+      "label": "Economic motivation",
+      "category": "Values & Motivation",
+      "values": [
+        "Cost-sensitive",
+        "Value-driven",
+        "Premium-seeking",
+        "Indifferent"
+      ],
+      "description": "Economic motivation represented in the persona.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "lstyle_shopping_style",
+      "label": "Shopping style",
+      "category": "Interests: Culture",
+      "values": [
+        "Researcher",
+        "Impulse buyer",
+        "Bargain hunter",
+        "Brand loyal",
+        "Minimalist"
+      ],
+      "description": "Shopping style.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "lstyle_frugality",
+      "label": "Spending vs saving",
+      "category": "Interests: Culture",
+      "values": [
+        "Frugal saver",
+        "Balanced",
+        "Spender",
+        "Splurger"
+      ],
+      "description": "Tendency toward saving or spending.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "pref_quality_vs_quantity",
+      "label": "Quality vs quantity",
+      "category": "Behavior: Preferences",
+      "values": [
+        "Quality first",
+        "Quality-leaning",
+        "Balanced",
+        "Quantity-leaning",
+        "Quantity first"
+      ],
+      "description": "Preference for quality or quantity.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "pref_save_vs_spend",
+      "label": "Save vs spend",
+      "category": "Behavior: Preferences",
+      "values": [
+        "Hard saver",
+        "Saver-leaning",
+        "Balanced",
+        "Spender-leaning",
+        "Free spender"
+      ],
+      "description": "Preference for saving or spending.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "pref_novelty_vs_familiarity",
+      "label": "Novelty vs familiarity",
+      "category": "Behavior: Preferences",
+      "values": [
+        "Always novel",
+        "Novelty-leaning",
+        "Balanced",
+        "Comfort-leaning",
+        "Always familiar"
+      ],
+      "description": "Preference for novelty or familiarity.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "pref_routine_vs_variety",
+      "label": "Routine vs variety",
+      "category": "Behavior: Preferences",
+      "values": [
+        "Craves routine",
+        "Routine-leaning",
+        "Balanced",
+        "Variety-leaning",
+        "Craves variety"
+      ],
+      "description": "Preference for routine or variety.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "pref_stability_vs_change",
+      "label": "Stability vs change",
+      "category": "Behavior: Preferences",
+      "values": [
+        "Craves stability",
+        "Stability-leaning",
+        "Balanced",
+        "Change-leaning",
+        "Craves change"
+      ],
+      "description": "Preference for stability or change.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "pref_plan_vs_spontaneous",
+      "label": "Planned vs spontaneous",
+      "category": "Behavior: Preferences",
+      "values": [
+        "Highly planned",
+        "Planned",
+        "Balanced",
+        "Spontaneous",
+        "Highly spontaneous"
+      ],
+      "description": "Preference for planning or spontaneity.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "pref_early_vs_late",
+      "label": "Early vs late adopter",
+      "category": "Behavior: Preferences",
+      "values": [
+        "Bleeding edge",
+        "Early adopter",
+        "Mainstream",
+        "Late adopter",
+        "Laggard"
+      ],
+      "description": "Tendency to adopt new things early or late.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "att_brand_loyalty",
+      "label": "Attitude: Brand loyalty",
+      "category": "Worldview: Beliefs",
+      "values": [
+        "Enthusiast",
+        "Positive",
+        "Neutral",
+        "Skeptical",
+        "Opposed"
+      ],
+      "description": "Attitude toward the concept of brand loyalty.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "att_advertising",
+      "label": "Attitude: Advertising",
+      "category": "Worldview: Beliefs",
+      "values": [
+        "Enthusiast",
+        "Positive",
+        "Neutral",
+        "Skeptical",
+        "Opposed"
+      ],
+      "description": "Attitude toward advertising.",
+      "selection_groups": [
+        "purchase_and_preference",
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation",
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "att_online_reviews",
+      "label": "Attitude: Online reviews",
+      "category": "Worldview: Beliefs",
+      "values": [
+        "Enthusiast",
+        "Positive",
+        "Neutral",
+        "Skeptical",
+        "Opposed"
+      ],
+      "description": "Attitude toward online reviews.",
+      "selection_groups": [
+        "purchase_and_preference",
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation",
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "att_influencers",
+      "label": "Attitude: Influencers",
+      "category": "Worldview: Beliefs",
+      "values": [
+        "Enthusiast",
+        "Positive",
+        "Neutral",
+        "Skeptical",
+        "Opposed"
+      ],
+      "description": "Attitude toward influencers.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "att_consumerism",
+      "label": "Attitude: Consumerism",
+      "category": "Worldview: Beliefs",
+      "values": [
+        "Enthusiast",
+        "Positive",
+        "Neutral",
+        "Skeptical",
+        "Opposed"
+      ],
+      "description": "Attitude toward consumerism.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "schwartz_value_stimulation",
+      "label": "Schwartz Stimulation",
+      "category": "Values & Motivation",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Importance assigned to stimulation or novel experiences.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "schwartz_value_security",
+      "label": "Schwartz Security",
+      "category": "Values & Motivation",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Importance assigned to safety and stability.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "schwartz_value_hedonism",
+      "label": "Schwartz Hedonism",
+      "category": "Values & Motivation",
+      "values": [
+        "Very high",
+        "High",
+        "Average",
+        "Low",
+        "Very low"
+      ],
+      "description": "Importance assigned to pleasure and enjoyment.",
+      "selection_groups": [
+        "purchase_and_preference"
+      ],
+      "product_relevance": [
+        "product_thought",
+        "product_emotion",
+        "purchase_decision",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_directness",
+      "label": "Directness",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Blunt",
+        "Direct",
+        "Balanced",
+        "Indirect",
+        "Evasive"
+      ],
+      "description": "Directness in communication.",
+      "selection_groups": [
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_politeness",
+      "label": "Politeness",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very polite",
+        "Polite",
+        "Neutral",
+        "Brusque",
+        "Rude"
+      ],
+      "description": "Politeness in communication.",
+      "selection_groups": [
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_conflict_approach",
+      "label": "Conflict approach",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Confronting",
+        "Collaborative",
+        "Compromising",
+        "Avoidant",
+        "Accommodating"
+      ],
+      "description": "Tendency for handling disagreement.",
+      "selection_groups": [
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_storytelling",
+      "label": "Storytelling tendency",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very high",
+        "High",
+        "Moderate",
+        "Low",
+        "None"
+      ],
+      "description": "Tendency to express ideas through storytelling.",
+      "selection_groups": [
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_verbosity",
+      "label": "Verbosity",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Terse",
+        "Concise",
+        "Balanced",
+        "Wordy",
+        "Rambling"
+      ],
+      "description": "Communication verbosity.",
+      "selection_groups": [
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_precision_of_language",
+      "label": "Precision of language",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very precise",
+        "Precise",
+        "Average",
+        "Loose",
+        "Vague"
+      ],
+      "description": "Precision in language use.",
+      "selection_groups": [
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_emoji_use",
+      "label": "Emoji / emoticon use",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Heavy",
+        "Moderate",
+        "Rare",
+        "Never"
+      ],
+      "description": "Use of emojis or emoticons.",
+      "selection_groups": [
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_emotional_expressiveness",
+      "label": "Emotional expressiveness",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very high",
+        "High",
+        "Moderate",
+        "Low",
+        "None"
+      ],
+      "description": "Emotional expressiveness.",
+      "selection_groups": [
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "cog_empathy_expression",
+      "label": "Empathy expression",
+      "category": "Linguistic: Communication",
+      "values": [
+        "Very high",
+        "High",
+        "Moderate",
+        "Low",
+        "None"
+      ],
+      "description": "Expression of empathy.",
+      "selection_groups": [
+        "social_reaction_and_comment"
+      ],
+      "product_relevance": [
+        "article_reaction",
+        "comment_generation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "topic_coffee",
+      "label": "Interest: Coffee",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ],
+      "description": "Interest in coffee.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "lstyle_coffee_ritual",
+      "label": "Coffee ritual",
+      "category": "Interests: Culture",
+      "values": [
+        "Home brew",
+        "Café regular",
+        "Office coffee",
+        "Tea instead",
+        "None"
+      ],
+      "description": "Typical coffee-use habit or context.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "lstyle_caffeine",
+      "label": "Caffeine intake",
+      "category": "Interests: Culture",
+      "values": [
+        "None",
+        "Low",
+        "Moderate",
+        "High"
+      ],
+      "description": "Caffeine-use level.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "topic_tea",
+      "label": "Interest: Tea",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ],
+      "description": "Interest in tea.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "topic_cooking",
+      "label": "Interest: Cooking",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ],
+      "description": "Interest in cooking.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "topic_baking",
+      "label": "Interest: Baking",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ],
+      "description": "Interest in baking.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "skill_cooking",
+      "label": "Skill: Cooking",
+      "category": "Expertise: Skills",
+      "values": [
+        "Master",
+        "Advanced",
+        "Intermediate",
+        "Beginner",
+        "None"
+      ],
+      "description": "Cooking skill level.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "skill_baking",
+      "label": "Skill: Baking",
+      "category": "Expertise: Skills",
+      "values": [
+        "Master",
+        "Advanced",
+        "Intermediate",
+        "Beginner",
+        "None"
+      ],
+      "description": "Baking skill level.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "ind_food_beverage",
+      "label": "Industry: Food & beverage",
+      "category": "Professional: Industry",
+      "values": [
+        "Veteran",
+        "Experienced",
+        "Some exposure",
+        "None"
+      ],
+      "description": "Experience in the food and beverage industry.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    },
+    {
+      "id": "ind_restaurants",
+      "label": "Industry: Restaurants",
+      "category": "Professional: Industry",
+      "values": [
+        "Veteran",
+        "Experienced",
+        "Some exposure",
+        "None"
+      ],
+      "description": "Experience in the restaurant industry.",
+      "selection_groups": [
+        "cafe_domain"
+      ],
+      "product_relevance": [
+        "content_matching",
+        "article_thought",
+        "product_thought",
+        "recommendation"
+      ],
+      "limitations": [
+        "The value describes one aspect of a persona.",
+        "The value does not by itself determine an action or simulation outcome."
+      ]
+    }
+  ]
+}

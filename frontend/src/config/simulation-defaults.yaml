@@ -1,0 +1,7 @@
+{
+  "execution": {
+    "mode": "parallel",
+    "batch_size": 4
+  },
+  "show_advanced_controls": false
+}

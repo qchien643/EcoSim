@@ -1,0 +1,44 @@
+# Local credentials, environments and generated outputs
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.log
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.parquet
+*.jsonl
+*.csv
+*.pdf
+*.zip
+*.tar*
+frontend/node_modules/
+frontend/dist/
+
+# Only version the small, reviewed runtime contracts and templates.
+/data/*
+!/data/README.md
+!/data/contracts/
+!/data/industries/
+!/data/tags/
+!/data/scenario_templates/
+!/data/matraix/
+/data/matraix/*
+!/data/matraix/source_metadata.json
+!/data/matraix/persona_1m/
+/data/matraix/persona_1m/*
+!/data/matraix/persona_1m/manifest.json
+!/data/matraix/persona_1m/persona_codes.schema.json
+!/data/matraix/persona_1m/projectdut_persona.schema.json
+
+# Keep research utilities, not downloaded papers or raw model outputs.
+/experiments/*
+!/experiments/*.py
+!/experiments/*.sh

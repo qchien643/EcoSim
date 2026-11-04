@@ -1,0 +1,25 @@
+{
+  "id": "simulation-policy-v1",
+  "status": "accepted_initial_not_calibrated",
+  "normalization": "expected_level_divided_by_highest_level",
+  "probability_sum_tolerance": 0.000001,
+  "attention_threshold": 0.60,
+  "tag_selection": {
+    "A2": {"family": "emotion", "score_floor": 0.30, "top_k": 3},
+    "A3": {"family": "emotion", "score_floor": 0.30, "top_k": 3},
+    "B2": {"family": "thought", "score_floor": 0.30, "top_k": 3},
+    "A1R": {"family": "attention_reason", "score_floor": 0.50, "top_k": 3},
+    "B1R": {"family": "attention_reason", "score_floor": 0.50, "top_k": 3}
+  },
+  "tie_break": "tag_id_ascending",
+  "fallback": {
+    "max_calls": 1,
+    "trigger": ["invalid", "empty_result"],
+    "empty_result_requires": "both_attempts_valid_below_floor"
+  },
+  "history_adjustment": "context_only_no_score_bonus",
+  "execution": "sequential",
+  "idempotency_fields": [
+    "run_id", "session_no", "agent_id", "object_type", "object_id", "encounter_no", "stage"
+  ]
+}

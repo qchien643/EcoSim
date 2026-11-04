@@ -1,0 +1,152 @@
+{
+  "template_id": "cafe-demo-v1",
+  "name": "Mộc — Cà phê mỗi ngày",
+  "description": "Chiến dịch hư cấu để thử giao diện và mô phỏng: 12 người, 3 phiên, 3 bài viết, 4 sản phẩm. Có đăng lại bài để quan sát lịch sử tích lũy. Không bảo đảm người tham gia sẽ thích bài hoặc mua hàng.",
+  "campaign": {
+    "name": "Mộc — Thử chiến dịch cà phê mỗi ngày",
+    "brief": "Giới thiệu lựa chọn đồ uống cho giờ nghỉ và sự chăm chút trong pha chế của Mộc.",
+    "internal_notes": "Dữ liệu hư cấu dành cho kiểm thử, không phải thông tin doanh nghiệp thực tế. Sửa nội dung, giá, đặc điểm và lịch đăng trong kịch bản trước khi chạy."
+  },
+  "setup": {
+    "name": "Mộc — 12 người, 3 phiên",
+    "industry_id": "cafe",
+    "profile_version": "cafe-mvp-v1",
+    "policy_version": "simulation-policy-v1",
+    "cohort_id": "cafe-mvp-cohort-v1",
+    "agent_count": 12,
+    "selection_seed": 20261001,
+    "assignment_seed": 20261001,
+    "business": {
+      "organization_id": "org_moc",
+      "organization_name": "Mộc Cà Phê",
+      "organization_description": "Mộc là doanh nghiệp cà phê địa phương phục vụ khách hàng tại Đà Nẵng.",
+      "brand_id": "brand_moc",
+      "brand_name": "Mộc — Cà phê mỗi ngày",
+      "brand_description": "Mộc hướng tới đồ uống hằng ngày với giá hợp lý. Thương hiệu nhấn mạnh sự chăm chút khi lựa chọn hạt cà phê và đào tạo người pha chế.",
+      "tags": [
+        {"tag_id": "enterprise.local_business", "source_ref": "organization:org_moc:organization_description", "visible_stages": ["A1", "A2", "A3", "B1", "B2"]},
+        {"tag_id": "enterprise.value_positioning", "source_ref": "brand:brand_moc:brand_description", "visible_stages": ["A1", "A2", "A3", "B1", "B2"]},
+        {"tag_id": "enterprise.craft_focus", "source_ref": "brand:brand_moc:brand_description", "visible_stages": ["A1", "A2", "A3", "B1", "B2"]}
+      ]
+    },
+    "shops": [
+      {
+        "shop_id": "shop_moc",
+        "name": "Gian hàng Mộc",
+        "public_profile": "Gian hàng trực tuyến của Mộc tại Đà Nẵng, phục vụ cà phê và trà cho nhu cầu hằng ngày với mức giá hợp lý.",
+        "tags": [
+          {"tag_id": "enterprise.local_business", "source_ref": "shop:shop_moc:public_profile", "visible_stages": ["A1", "A2", "A3", "B1", "B2"]},
+          {"tag_id": "enterprise.value_positioning", "source_ref": "shop:shop_moc:public_profile", "visible_stages": ["A1", "A2", "A3", "B1", "B2"]}
+        ]
+      }
+    ],
+    "products": [
+      {
+        "product_id": "product_black",
+        "shop_id": "shop_moc",
+        "position": 1,
+        "product_name": "Cà phê đen đá",
+        "listed_price": "29.000 VND",
+        "product_description": "Cà phê pha phin, vị đắng rõ, dùng với đá. Không thêm sữa. Có thể chọn ít đường.",
+        "tags": [
+          {"tag_id": "product.coffee_drink", "source_ref": "product:product_black:product_name", "visible_stages": ["B1", "B2", "B3"]},
+          {"tag_id": "product.cold_serving", "source_ref": "product:product_black:product_name", "visible_stages": ["B1", "B2", "B3"]},
+          {"tag_id": "product.bitter_profile", "source_ref": "product:product_black:product_description", "visible_stages": ["B2", "B3"]},
+          {"tag_id": "product.reduced_sugar_option", "source_ref": "product:product_black:product_description", "visible_stages": ["B2", "B3"]}
+        ]
+      },
+      {
+        "product_id": "product_milk",
+        "shop_id": "shop_moc",
+        "position": 2,
+        "product_name": "Cà phê sữa đá",
+        "listed_price": "35.000 VND",
+        "product_description": "Cà phê pha phin kết hợp sữa đặc từ sữa bò, vị ngọt béo xen vị đắng của cà phê, dùng với đá.",
+        "tags": [
+          {"tag_id": "product.coffee_drink", "source_ref": "product:product_milk:product_name", "visible_stages": ["B1", "B2", "B3"]},
+          {"tag_id": "product.cold_serving", "source_ref": "product:product_milk:product_name", "visible_stages": ["B1", "B2", "B3"]},
+          {"tag_id": "product.contains_dairy", "source_ref": "product:product_milk:product_description", "visible_stages": ["B2", "B3"]},
+          {"tag_id": "product.sweet_profile", "source_ref": "product:product_milk:product_description", "visible_stages": ["B2", "B3"]},
+          {"tag_id": "product.bitter_profile", "source_ref": "product:product_milk:product_description", "visible_stages": ["B2", "B3"]}
+        ]
+      },
+      {
+        "product_id": "product_orange",
+        "shop_id": "shop_moc",
+        "position": 3,
+        "product_name": "Cà phê hương cam lạnh",
+        "listed_price": "39.000 VND",
+        "product_description": "Cà phê ủ lạnh kết hợp hương cam, vị ngọt nhẹ và hậu vị đắng. Dùng lạnh, không thêm sữa.",
+        "tags": [
+          {"tag_id": "product.coffee_drink", "source_ref": "product:product_orange:product_name", "visible_stages": ["B1", "B2", "B3"]},
+          {"tag_id": "product.fruit_notes", "source_ref": "product:product_orange:product_name", "visible_stages": ["B1", "B2", "B3"]},
+          {"tag_id": "product.cold_serving", "source_ref": "product:product_orange:product_name", "visible_stages": ["B1", "B2", "B3"]},
+          {"tag_id": "product.sweet_profile", "source_ref": "product:product_orange:product_description", "visible_stages": ["B2", "B3"]},
+          {"tag_id": "product.bitter_profile", "source_ref": "product:product_orange:product_description", "visible_stages": ["B2", "B3"]}
+        ]
+      },
+      {
+        "product_id": "product_tea",
+        "shop_id": "shop_moc",
+        "position": 4,
+        "product_name": "Trà đào lạnh",
+        "listed_price": "32.000 VND",
+        "product_description": "Trà pha với hương đào, vị ngọt nhẹ, dùng với đá. Có lựa chọn ít đường. Không thêm sữa.",
+        "tags": [
+          {"tag_id": "product.tea_drink", "source_ref": "product:product_tea:product_name", "visible_stages": ["B1", "B2", "B3"]},
+          {"tag_id": "product.cold_serving", "source_ref": "product:product_tea:product_name", "visible_stages": ["B1", "B2", "B3"]},
+          {"tag_id": "product.fruit_notes", "source_ref": "product:product_tea:product_description", "visible_stages": ["B2", "B3"]},
+          {"tag_id": "product.sweet_profile", "source_ref": "product:product_tea:product_description", "visible_stages": ["B2", "B3"]},
+          {"tag_id": "product.reduced_sugar_option", "source_ref": "product:product_tea:product_description", "visible_stages": ["B2", "B3"]}
+        ]
+      }
+    ],
+    "posts": [
+      {
+        "post_id": "post_intro",
+        "shop_id": "shop_moc",
+        "title": "Một chút hương cam cho ly cà phê",
+        "preview": "Mộc giới thiệu cà phê hương cam lạnh, thơm hương cam và ngọt nhẹ.",
+        "article_content": "Muốn thử một hương vị khác với ly cà phê quen thuộc? Mộc giới thiệu cà phê hương cam lạnh: nền cà phê ủ lạnh, hương cam, vị ngọt nhẹ và hậu vị đắng. Một ly giá 39.000 VND, không thêm sữa. Ghé gian hàng để cân nhắc món này hoặc chọn cà phê đen đá, cà phê sữa đá và trà đào lạnh.",
+        "tags": [
+          {"tag_id": "article.product_introduction", "source_ref": "post:post_intro:preview", "visible_stages": ["A1", "A2", "A3"]},
+          {"tag_id": "article.sensory_presentation", "source_ref": "post:post_intro:preview", "visible_stages": ["A1", "A2", "A3"]}
+        ]
+      },
+      {
+        "post_id": "post_craft",
+        "shop_id": "shop_moc",
+        "title": "Mộc chăm chút ly cà phê như thế nào?",
+        "preview": "Câu chuyện Mộc lựa chọn nguyên liệu và chuẩn bị từng ly cà phê.",
+        "article_content": "Mộc bắt đầu từ mong muốn phục vụ cà phê hằng ngày cho khách tại Đà Nẵng. Chúng tôi nhấn mạnh việc chọn hạt cà phê và đào tạo người pha chế theo công thức của quán. Cà phê đen đá được pha phin, có vị đắng rõ; cà phê sữa đá kết hợp sữa đặc từ sữa bò. Cà phê hương cam sử dụng nền cà phê ủ lạnh. Bạn có thể ghé gian hàng để đọc mô tả và giá của từng món trước khi quyết định.",
+        "tags": [
+          {"tag_id": "article.brand_background", "source_ref": "post:post_craft:preview", "visible_stages": ["A1", "A2", "A3"]},
+          {"tag_id": "article.preparation_information", "source_ref": "post:post_craft:preview", "visible_stages": ["A1", "A2", "A3"]},
+          {"tag_id": "article.narrative_presentation", "source_ref": "post:post_craft:article_content", "visible_stages": ["A3"]}
+        ]
+      },
+      {
+        "post_id": "post_break",
+        "shop_id": "shop_moc",
+        "title": "Giờ nghỉ này, bạn chọn cà phê hay trà?",
+        "preview": "Gợi ý cà phê và trà đào lạnh cho giờ nghỉ, từ vị đắng rõ đến ngọt nhẹ.",
+        "article_content": "Giờ nghỉ không nhất thiết phải chọn một món giống mọi người. Nếu thích cà phê đắng rõ, Mộc có cà phê đen đá giá 29.000 VND, với lựa chọn ít đường. Cà phê sữa đá giá 35.000 VND mang vị ngọt béo. Muốn đổi hương vị, bạn có thể cân nhắc cà phê hương cam lạnh 39.000 VND. Trà đào lạnh giá 32.000 VND có vị ngọt nhẹ và lựa chọn ít đường. Ghé gian hàng để chọn món phù hợp nhu cầu hiện tại của bạn.",
+        "tags": [
+          {"tag_id": "article.use_occasion", "source_ref": "post:post_break:preview", "visible_stages": ["A1", "A2", "A3"]},
+          {"tag_id": "article.sensory_presentation", "source_ref": "post:post_break:preview", "visible_stages": ["A1", "A2", "A3"]}
+        ]
+      }
+    ],
+    "sessions": [
+      {"session_no": 1, "posts": [{"post_id": "post_intro", "position": 1}]},
+      {"session_no": 2, "posts": [{"post_id": "post_intro", "position": 1}, {"post_id": "post_craft", "position": 2}]},
+      {"session_no": 3, "posts": [{"post_id": "post_break", "position": 1}, {"post_id": "post_craft", "position": 2}]}
+    ],
+    "relationship_groups": [
+      {"group_id": "group_unknown", "percentage": 25, "state": {"awareness": "unknown", "familiarity": "none", "attitude": "not_formed", "purchase_history": "none"}},
+      {"group_id": "group_neutral", "percentage": 25, "state": {"awareness": "aware", "familiarity": "low", "attitude": "neutral", "purchase_history": "none"}},
+      {"group_id": "group_positive_buyer", "percentage": 25, "state": {"awareness": "aware", "familiarity": "established", "attitude": "positive", "purchase_history": "has_purchased"}},
+      {"group_id": "group_negative_buyer", "percentage": 25, "state": {"awareness": "aware", "familiarity": "established", "attitude": "negative", "purchase_history": "has_purchased"}}
+    ]
+  }
+}

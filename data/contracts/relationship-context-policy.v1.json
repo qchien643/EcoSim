@@ -1,0 +1,56 @@
+{
+  "format": "projectdut_relationship_context_policy",
+  "version": "relationship-context-policy-v1",
+  "status": "accepted_initial_not_calibrated",
+  "context_fields": {
+    "A1": ["awareness", "familiarity", "attitude", "purchase_history"],
+    "A2": ["awareness", "familiarity", "attitude", "purchase_history"],
+    "A3": ["awareness", "familiarity", "attitude", "purchase_history"],
+    "A4": ["familiarity", "attitude"],
+    "A5": ["awareness", "familiarity", "attitude", "purchase_history"],
+    "B1": ["familiarity", "attitude", "purchase_history"],
+    "B2": ["familiarity", "attitude", "purchase_history"],
+    "B3": ["familiarity", "attitude", "purchase_history"]
+  },
+  "brand_history_fields": {
+    "A1": ["article_exposure_count", "article_read_count"],
+    "A2": ["article_exposure_count", "article_read_count"],
+    "A3": ["article_exposure_count", "article_read_count"],
+    "A4": ["article_read_count"],
+    "A5": ["article_read_count", "shop_visit_count"],
+    "B1": ["shop_visit_count", "product_exposure_count", "brand_purchase_count"],
+    "B2": ["shop_visit_count", "product_exposure_count", "brand_purchase_count"],
+    "B3": ["shop_visit_count", "product_exposure_count", "brand_purchase_count"]
+  },
+  "transitions": [
+    {
+      "stage": "A3",
+      "evidence": "The agent completed reading and a public enterprise tag was visible.",
+      "updates": ["unknown awareness becomes aware", "none familiarity becomes low"]
+    },
+    {
+      "stage": "A5",
+      "evidence": "The agent visited the shop.",
+      "updates": [
+        "unknown awareness becomes aware",
+        "none familiarity becomes low",
+        "low familiarity becomes established on a repeat visit"
+      ]
+    },
+    {
+      "stage": "B3",
+      "evidence": "The agent selected buy or buy_again.",
+      "updates": [
+        "awareness becomes aware",
+        "familiarity becomes established",
+        "purchase_history becomes has_purchased"
+      ]
+    }
+  ],
+  "non_transitions": [
+    "Attention alone does not establish brand awareness.",
+    "Emotion, like, dislike and not_buy do not automatically change attitude.",
+    "A product purchase history is not inferred from brand purchase history.",
+    "A current relationship state is not copied into object-specific interaction history."
+  ]
+}

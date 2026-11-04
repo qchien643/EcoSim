@@ -1,0 +1,509 @@
+{
+  "format": "agent_flow_tag_vocabulary",
+  "version": "2.0-draft",
+  "status": "draft_for_review",
+  "language": "en",
+  "initial_industry": "cafe",
+  "flow_reference": "../../docs/technical/luong-agent-jev-va-llm.md",
+  "description": "A new vocabulary designed for stage-specific inputs and internal states. It does not inherit the previous vocabulary or persona mapping.",
+  "principles": [
+    "Content tags describe explicitly supplied public information, not objective truth or an agent's beliefs.",
+    "Only information visible at the current stage or explicitly remembered may enter the context.",
+    "Emotion tags describe feelings. Thought tags describe appraisals, motives, and barriers. Neither is an action.",
+    "Unknown information is not a negative tag, a neutral feeling, or a zero score.",
+    "Normalize model scores to [0,1] using an explicitly versioned policy before selecting tags.",
+    "Retrieve the latest state for the same run, agent, object, and processing stage.",
+    "Current upstream results and the previous encounter's same-stage state remain separate inputs.",
+    "Repeated exposure does not guarantee increasing interest.",
+    "No tag directly triggers a purchase, reaction, or workflow termination."
+  ],
+  "families": {
+    "enterprise": {
+      "description": "Publicly stated business identity and positioning; never a claim that the agent trusts or endorses the business.",
+      "kind": "input_description",
+      "object_type": "brand",
+      "stages": ["A1", "A2", "A3", "A5", "B1", "B2", "B3"],
+      "evidence_required": true,
+      "scale": null
+    },
+    "article": {
+      "description": "The subject and presentation of an advertisement, described without exposing unavailable full-text details.",
+      "kind": "input_description",
+      "object_type": "article",
+      "stages": ["A1", "A2", "A3"],
+      "evidence_required": true,
+      "scale": null
+    },
+    "product": {
+      "description": "Explicitly advertised product characteristics, not the agent's experience of consuming the product.",
+      "kind": "input_description",
+      "object_type": "product",
+      "stages": ["B1", "B2", "B3"],
+      "evidence_required": true,
+      "scale": null
+    },
+    "thought": {
+      "description": "The agent's current assessment, motive, or obstacle when considering a product.",
+      "kind": "scored_state",
+      "object_type": "product",
+      "stages": ["B2"],
+      "evidence_required": false,
+      "scale": "thought_salience_draft"
+    },
+    "emotion": {
+      "description": "A feeling experienced by the agent at a particular processing stage, distinct from behavior and factual judgment.",
+      "kind": "scored_state",
+      "object_type": "article",
+      "stages": ["A2", "A3"],
+      "evidence_required": false,
+      "scale": "emotion_intensity_draft"
+    },
+    "attention_reason": {
+      "description": "The agent's current reason for not attending to an article or product after a valid skip decision.",
+      "kind": "scored_state",
+      "object_types": ["article", "product"],
+      "stages": ["A1R", "B1R"],
+      "evidence_required": false,
+      "scale": "attention_reason_salience_draft"
+    }
+  },
+  "scales": {
+    "emotion_intensity_draft": {
+      "status": "proposed_not_calibrated",
+      "description": "Rate one defined feeling at the current stage, not its likelihood of causing an action.",
+      "instructions_template": "How strongly does the agent currently experience this feeling? Definition: {description}. Boundary: {boundary}. Use only the allowed current context and previous same-stage state. Do not assume repetition strengthens the feeling.",
+      "criteria": [
+        "The defined feeling is absent from the agent's current emotional response.",
+        "The defined feeling is present as a faint background feeling.",
+        "The defined feeling is clearly present but does not dominate the agent's current emotional response.",
+        "The defined feeling dominates the agent's current emotional response."
+      ]
+    },
+    "thought_salience_draft": {
+      "status": "proposed_not_calibrated",
+      "description": "Rate how central one defined thought is to the current consideration, not whether its underlying claim is objectively correct.",
+      "instructions_template": "How central is this thought to the agent's current consideration? Definition: {description}. Boundary: {boundary}. Use only the allowed current context and previous same-stage state. Do not choose the purchase action.",
+      "criteria": [
+        "The defined thought is not part of the agent's current consideration.",
+        "The defined thought is present only as a peripheral consideration.",
+        "The defined thought is a clear consideration alongside other considerations.",
+        "The defined thought is a central concern or motive in the current consideration."
+      ]
+    },
+    "attention_reason_salience_draft": {
+      "status": "proposed_not_calibrated",
+      "description": "Rate how strongly this defined reason explains the agent's current decision not to attend.",
+      "instructions_template": "How strongly does this reason explain why the agent currently skips the object? Definition: {description}. Boundary: {boundary}. Use only the allowed current context and previous same-stage state. Do not invent a reason from the skip action alone.",
+      "criteria": [
+        "The defined reason does not explain the current skip.",
+        "The defined reason is a weak or peripheral explanation.",
+        "The defined reason is a clear explanation alongside other reasons.",
+        "The defined reason is a dominant explanation for the current skip."
+      ]
+    }
+  },
+  "selection_policy": {
+    "policy_ref": "../contracts/simulation-policy.v1.json",
+    "status": "accepted_initial_not_calibrated",
+    "normalized_range": [0, 1],
+    "normalization_method": "expected_level_divided_by_highest_level",
+    "top_k": 3,
+    "score_floor": 0.3,
+    "tie_break": "tag_id_ascending",
+    "stage_overrides": {
+      "A1R": {"top_k": 3, "score_floor": 0.5},
+      "B1R": {"top_k": 3, "score_floor": 0.5},
+      "A2": {"top_k": 3, "score_floor": 0.3},
+      "A3": {"top_k": 3, "score_floor": 0.3},
+      "B2": {"top_k": 3, "score_floor": 0.3}
+    },
+    "description": "JEV and fallback LLM use the same definitions and ordered criteria. Scores are normalized by expected level divided by the highest level, then filtered by the versioned stage policy. A normalized score is not automatically a behavioral probability."
+  },
+  "state_memory": {
+    "key": ["run_id", "agent_id", "object_type", "object_id", "stage"],
+    "description": "Preserve each encounter's state and use the latest same-stage encounter as the next encounter's previous state. Do not substitute a state from another stage.",
+    "no_previous_state": "Represent as missing, not as indifference or a list of zero scores.",
+    "empty_result": "Record the current empty result and stop the dependent branch under the agreed fallback rule. Do not silently reuse an older nonempty state as the latest state.",
+    "scored_tag_fields": ["tag_id", "description", "score"],
+    "provenance_fields": ["vocabulary_version", "scale_id", "normalization_policy_id", "selection_policy_id", "source_event_id"],
+    "description_source": "Join descriptions from this vocabulary after validating tag IDs; never use a model-generated definition.",
+    "attention_stage_gap": "A1 and B1 have an attention score and action. A1R and B1R may store scored attention-reason tags after a valid skip. These reason tags are not emotion tags and do not replace the attention score."
+  },
+  "cooccurrence": {
+    "description": "Different feelings and considerations may coexist. Do not force their scores to sum to one. Opposing appraisals need a coherent context, not an automatic winner.",
+    "hard_exclusions": [],
+    "review_pairs": [
+      ["thought.personal_fit", "thought.personal_mismatch"],
+      ["thought.claim_credible", "thought.claim_doubtful"],
+      ["emotion.interest", "emotion.indifference"],
+      ["emotion.interest", "emotion.boredom"]
+    ],
+    "description_of_review_pairs": "High scores for both members warrant review of definitions and context. They are not automatically invalid or a reason to override a model action."
+  },
+  "tags": [
+    {
+      "id": "enterprise.local_business", "family": "enterprise", "group": "identity",
+      "description": "The business publicly presents itself as serving a particular local area.",
+      "boundary": "Does not imply small size, independent ownership, authenticity, or agent familiarity.",
+      "example": "A cafe describes itself as a neighborhood business in Da Nang.",
+      "non_example": "The agent lives near an otherwise undescribed cafe."
+    },
+    {
+      "id": "enterprise.multi_location", "family": "enterprise", "group": "identity",
+      "description": "The business publicly identifies itself as operating multiple locations.",
+      "boundary": "Does not imply nationwide coverage, high quality, or familiarity to the agent.",
+      "example": "The brand states that it operates five cafes.",
+      "non_example": "One cafe has a large seating area."
+    },
+    {
+      "id": "enterprise.value_positioning", "family": "enterprise", "group": "positioning",
+      "description": "The brand presents affordability or value for money as part of its identity.",
+      "boundary": "A stated positioning is not an agent's judgment that a particular product is affordable.",
+      "example": "The brand describes its mission as accessible everyday coffee.",
+      "non_example": "One premium-brand item has a temporary discount."
+    },
+    {
+      "id": "enterprise.premium_positioning", "family": "enterprise", "group": "positioning",
+      "description": "The brand presents an elevated or premium experience as part of its identity.",
+      "boundary": "Does not establish actual quality, price, or the agent's preference.",
+      "example": "The brand introduces itself as a premium specialty coffee experience.",
+      "non_example": "The agent thinks an unknown brand's product looks expensive."
+    },
+    {
+      "id": "enterprise.craft_focus", "family": "enterprise", "group": "public_commitment",
+      "description": "The brand publicly emphasizes care and expertise in sourcing or preparation.",
+      "boundary": "Records a public emphasis, not independently verified expertise.",
+      "example": "The brand describes careful roasting and barista training as its priorities.",
+      "non_example": "The post contains an attractive cup photograph without such a claim."
+    },
+    {
+      "id": "enterprise.environmental_commitment", "family": "enterprise", "group": "public_commitment",
+      "description": "The brand publicly communicates a commitment to reducing environmental impact.",
+      "boundary": "Does not verify the claim or imply that the agent believes it.",
+      "example": "The brand states a commitment to reusable packaging.",
+      "non_example": "The brand uses a green logo."
+    },
+    {
+      "id": "article.product_introduction", "family": "article", "group": "subject",
+      "description": "The advertisement introduces a product or a product variant.",
+      "boundary": "Does not imply that the product or brand is unfamiliar to this agent.",
+      "example": "The visible description identifies the post as an introduction to a seasonal drink.",
+      "non_example": "The post only gives the shop's opening hours."
+    },
+    {
+      "id": "article.offer", "family": "article", "group": "subject",
+      "description": "The advertisement communicates a commercial offer or purchase incentive.",
+      "boundary": "Exact price, discount amount, and eligibility remain explicit content fields.",
+      "example": "The visible description says the post announces a discount.",
+      "non_example": "The post merely states an ordinary menu price."
+    },
+    {
+      "id": "article.brand_background", "family": "article", "group": "subject",
+      "description": "The advertisement discusses the brand's origins, people, or stated commitments.",
+      "boundary": "Does not imply authenticity, credibility, or positive feelings.",
+      "example": "The post introduces the founders and their stated purpose.",
+      "non_example": "The brand name appears only as the publisher."
+    },
+    {
+      "id": "article.preparation_information", "family": "article", "group": "subject",
+      "description": "The advertisement describes how a product is sourced, prepared, or made.",
+      "boundary": "A stage-visible tag names the subject without exposing hidden recipe details.",
+      "example": "The visible description identifies the post as an explanation of brewing.",
+      "non_example": "The post only invites people to buy a drink."
+    },
+    {
+      "id": "article.use_occasion", "family": "article", "group": "subject",
+      "description": "The advertisement relates a product to a stated situation or occasion of use.",
+      "boundary": "Does not mean that the agent is currently in that situation.",
+      "example": "The post presents coffee as an option for a study break.",
+      "non_example": "The test author assumes the agent is on a break."
+    },
+    {
+      "id": "article.sensory_presentation", "family": "article", "group": "presentation",
+      "description": "The advertisement emphasizes descriptions of taste, aroma, texture, or appearance.",
+      "boundary": "Does not reveal specific sensory claims unavailable before reading.",
+      "example": "The permitted summary identifies the presentation as taste-focused.",
+      "non_example": "The post only lists payment methods."
+    },
+    {
+      "id": "article.narrative_presentation", "family": "article", "group": "presentation",
+      "description": "The advertisement presents information through a sequence of events or an account of experience.",
+      "boundary": "Narrative form does not establish whether the account is true.",
+      "example": "The post tells a story about developing a drink.",
+      "non_example": "The post contains only a specification list."
+    },
+    {
+      "id": "article.humorous_presentation", "family": "article", "group": "presentation",
+      "description": "The advertisement uses an identifiable joke or playful comic framing.",
+      "boundary": "Does not mean that the agent finds it amusing.",
+      "example": "The post uses a coffee-related punchline.",
+      "non_example": "The post uses a friendly greeting without a joke."
+    },
+    {
+      "id": "product.coffee_drink", "family": "product", "group": "type",
+      "description": "The item is described as a prepared drink containing coffee.",
+      "boundary": "Does not specify temperature, caffeine level, sweetness, or serving size.",
+      "example": "An espresso-based drink.",
+      "non_example": "A bag of unprepared coffee beans."
+    },
+    {
+      "id": "product.tea_drink", "family": "product", "group": "type",
+      "description": "The item is described as a prepared drink containing tea.",
+      "boundary": "May coexist with coffee_drink for an explicitly described mixed drink.",
+      "example": "A tea latte.",
+      "non_example": "A fruit drink with no stated tea ingredient."
+    },
+    {
+      "id": "product.baked_food", "family": "product", "group": "type",
+      "description": "The item is described as a baked food sold by the shop.",
+      "boundary": "Does not imply sweetness, ingredients, or dietary suitability.",
+      "example": "A croissant.",
+      "non_example": "A bottled drink."
+    },
+    {
+      "id": "product.packaged_coffee", "family": "product", "group": "type",
+      "description": "The item contains coffee intended for preparation after purchase.",
+      "boundary": "Does not include a ready-to-drink cup solely because it has packaging.",
+      "example": "A bag of ground coffee.",
+      "non_example": "An iced latte in a takeaway cup."
+    },
+    {
+      "id": "product.sweet_profile", "family": "product", "group": "sensory",
+      "description": "The product description explicitly identifies a sweet taste characteristic.",
+      "boundary": "Does not determine sugar quantity, health effects, or whether the agent enjoys it.",
+      "example": "The menu describes a sweet caramel flavor.",
+      "non_example": "The drink looks colorful."
+    },
+    {
+      "id": "product.bitter_profile", "family": "product", "group": "sensory",
+      "description": "The product description explicitly identifies a bitter taste characteristic.",
+      "boundary": "Can coexist with sweetness; bitterness is not a negative evaluation.",
+      "example": "The menu describes a pronounced bitter finish.",
+      "non_example": "The agent dislikes a drink for an unspecified reason."
+    },
+    {
+      "id": "product.fruit_notes", "family": "product", "group": "sensory",
+      "description": "The product description identifies fruit-like aroma or flavor notes.",
+      "boundary": "Does not establish that real fruit is an ingredient.",
+      "example": "Coffee described as having berry-like notes.",
+      "non_example": "The label displays fruit without any stated flavor claim."
+    },
+    {
+      "id": "product.contains_dairy", "family": "product", "group": "composition",
+      "description": "The product description explicitly identifies a dairy ingredient.",
+      "boundary": "Missing ingredient data is not evidence of dairy absence.",
+      "example": "The ingredient list includes cow's milk.",
+      "non_example": "The description says only that the drink is creamy."
+    },
+    {
+      "id": "product.decaffeinated", "family": "product", "group": "composition",
+      "description": "The product is explicitly offered as decaffeinated.",
+      "boundary": "Does not assert zero caffeine or suitability for a medical condition.",
+      "example": "The menu labels the item as decaf.",
+      "non_example": "The item has a mild taste."
+    },
+    {
+      "id": "product.reduced_sugar_option", "family": "product", "group": "composition",
+      "description": "The product explicitly offers a reduced-sugar preparation option.",
+      "boundary": "Does not mean sugar-free or that the agent selected this option.",
+      "example": "The menu offers a less-sugar preparation.",
+      "non_example": "No sugar information is provided."
+    },
+    {
+      "id": "product.hot_serving", "family": "product", "group": "serving",
+      "description": "The product is explicitly offered with a hot serving option.",
+      "boundary": "May coexist with cold_serving when both variants are offered.",
+      "example": "A hot latte is listed as an available variant.",
+      "non_example": "An ad shows steam without stating an available product option."
+    },
+    {
+      "id": "product.cold_serving", "family": "product", "group": "serving",
+      "description": "The product is explicitly offered with a chilled or iced serving option.",
+      "boundary": "Does not establish the agent's preferred temperature.",
+      "example": "An iced version is listed on the menu.",
+      "non_example": "The advertisement takes place in summer."
+    },
+    {
+      "id": "thought.personal_fit", "family": "thought", "group": "appraisal",
+      "description": "The agent judges that the product matches a relevant personal preference or intended use.",
+      "boundary": "Fit is an assessment, not excitement, affordability, or a purchase decision.",
+      "example": "Its advertised taste matches what I usually look for.",
+      "non_example": "I feel excited, but have not assessed whether it suits me."
+    },
+    {
+      "id": "thought.personal_mismatch", "family": "thought", "group": "appraisal",
+      "description": "The agent judges that a product characteristic conflicts with a relevant personal preference or intended use.",
+      "boundary": "A mismatch on one aspect can coexist with fit on another; it does not force not_buy.",
+      "example": "The advertised sweetness is not what I prefer.",
+      "non_example": "I cannot afford it despite liking its characteristics."
+    },
+    {
+      "id": "thought.value_justified", "family": "thought", "group": "appraisal",
+      "description": "The agent judges the stated price to be justified by the expected benefits.",
+      "boundary": "Value is not the same as available budget or verified product quality.",
+      "example": "For what it offers, that price seems worth paying.",
+      "non_example": "I have enough money, but do not think it is worth the price."
+    },
+    {
+      "id": "thought.price_barrier", "family": "thought", "group": "barrier",
+      "description": "The agent sees the stated price as an obstacle to purchasing now.",
+      "boundary": "Requires a price-related concern; premium brand positioning alone does not establish a barrier.",
+      "example": "That is more than I want to spend on this purchase.",
+      "non_example": "I am postponing because I do not need another drink."
+    },
+    {
+      "id": "thought.claim_credible", "family": "thought", "group": "appraisal",
+      "description": "The agent judges a relevant product or seller claim to be believable.",
+      "boundary": "A subjective credibility assessment is not verification of truth or a feeling of reassurance.",
+      "example": "The supplied explanation makes this particular claim believable to me.",
+      "non_example": "The seller asserts quality, but I have not formed a judgment."
+    },
+    {
+      "id": "thought.claim_doubtful", "family": "thought", "group": "barrier",
+      "description": "The agent questions the credibility of a relevant product or seller claim.",
+      "boundary": "Requires doubt about credibility, not merely missing information.",
+      "example": "This promise sounds exaggerated to me.",
+      "non_example": "I believe the description but still need the serving size."
+    },
+    {
+      "id": "thought.information_gap", "family": "thought", "group": "barrier",
+      "description": "The agent identifies missing information needed for the current product consideration.",
+      "boundary": "Does not imply mistrust or authorize inventing the missing fact.",
+      "example": "I need to know the ingredients before deciding.",
+      "non_example": "All needed details are present, but I dislike the taste profile."
+    },
+    {
+      "id": "thought.no_current_need", "family": "thought", "group": "barrier",
+      "description": "The agent considers their present need for this product absent or already satisfied.",
+      "boundary": "Does not mean permanent rejection or lack of interest.",
+      "example": "I already have enough coffee for now.",
+      "non_example": "I need coffee now but consider this item too expensive."
+    },
+    {
+      "id": "thought.want_to_try", "family": "thought", "group": "motivation",
+      "description": "The agent expresses a motive to experience the product.",
+      "boundary": "Does not imply that the product is objectively new, or that a purchase occurs now.",
+      "example": "I would like to find out what this tastes like.",
+      "non_example": "I find the packaging attractive but do not want to experience the product."
+    },
+    {
+      "id": "thought.consider_later", "family": "thought", "group": "timing",
+      "description": "The agent considers revisiting this product in a later encounter rather than resolving the consideration now.",
+      "boundary": "Is neither a promise to buy nor a third purchase action. Mere not_buy does not establish this thought.",
+      "example": "I may come back to this item when I need another drink.",
+      "non_example": "I reject this item without any intention of revisiting it."
+    },
+    {
+      "id": "attention_reason.low_relevance", "family": "attention_reason", "group": "fit",
+      "description": "The agent does not see the object as relevant to a current interest, goal, or situation.",
+      "boundary": "Does not mean the object is objectively irrelevant or permanently rejected.",
+      "example": "This does not seem related to what I care about right now.",
+      "non_example": "The object is relevant, but the agent is busy at this moment."
+    },
+    {
+      "id": "attention_reason.low_novelty", "family": "attention_reason", "group": "novelty",
+      "description": "The agent expects little new information or experience from attending to the object.",
+      "boundary": "Does not require prior exposure to this exact object.",
+      "example": "This does not seem different from things I already know.",
+      "non_example": "The agent is interested in the new item but lacks time to attend."
+    },
+    {
+      "id": "attention_reason.repetition_fatigue", "family": "attention_reason", "group": "history",
+      "description": "The agent is less willing to attend because the object or its presentation feels repetitive from prior encounters.",
+      "boundary": "Requires a repetition-related impression; encounter count alone is not sufficient evidence.",
+      "example": "I have seen this message several times and do not want to engage with it now.",
+      "non_example": "This is the first encounter and the agent simply finds it irrelevant."
+    },
+    {
+      "id": "attention_reason.low_personal_fit", "family": "attention_reason", "group": "fit",
+      "description": "The agent expects the object to fit poorly with personal preferences or intended use.",
+      "boundary": "This is a reason for low attention, not a purchase decision or a complete rejection.",
+      "example": "This does not look like something that suits my usual preferences.",
+      "non_example": "The agent likes the object but cannot attend because of an interruption."
+    },
+    {
+      "id": "attention_reason.no_current_need", "family": "attention_reason", "group": "timing",
+      "description": "The agent does not currently need or seek the object.",
+      "boundary": "Does not imply permanent lack of need or dislike.",
+      "example": "I do not need another drink at the moment.",
+      "non_example": "The agent needs the product but considers its price too high."
+    },
+    {
+      "id": "attention_reason.competing_attention", "family": "attention_reason", "group": "context",
+      "description": "The agent's attention is occupied by another task, thought, or object.",
+      "boundary": "Describes a competing attention state, not an evaluation of the object's quality.",
+      "example": "I am focused on something else and cannot attend right now.",
+      "non_example": "I ignore it because I find the message repetitive."
+    },
+    {
+      "id": "attention_reason.low_clarity", "family": "attention_reason", "group": "presentation",
+      "description": "The visible presentation is not clear enough for the agent to know why it should attend.",
+      "boundary": "Does not mean the full content is objectively unclear or false.",
+      "example": "I cannot tell what this advertisement is about from the visible preview.",
+      "non_example": "I understand the preview but do not currently need the product."
+    },
+    {
+      "id": "attention_reason.negative_prior_experience", "family": "attention_reason", "group": "history",
+      "description": "A remembered unfavorable experience reduces the agent's willingness to attend to the object.",
+      "boundary": "Requires an allowed prior experience; do not infer it from a skip alone.",
+      "example": "My previous experience with this product made me less willing to look again.",
+      "non_example": "The agent has no prior experience and is merely uncertain."
+    },
+    {
+      "id": "emotion.interest", "family": "emotion", "group": "engagement",
+      "description": "The agent feels drawn to finding out more about the object.",
+      "boundary": "Does not establish deliberate attention, reading, agreement, or a purchase intention.",
+      "example": "This has made me curious about what it offers.",
+      "non_example": "I read it carefully only to check a detail, without feeling interested."
+    },
+    {
+      "id": "emotion.pleasure", "family": "emotion", "group": "pleasant",
+      "description": "The agent experiences enjoyment or pleasant affect in response to the object.",
+      "boundary": "Does not mean that the object is a good fit or that the agent likes the post as an action.",
+      "example": "I find this presentation enjoyable.",
+      "non_example": "I judge it useful but feel no enjoyment."
+    },
+    {
+      "id": "emotion.reassurance", "family": "emotion", "group": "pleasant",
+      "description": "The agent feels more at ease about a concern addressed by the available information or remembered experience.",
+      "boundary": "Requires a relevant concern; it is not a factual judgment that a claim is true.",
+      "example": "This information eases the concern I had.",
+      "non_example": "I was not concerned and merely find the claim plausible."
+    },
+    {
+      "id": "emotion.worry", "family": "emotion", "group": "unpleasant",
+      "description": "The agent feels uneasy about a possible unfavorable outcome related to the object.",
+      "boundary": "Worry is a feeling, not proof of risk or merely an unanswered factual question.",
+      "example": "I feel uneasy about whether this will disappoint me.",
+      "non_example": "I need an ingredient detail but do not feel concerned."
+    },
+    {
+      "id": "emotion.irritation", "family": "emotion", "group": "unpleasant",
+      "description": "The agent feels bothered or annoyed by the object or its presentation.",
+      "boundary": "Does not require or imply a dislike action, and is distinct from low interest.",
+      "example": "This repeated message is getting on my nerves.",
+      "non_example": "I feel nothing about this message and simply move on."
+    },
+    {
+      "id": "emotion.boredom", "family": "emotion", "group": "disengagement",
+      "description": "The agent feels under-stimulated or weary of engaging with the object.",
+      "boundary": "Boredom is an experienced feeling, not merely a low attention score.",
+      "example": "This feels repetitive and tedious to me.",
+      "non_example": "I cannot stop to attend because of an external interruption."
+    },
+    {
+      "id": "emotion.indifference", "family": "emotion", "group": "disengagement",
+      "description": "The agent feels personally unmoved or emotionally uninvolved with the object.",
+      "boundary": "Is an explicit state, not a substitute for missing history, empty model output, or unknown feelings.",
+      "example": "This does not matter to me emotionally either way.",
+      "non_example": "No answer was returned by the model."
+    },
+    {
+      "id": "emotion.disappointment", "family": "emotion", "group": "unpleasant",
+      "description": "The agent feels that the object falls short of a relevant expectation.",
+      "boundary": "Requires an expectation supported by allowed context or history; do not invent a purchase or consumption experience.",
+      "example": "I expected useful details, but the post does not provide them.",
+      "non_example": "I have no prior expectation and merely do not like the presentation."
+    }
+  ]
+}

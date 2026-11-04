@@ -1,0 +1,76 @@
+{
+  "format": "projectdut_industry_profile",
+  "profile_version": "cafe-mvp-v1",
+  "status": "draft_for_review",
+  "industry_id": "cafe",
+  "language": "en",
+  "persona_schema": {
+    "path": "../../matraix/persona_1m/projectdut_persona.schema.json",
+    "format_version": 2
+  },
+  "tag_registry": {
+    "path": "../../tags/agent_flow_tags.v2.json",
+    "version": "2.0-draft"
+  },
+  "persona_mapping": {
+    "path": "../../tags/agent_flow_tag_persona.mapping.v2.json",
+    "version": "2.0-draft"
+  },
+  "core_persona_fields": [
+    "att_advertising",
+    "cog_attention_span",
+    "cog_detail_orientation",
+    "cog_skepticism",
+    "decision_style",
+    "economic_motivation",
+    "lstyle_shopping_style",
+    "need_for_cognition",
+    "pref_novelty_vs_familiarity",
+    "pref_quality_vs_quantity",
+    "schwartz_value_hedonism",
+    "trait_curiosity"
+  ],
+  "domain_persona_fields": [
+    "lstyle_caffeine",
+    "lstyle_coffee_ritual",
+    "topic_baking",
+    "topic_coffee",
+    "topic_tea"
+  ],
+  "grouping_fields": [
+    "age_bracket",
+    "region",
+    "urbanicity",
+    "socioeconomic_band",
+    "life_stage"
+  ],
+  "stage_base_fields": {
+    "A1": [
+      "att_advertising",
+      "cog_attention_span",
+      "trait_curiosity",
+      "pref_novelty_vs_familiarity"
+    ],
+    "A2": [
+      "att_advertising",
+      "trait_curiosity",
+      "pref_novelty_vs_familiarity"
+    ],
+    "B1": [
+      "cog_attention_span",
+      "trait_curiosity",
+      "pref_novelty_vs_familiarity"
+    ],
+    "B2": [
+      "decision_style",
+      "economic_motivation",
+      "pref_quality_vs_quantity",
+      "pref_novelty_vs_familiarity"
+    ]
+  },
+  "notes": [
+    "Core fields are reusable across industries; domain fields are selected for the cafe MVP.",
+    "This profile selects context fields only. It does not define brand relationship, history, action policy, or causal effects.",
+    "Missing persona values remain missing and are not imputed."
+  ]
+}

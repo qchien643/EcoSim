@@ -1,0 +1,232 @@
+{
+  "format": "agent_flow_persona_context_mapping",
+  "version": "2.0-draft",
+  "status": "draft_for_review",
+  "language": "en",
+  "tag_registry": "data/tags/agent_flow_tags.v2.json",
+  "tag_registry_version": "2.0-draft",
+  "persona_schema": "data/matraix/persona_1m/projectdut_persona.schema.json",
+  "persona_schema_version": 2,
+  "description": "Candidate-field selection for stage-specific persona context. These associations are design hypotheses, not calibrated psychological effects.",
+  "principles": [
+    "Select fields, never scores, actions or persona updates.",
+    "Only explicit stage-visible input-description tags activate mappings.",
+    "Preserve source enum labels and field descriptions without numerical reinterpretation.",
+    "Missing or null values are omitted; an enum label such as None is a valid value.",
+    "Invalid selected enum values fail validation; never silently replace them with Neutral.",
+    "Do not use emotion, thought or attention-reason outputs to infer personality.",
+    "No mapped fields does not mean low relevance and must not filter an object out of attention evaluation.",
+    "Stage baselines precede tag-derived fields; sort active tag IDs, preserve field order and deduplicate.",
+    "No score weights, token ranking, field truncation or whole-persona fallback."
+  ],
+  "stage_policy": {
+    "A1": {
+      "mode": "select",
+      "families": ["enterprise", "article"],
+      "base_fields": ["att_advertising", "cog_attention_span", "trait_curiosity", "pref_novelty_vs_familiarity"],
+      "rationale": "Advertising attitude, sustained attention, curiosity and novelty preference describe relevant tendencies without determining attention."
+    },
+    "A1R": {
+      "mode": "reuse",
+      "from_stage": "A1",
+      "rationale": "Reuse the current encounter's A1 persona and visible-object context after a valid skip; do not select new fields to explain it."
+    },
+    "A2": {
+      "mode": "select",
+      "families": ["enterprise", "article"],
+      "base_fields": ["att_advertising", "trait_curiosity", "pref_novelty_vs_familiarity"],
+      "rationale": "Initial impressions use only preview-visible descriptions and relevant tendencies."
+    },
+    "A3": {
+      "mode": "none",
+      "rationale": "Use current A2 emotions, readable content, permitted business information and same-stage memory; do not add fresh persona context."
+    },
+    "A4": {
+      "mode": "none",
+      "rationale": "Use current A3 emotions and reaction history; do not introduce communication traits while comments are out of scope."
+    },
+    "A5": {
+      "mode": "none",
+      "rationale": "Use current A3 emotions and allowed shop context/history; do not reintroduce the full persona."
+    },
+    "B1": {
+      "mode": "select",
+      "families": ["enterprise", "product"],
+      "base_fields": ["cog_attention_span", "trait_curiosity", "pref_novelty_vs_familiarity"],
+      "rationale": "Product attention uses general attention tendencies plus explicit product and business descriptors."
+    },
+    "B1R": {
+      "mode": "reuse",
+      "from_stage": "B1",
+      "rationale": "Reuse the current encounter's B1 persona and visible-object context after a valid skip."
+    },
+    "B2": {
+      "mode": "select",
+      "families": ["enterprise", "product"],
+      "base_fields": ["decision_style", "economic_motivation", "pref_quality_vs_quantity", "pref_novelty_vs_familiarity"],
+      "rationale": "Product consideration uses decision style and general purchase preferences; these do not establish budget, current need or a purchase action."
+    },
+    "B3": {
+      "mode": "none",
+      "rationale": "Use current B2 thoughts, product facts and purchase history; do not select persona fields again."
+    }
+  },
+  "rules": [
+    {
+      "tag_id": "enterprise.local_business",
+      "fields": [],
+      "rationale": "No direct preference for local businesses exists in the selected schema.",
+      "boundary": "Region and urbanicity do not establish distance, familiarity or support for local businesses."
+    },
+    {
+      "tag_id": "enterprise.multi_location",
+      "fields": [],
+      "rationale": "No direct preference for multi-location businesses exists in the selected schema.",
+      "boundary": "General brand-loyalty attitudes do not establish familiarity with or loyalty to this business."
+    },
+    {
+      "tag_id": "enterprise.value_positioning",
+      "fields": ["economic_motivation"],
+      "rationale": "Economic motivation is relevant to interpreting an affordability or value positioning.",
+      "boundary": "Positioning does not establish item price, available budget or affordability."
+    },
+    {
+      "tag_id": "enterprise.premium_positioning",
+      "fields": ["economic_motivation", "pref_quality_vs_quantity"],
+      "rationale": "Economic motivation and quality-versus-quantity preference provide context for premium positioning.",
+      "boundary": "Do not infer actual quality, wealth or willingness to buy."
+    },
+    {
+      "tag_id": "enterprise.craft_focus",
+      "fields": ["pref_quality_vs_quantity", "cog_skepticism"],
+      "rationale": "Quality preference and information scrutiny are relevant to stated preparation expertise.",
+      "boundary": "Neither the business claim nor these traits verify craftsmanship."
+    },
+    {
+      "tag_id": "enterprise.environmental_commitment",
+      "fields": ["cog_skepticism"],
+      "rationale": "Information scrutiny is relevant to evaluating a public environmental claim.",
+      "boundary": "Partial mapping only: the selected schema has no direct environmental preference. Skepticism is not opposition to environmental commitments."
+    },
+    {
+      "tag_id": "article.product_introduction",
+      "fields": ["trait_curiosity", "pref_novelty_vs_familiarity"],
+      "rationale": "Curiosity and novelty preference are relevant to a product introduction.",
+      "boundary": "An introduction does not prove novelty to this agent or identify the product category."
+    },
+    {
+      "tag_id": "article.offer",
+      "fields": ["economic_motivation", "lstyle_shopping_style"],
+      "rationale": "Economic motivation and shopping style provide context for a commercial incentive.",
+      "boundary": "Do not infer the offer amount, a bargain, urgency or affordability from the tag."
+    },
+    {
+      "tag_id": "article.brand_background",
+      "fields": ["trait_curiosity", "cog_skepticism"],
+      "rationale": "Curiosity and information scrutiny provide context for learning about a business.",
+      "boundary": "No field establishes familiarity with or trust in this specific brand."
+    },
+    {
+      "tag_id": "article.preparation_information",
+      "fields": ["need_for_cognition", "cog_detail_orientation"],
+      "rationale": "Interest in effortful processing and detail can be relevant to process explanations.",
+      "boundary": "Do not assume a coffee topic, professional expertise or hidden recipe details."
+    },
+    {
+      "tag_id": "article.use_occasion",
+      "fields": [],
+      "rationale": "The generic tag does not identify which occasion is being described.",
+      "boundary": "Do not infer the agent's current activity from life stage, work schedule or an unspecified occasion."
+    },
+    {
+      "tag_id": "article.sensory_presentation",
+      "fields": ["schwartz_value_hedonism"],
+      "rationale": "The importance assigned to enjoyment is relevant to sensory presentation.",
+      "boundary": "Partial mapping only: this does not establish a preferred taste, aroma or texture."
+    },
+    {
+      "tag_id": "article.narrative_presentation",
+      "fields": [],
+      "rationale": "The selected schema does not directly describe preference for receiving narrative advertisements.",
+      "boundary": "The tendency to tell stories is not a preference for reading stories."
+    },
+    {
+      "tag_id": "article.humorous_presentation",
+      "fields": [],
+      "rationale": "The selected schema has no direct humor-reception preference.",
+      "boundary": "Do not infer amusement from sociability, emoji use or emotional expressiveness."
+    },
+    {
+      "tag_id": "product.coffee_drink",
+      "fields": ["topic_coffee", "lstyle_coffee_ritual", "lstyle_caffeine"],
+      "rationale": "Coffee interest, coffee-use habit and caffeine-use level describe relevant consumption context.",
+      "boundary": "Do not infer taste preference, current need, caffeine dose or a medical restriction."
+    },
+    {
+      "tag_id": "product.tea_drink",
+      "fields": ["topic_tea"],
+      "rationale": "Tea interest directly describes interest in the stated product category.",
+      "boundary": "Tea interest does not determine sweetness, milk preference or caffeine tolerance."
+    },
+    {
+      "tag_id": "product.baked_food",
+      "fields": ["topic_baking"],
+      "rationale": "Interest in baking provides related topic context.",
+      "boundary": "Partial mapping only: interest in baking does not establish a preference for eating a particular baked food."
+    },
+    {
+      "tag_id": "product.packaged_coffee",
+      "fields": ["topic_coffee", "lstyle_coffee_ritual"],
+      "rationale": "Coffee interest and coffee-use habit are relevant to coffee prepared after purchase.",
+      "boundary": "Home brewing does not prove equipment ownership or a present need to replenish coffee."
+    },
+    {
+      "tag_id": "product.sweet_profile",
+      "fields": [],
+      "rationale": "No direct sweetness preference exists in the selected schema.",
+      "boundary": "Do not infer sweetness preference from coffee interest or enjoyment values."
+    },
+    {
+      "tag_id": "product.bitter_profile",
+      "fields": [],
+      "rationale": "No direct bitterness preference exists in the selected schema.",
+      "boundary": "Coffee interest is not evidence that the agent prefers bitterness."
+    },
+    {
+      "tag_id": "product.fruit_notes",
+      "fields": [],
+      "rationale": "No direct preference for fruit-like notes exists in the selected schema.",
+      "boundary": "Novelty preference does not establish liking for fruit notes."
+    },
+    {
+      "tag_id": "product.contains_dairy",
+      "fields": [],
+      "rationale": "No direct dairy preference or suitability field is available in the selected schema.",
+      "boundary": "Do not infer allergy, intolerance or dietary suitability."
+    },
+    {
+      "tag_id": "product.decaffeinated",
+      "fields": ["lstyle_caffeine"],
+      "rationale": "Caffeine-use level provides context for considering a decaffeinated product.",
+      "boundary": "Low use or None does not establish a medical restriction, and decaffeinated does not mean zero caffeine."
+    },
+    {
+      "tag_id": "product.reduced_sugar_option",
+      "fields": [],
+      "rationale": "No direct sugar-preparation preference exists in the selected schema.",
+      "boundary": "Do not infer health conditions or sugar preference from personality or age."
+    },
+    {
+      "tag_id": "product.hot_serving",
+      "fields": [],
+      "rationale": "No direct serving-temperature preference exists in the selected schema.",
+      "boundary": "Region and season alone do not establish a hot-drink preference."
+    },
+    {
+      "tag_id": "product.cold_serving",
+      "fields": [],
+      "rationale": "No direct serving-temperature preference exists in the selected schema.",
+      "boundary": "Region and season alone do not establish a cold-drink preference."
+    }
+  ]
+}

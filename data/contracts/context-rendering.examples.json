@@ -1,0 +1,103 @@
+{
+  "A1": {
+    "stage": "A1",
+    "scope": {
+      "run_id": "example_run",
+      "agent_id": "example_agent",
+      "object_type": "article",
+      "object_id": "example_article"
+    },
+    "encounter_no": 3,
+    "persona": {
+      "att_advertising": "Neutral",
+      "cog_attention_span": "Average",
+      "trait_curiosity": "Strong",
+      "pref_novelty_vs_familiarity": "Novelty-leaning"
+    },
+    "visible_tags": [
+      {
+        "tag_id": "enterprise.local_business",
+        "source_ref": "business.public_profile",
+        "visible_stages": ["A1", "A2", "A3"]
+      },
+      {
+        "tag_id": "article.product_introduction",
+        "source_ref": "article.preview",
+        "visible_stages": ["A1", "A2", "A3"]
+      }
+    ],
+    "history": {
+      "attention_count": 0
+    },
+    "previous_same_stage_state": {
+      "run_id": "example_run",
+      "agent_id": "example_agent",
+      "object_type": "article",
+      "object_id": "example_article",
+      "stage": "A1",
+      "encounter_no": 2,
+      "status": "resolved",
+      "score": 0.38,
+      "action": "skip"
+    },
+    "previous_attention_reason": {
+      "run_id": "example_run",
+      "agent_id": "example_agent",
+      "object_type": "article",
+      "object_id": "example_article",
+      "stage": "A1R",
+      "encounter_no": 2,
+      "status": "resolved",
+      "tags": [
+        {
+          "tag_id": "attention_reason.repetition_fatigue",
+          "score": 0.81
+        }
+      ]
+    }
+  },
+  "B3": {
+    "stage": "B3",
+    "scope": {
+      "run_id": "example_run",
+      "agent_id": "example_agent",
+      "object_type": "product",
+      "object_id": "example_product"
+    },
+    "encounter_no": 3,
+    "visible_tags": [
+      {
+        "tag_id": "product.coffee_drink",
+        "source_ref": "product.menu",
+        "visible_stages": ["B1", "B2", "B3"]
+      }
+    ],
+    "facts": {
+      "product_name": "Example coffee drink",
+      "listed_price": "39,000 VND",
+      "product_description": "A cold coffee drink with a lightly sweet citrus profile."
+    },
+    "history": {
+      "purchase_count": 1
+    },
+    "current_state": {
+      "run_id": "example_run",
+      "agent_id": "example_agent",
+      "object_type": "product",
+      "object_id": "example_product",
+      "stage": "B2",
+      "encounter_no": 3,
+      "status": "resolved",
+      "tags": [
+        {
+          "tag_id": "thought.want_to_try",
+          "score": 0.75
+        },
+        {
+          "tag_id": "thought.price_barrier",
+          "score": 0.64
+        }
+      ]
+    }
+  }
+}

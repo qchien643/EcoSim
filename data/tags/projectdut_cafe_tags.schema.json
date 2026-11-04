@@ -1,0 +1,934 @@
+{
+  "format": "projectdut_tag_vocabulary",
+  "format_version": 1,
+  "product": "projectDut2026",
+  "industry": "cafe",
+  "language": "en",
+  "status": "draft",
+  "purpose": "Closed tag vocabulary for enterprise identity, campaign content, and agent cognitive states.",
+  "principles": [
+    "Tags describe content or agent state; they do not directly determine an action.",
+    "LLM outputs must use only tag IDs from this file.",
+    "Thought tags describe interpretation, appraisal, motivation, barriers, or timing.",
+    "Emotion tags describe affective response after reading or viewing.",
+    "Missing context does not imply a negative, neutral, or positive tag.",
+    "Enterprise, article, and product tags are campaign metadata; thought and emotion tags are agent outputs."
+  ],
+  "families": {
+    "article": {
+      "description": "Tags describing the subject and presentation of a campaign post.",
+      "max_tags": 8,
+      "groups": {
+        "topic": {
+          "max_tags": 3,
+          "tags": [
+            "topic_coffee",
+            "topic_product_launch",
+            "topic_brand_story",
+            "topic_how_it_works",
+            "topic_offer",
+            "topic_social_proof",
+            "topic_lifestyle",
+            "topic_problem_solution",
+            "topic_community",
+            "topic_education"
+          ]
+        },
+        "presentation_style": {
+          "max_tags": 2,
+          "tags": [
+            "style_informational",
+            "style_sensory",
+            "style_storytelling",
+            "style_testimonial",
+            "style_conversational",
+            "style_humorous",
+            "style_aspirational",
+            "style_urgent",
+            "style_minimal",
+            "style_comparison"
+          ]
+        },
+        "campaign_role": {
+          "max_tags": 2,
+          "tags": [
+            "role_awareness",
+            "role_consideration",
+            "role_conversion",
+            "role_retention"
+          ]
+        }
+      }
+    },
+    "enterprise": {
+      "description": "Tags describing the public identity, positioning, or operating profile of the advertising enterprise or brand.",
+      "max_tags": 8,
+      "groups": {
+        "identity_and_scale": {
+          "max_tags": 2,
+          "tags": [
+            "enterprise_local",
+            "enterprise_chain",
+            "enterprise_new_brand",
+            "enterprise_established_brand"
+          ]
+        },
+        "market_position": {
+          "max_tags": 2,
+          "tags": [
+            "enterprise_premium_positioning",
+            "enterprise_value_positioning",
+            "enterprise_quality_focused",
+            "enterprise_convenience_focused"
+          ]
+        },
+        "public_character": {
+          "max_tags": 2,
+          "tags": [
+            "enterprise_community_oriented",
+            "enterprise_sustainability_oriented",
+            "enterprise_transparent",
+            "enterprise_innovative"
+          ]
+        }
+      }
+    },
+    "product": {
+      "description": "Tags describing a cafe product, offer, or use context.",
+      "max_tags": 12,
+      "groups": {
+        "product_type": {
+          "max_tags": 2,
+          "tags": [
+            "product_coffee_beverage",
+            "product_tea_beverage",
+            "product_pastry",
+            "product_combo",
+            "product_packaged_coffee",
+            "product_ready_to_drink"
+          ]
+        },
+        "flavor_and_intensity": {
+          "max_tags": 5,
+          "tags": [
+            "flavor_sweet",
+            "flavor_bitter",
+            "flavor_acidic",
+            "flavor_creamy",
+            "flavor_chocolate",
+            "flavor_fruity",
+            "intensity_light",
+            "intensity_strong"
+          ]
+        },
+        "serving_context": {
+          "max_tags": 3,
+          "tags": [
+            "temperature_hot",
+            "temperature_iced",
+            "occasion_morning",
+            "occasion_work_break",
+            "occasion_social",
+            "occasion_study",
+            "occasion_treat"
+          ]
+        },
+        "commercial_position": {
+          "max_tags": 3,
+          "tags": [
+            "price_budget",
+            "price_standard",
+            "price_premium",
+            "availability_new",
+            "availability_signature",
+            "availability_familiar",
+            "offer_discount",
+            "offer_bundle"
+          ]
+        },
+        "dietary_option": {
+          "max_tags": 3,
+          "tags": [
+            "option_vegan",
+            "option_low_sugar",
+            "option_decaf",
+            "option_dairy_free"
+          ]
+        }
+      }
+    },
+    "thought": {
+      "description": "Tags describing the agent's interpretation, motivation, barrier, or timing-related thought.",
+      "max_tags": 6,
+      "groups": {
+        "attention": {
+          "max_tags": 2,
+          "tags": [
+            "attention_caught",
+            "attention_specific_detail",
+            "attention_seeking_more"
+          ]
+        },
+        "appraisal": {
+          "max_tags": 3,
+          "tags": [
+            "appraisal_relevant",
+            "appraisal_good_fit",
+            "appraisal_good_value",
+            "appraisal_high_quality",
+            "appraisal_authentic",
+            "appraisal_exaggerated",
+            "appraisal_unclear",
+            "appraisal_risky"
+          ]
+        },
+        "motivation": {
+          "max_tags": 2,
+          "tags": [
+            "motivation_learn_more",
+            "motivation_try",
+            "motivation_compare",
+            "motivation_share",
+            "motivation_visit_shop",
+            "motivation_wait_for_later"
+          ]
+        },
+        "barrier": {
+          "max_tags": 3,
+          "tags": [
+            "barrier_price",
+            "barrier_trust",
+            "barrier_quality",
+            "barrier_not_needed_now",
+            "barrier_prefer_familiar",
+            "barrier_insufficient_information",
+            "barrier_negative_prior_experience"
+          ]
+        }
+      }
+    },
+    "emotion": {
+      "description": "Tags describing the agent's affective response after reading or viewing.",
+      "max_tags": 5,
+      "groups": {
+        "positive": {
+          "max_tags": 2,
+          "tags": [
+            "emotion_interested",
+            "emotion_pleased",
+            "emotion_excited",
+            "emotion_trusting",
+            "emotion_reassured",
+            "emotion_tempted",
+            "emotion_amused",
+            "emotion_nostalgic"
+          ]
+        },
+        "negative": {
+          "max_tags": 2,
+          "tags": [
+            "emotion_skeptical",
+            "emotion_confused",
+            "emotion_disappointed",
+            "emotion_annoyed",
+            "emotion_worried",
+            "emotion_distrustful",
+            "emotion_bored",
+            "emotion_overwhelmed"
+          ]
+        },
+        "low_or_neutral": {
+          "max_tags": 2,
+          "tags": [
+            "emotion_indifferent",
+            "emotion_unmoved",
+            "emotion_calm"
+          ]
+        }
+      }
+    }
+  },
+  "definitions": [
+    {
+      "id": "topic_coffee",
+      "family": "article",
+      "group": "topic",
+      "description": "The post concerns coffee as a subject."
+    },
+    {
+      "id": "topic_product_launch",
+      "family": "article",
+      "group": "topic",
+      "description": "The post presents a newly introduced product or product variation."
+    },
+    {
+      "id": "topic_brand_story",
+      "family": "article",
+      "group": "topic",
+      "description": "The post presents information about the brand's background, identity, or story."
+    },
+    {
+      "id": "topic_how_it_works",
+      "family": "article",
+      "group": "topic",
+      "description": "The post explains how a product, process, or service works."
+    },
+    {
+      "id": "topic_offer",
+      "family": "article",
+      "group": "topic",
+      "description": "The post communicates a price, promotion, discount, or other commercial offer."
+    },
+    {
+      "id": "topic_social_proof",
+      "family": "article",
+      "group": "topic",
+      "description": "The post presents customer feedback, usage evidence, popularity, or endorsement."
+    },
+    {
+      "id": "topic_lifestyle",
+      "family": "article",
+      "group": "topic",
+      "description": "The post connects the product with a lifestyle, routine, or occasion."
+    },
+    {
+      "id": "topic_problem_solution",
+      "family": "article",
+      "group": "topic",
+      "description": "The post presents a customer problem and positions an offering as a possible solution."
+    },
+    {
+      "id": "topic_community",
+      "family": "article",
+      "group": "topic",
+      "description": "The post emphasizes participation, belonging, or a shared customer community."
+    },
+    {
+      "id": "topic_education",
+      "family": "article",
+      "group": "topic",
+      "description": "The post provides educational or explanatory information related to the offering."
+    },
+    {
+      "id": "style_informational",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post primarily presents factual or explanatory information."
+    },
+    {
+      "id": "style_sensory",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post emphasizes sensory qualities such as taste, aroma, texture, or temperature."
+    },
+    {
+      "id": "style_storytelling",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post presents information through a narrative or sequence of events."
+    },
+    {
+      "id": "style_testimonial",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post is framed as a customer's or user's account or endorsement."
+    },
+    {
+      "id": "style_conversational",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post uses an informal, dialogue-like presentation."
+    },
+    {
+      "id": "style_humorous",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post uses humor as a major presentation device."
+    },
+    {
+      "id": "style_aspirational",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post associates the offering with a desired experience, identity, or outcome."
+    },
+    {
+      "id": "style_urgent",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post emphasizes limited time, limited availability, or immediate attention."
+    },
+    {
+      "id": "style_minimal",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post uses a restrained amount of information or visual/textual elements."
+    },
+    {
+      "id": "style_comparison",
+      "family": "article",
+      "group": "presentation_style",
+      "description": "The post compares products, options, features, or alternatives."
+    },
+    {
+      "id": "role_awareness",
+      "family": "article",
+      "group": "campaign_role",
+      "description": "The post is intended to introduce or increase recognition of a subject."
+    },
+    {
+      "id": "role_consideration",
+      "family": "article",
+      "group": "campaign_role",
+      "description": "The post is intended to support evaluation of an offering."
+    },
+    {
+      "id": "role_conversion",
+      "family": "article",
+      "group": "campaign_role",
+      "description": "The post is intended to encourage a near-term commercial action."
+    },
+    {
+      "id": "role_retention",
+      "family": "article",
+      "group": "campaign_role",
+      "description": "The post is intended to support continued engagement or repeat use."
+    },
+    {
+      "id": "enterprise_local",
+      "family": "enterprise",
+      "group": "identity_and_scale",
+      "description": "The enterprise or brand is presented as operating primarily in a local or limited geographic area."
+    },
+    {
+      "id": "enterprise_chain",
+      "family": "enterprise",
+      "group": "identity_and_scale",
+      "description": "The enterprise or brand is presented as a chain or multi-location operation."
+    },
+    {
+      "id": "enterprise_new_brand",
+      "family": "enterprise",
+      "group": "identity_and_scale",
+      "description": "The brand is presented as newly established or newly introduced to the relevant market."
+    },
+    {
+      "id": "enterprise_established_brand",
+      "family": "enterprise",
+      "group": "identity_and_scale",
+      "description": "The brand is presented as established within the relevant market."
+    },
+    {
+      "id": "enterprise_premium_positioning",
+      "family": "enterprise",
+      "group": "market_position",
+      "description": "The enterprise or brand is presented with a higher-price or premium market position."
+    },
+    {
+      "id": "enterprise_value_positioning",
+      "family": "enterprise",
+      "group": "market_position",
+      "description": "The enterprise or brand is presented as emphasizing value, affordability, or practical benefits."
+    },
+    {
+      "id": "enterprise_quality_focused",
+      "family": "enterprise",
+      "group": "market_position",
+      "description": "The enterprise or brand publicly emphasizes product or service quality."
+    },
+    {
+      "id": "enterprise_convenience_focused",
+      "family": "enterprise",
+      "group": "market_position",
+      "description": "The enterprise or brand publicly emphasizes convenience, speed, or reduced effort."
+    },
+    {
+      "id": "enterprise_community_oriented",
+      "family": "enterprise",
+      "group": "public_character",
+      "description": "The enterprise or brand publicly emphasizes community participation, belonging, or local connection."
+    },
+    {
+      "id": "enterprise_sustainability_oriented",
+      "family": "enterprise",
+      "group": "public_character",
+      "description": "The enterprise or brand publicly emphasizes environmental or sustainability-related practices."
+    },
+    {
+      "id": "enterprise_transparent",
+      "family": "enterprise",
+      "group": "public_character",
+      "description": "The enterprise or brand publicly emphasizes openness about its products, processes, or practices."
+    },
+    {
+      "id": "enterprise_innovative",
+      "family": "enterprise",
+      "group": "public_character",
+      "description": "The enterprise or brand publicly emphasizes novelty, experimentation, or innovation."
+    },
+    {
+      "id": "product_coffee_beverage",
+      "family": "product",
+      "group": "product_type",
+      "description": "A prepared coffee beverage."
+    },
+    {
+      "id": "product_tea_beverage",
+      "family": "product",
+      "group": "product_type",
+      "description": "A prepared tea beverage."
+    },
+    {
+      "id": "product_pastry",
+      "family": "product",
+      "group": "product_type",
+      "description": "A pastry or baked food item."
+    },
+    {
+      "id": "product_combo",
+      "family": "product",
+      "group": "product_type",
+      "description": "A combined offer containing multiple products or product types."
+    },
+    {
+      "id": "product_packaged_coffee",
+      "family": "product",
+      "group": "product_type",
+      "description": "Coffee sold in a packaged form for later preparation or consumption."
+    },
+    {
+      "id": "product_ready_to_drink",
+      "family": "product",
+      "group": "product_type",
+      "description": "A beverage sold ready for immediate consumption."
+    },
+    {
+      "id": "flavor_sweet",
+      "family": "product",
+      "group": "flavor_and_intensity",
+      "description": "The product is described as having a sweet flavor profile."
+    },
+    {
+      "id": "flavor_bitter",
+      "family": "product",
+      "group": "flavor_and_intensity",
+      "description": "The product is described as having a bitter flavor profile."
+    },
+    {
+      "id": "flavor_acidic",
+      "family": "product",
+      "group": "flavor_and_intensity",
+      "description": "The product is described as having noticeable acidity."
+    },
+    {
+      "id": "flavor_creamy",
+      "family": "product",
+      "group": "flavor_and_intensity",
+      "description": "The product is described as having a creamy taste or texture."
+    },
+    {
+      "id": "flavor_chocolate",
+      "family": "product",
+      "group": "flavor_and_intensity",
+      "description": "The product is described as having chocolate-like flavor notes."
+    },
+    {
+      "id": "flavor_fruity",
+      "family": "product",
+      "group": "flavor_and_intensity",
+      "description": "The product is described as having fruit-like flavor notes."
+    },
+    {
+      "id": "intensity_light",
+      "family": "product",
+      "group": "flavor_and_intensity",
+      "description": "The product is described as having a light overall intensity."
+    },
+    {
+      "id": "intensity_strong",
+      "family": "product",
+      "group": "flavor_and_intensity",
+      "description": "The product is described as having a strong overall intensity."
+    },
+    {
+      "id": "temperature_hot",
+      "family": "product",
+      "group": "serving_context",
+      "description": "The product is served or presented as hot."
+    },
+    {
+      "id": "temperature_iced",
+      "family": "product",
+      "group": "serving_context",
+      "description": "The product is served or presented chilled or over ice."
+    },
+    {
+      "id": "occasion_morning",
+      "family": "product",
+      "group": "serving_context",
+      "description": "The product is associated with a morning occasion."
+    },
+    {
+      "id": "occasion_work_break",
+      "family": "product",
+      "group": "serving_context",
+      "description": "The product is associated with a break during work or study."
+    },
+    {
+      "id": "occasion_social",
+      "family": "product",
+      "group": "serving_context",
+      "description": "The product is associated with a social occasion."
+    },
+    {
+      "id": "occasion_study",
+      "family": "product",
+      "group": "serving_context",
+      "description": "The product is associated with studying or focused work."
+    },
+    {
+      "id": "occasion_treat",
+      "family": "product",
+      "group": "serving_context",
+      "description": "The product is associated with an occasional indulgence or treat."
+    },
+    {
+      "id": "price_budget",
+      "family": "product",
+      "group": "commercial_position",
+      "description": "The product is positioned in a lower-price range within the relevant catalog."
+    },
+    {
+      "id": "price_standard",
+      "family": "product",
+      "group": "commercial_position",
+      "description": "The product is positioned in a standard or mid-range price tier."
+    },
+    {
+      "id": "price_premium",
+      "family": "product",
+      "group": "commercial_position",
+      "description": "The product is positioned in a higher-price or premium tier."
+    },
+    {
+      "id": "availability_new",
+      "family": "product",
+      "group": "commercial_position",
+      "description": "The product is newly introduced within the campaign catalog."
+    },
+    {
+      "id": "availability_signature",
+      "family": "product",
+      "group": "commercial_position",
+      "description": "The product is presented as a signature or distinctive offering."
+    },
+    {
+      "id": "availability_familiar",
+      "family": "product",
+      "group": "commercial_position",
+      "description": "The product is already established or familiar within the campaign catalog."
+    },
+    {
+      "id": "offer_discount",
+      "family": "product",
+      "group": "commercial_position",
+      "description": "The product is associated with a discount or reduced price offer."
+    },
+    {
+      "id": "offer_bundle",
+      "family": "product",
+      "group": "commercial_position",
+      "description": "The product is associated with a bundle containing multiple items or benefits."
+    },
+    {
+      "id": "option_vegan",
+      "family": "product",
+      "group": "dietary_option",
+      "description": "The product is identified as compatible with a vegan option or preparation."
+    },
+    {
+      "id": "option_low_sugar",
+      "family": "product",
+      "group": "dietary_option",
+      "description": "The product is identified as a lower-sugar option relative to the relevant catalog."
+    },
+    {
+      "id": "option_decaf",
+      "family": "product",
+      "group": "dietary_option",
+      "description": "The product is identified as decaffeinated or having reduced caffeine."
+    },
+    {
+      "id": "option_dairy_free",
+      "family": "product",
+      "group": "dietary_option",
+      "description": "The product is identified as dairy-free."
+    },
+    {
+      "id": "attention_caught",
+      "family": "thought",
+      "group": "attention",
+      "description": "The agent notices or attends to the content."
+    },
+    {
+      "id": "attention_specific_detail",
+      "family": "thought",
+      "group": "attention",
+      "description": "The agent attends to a particular detail of the content."
+    },
+    {
+      "id": "attention_seeking_more",
+      "family": "thought",
+      "group": "attention",
+      "description": "The agent's attention is directed toward finding more information."
+    },
+    {
+      "id": "appraisal_relevant",
+      "family": "thought",
+      "group": "appraisal",
+      "description": "The agent interprets the content as relevant to their situation or interests."
+    },
+    {
+      "id": "appraisal_good_fit",
+      "family": "thought",
+      "group": "appraisal",
+      "description": "The agent interprets the offering as fitting a need, preference, or context."
+    },
+    {
+      "id": "appraisal_good_value",
+      "family": "thought",
+      "group": "appraisal",
+      "description": "The agent interprets the perceived benefits as worthwhile relative to the perceived cost."
+    },
+    {
+      "id": "appraisal_high_quality",
+      "family": "thought",
+      "group": "appraisal",
+      "description": "The agent interprets the content or offering as indicating high quality."
+    },
+    {
+      "id": "appraisal_authentic",
+      "family": "thought",
+      "group": "appraisal",
+      "description": "The agent interprets the content or offering as credible or genuine."
+    },
+    {
+      "id": "appraisal_exaggerated",
+      "family": "thought",
+      "group": "appraisal",
+      "description": "The agent interprets the claims or presentation as overstated."
+    },
+    {
+      "id": "appraisal_unclear",
+      "family": "thought",
+      "group": "appraisal",
+      "description": "The agent interprets the information as insufficiently clear."
+    },
+    {
+      "id": "appraisal_risky",
+      "family": "thought",
+      "group": "appraisal",
+      "description": "The agent interprets the choice or outcome as involving meaningful uncertainty or risk."
+    },
+    {
+      "id": "motivation_learn_more",
+      "family": "thought",
+      "group": "motivation",
+      "description": "The agent is motivated to obtain more information."
+    },
+    {
+      "id": "motivation_try",
+      "family": "thought",
+      "group": "motivation",
+      "description": "The agent is motivated to try the offering."
+    },
+    {
+      "id": "motivation_compare",
+      "family": "thought",
+      "group": "motivation",
+      "description": "The agent is motivated to compare the offering with alternatives."
+    },
+    {
+      "id": "motivation_share",
+      "family": "thought",
+      "group": "motivation",
+      "description": "The agent is motivated to share or discuss the content."
+    },
+    {
+      "id": "motivation_visit_shop",
+      "family": "thought",
+      "group": "motivation",
+      "description": "The agent is motivated to visit or inspect the shop."
+    },
+    {
+      "id": "motivation_wait_for_later",
+      "family": "thought",
+      "group": "motivation",
+      "description": "The agent is inclined to postpone consideration to a later time."
+    },
+    {
+      "id": "barrier_price",
+      "family": "thought",
+      "group": "barrier",
+      "description": "Perceived price or cost is a barrier."
+    },
+    {
+      "id": "barrier_trust",
+      "family": "thought",
+      "group": "barrier",
+      "description": "Trust or credibility is a barrier."
+    },
+    {
+      "id": "barrier_quality",
+      "family": "thought",
+      "group": "barrier",
+      "description": "Perceived quality is a barrier."
+    },
+    {
+      "id": "barrier_not_needed_now",
+      "family": "thought",
+      "group": "barrier",
+      "description": "The agent does not currently perceive a need for the offering."
+    },
+    {
+      "id": "barrier_prefer_familiar",
+      "family": "thought",
+      "group": "barrier",
+      "description": "Preference for a familiar alternative is a barrier."
+    },
+    {
+      "id": "barrier_insufficient_information",
+      "family": "thought",
+      "group": "barrier",
+      "description": "Insufficient information is a barrier."
+    },
+    {
+      "id": "barrier_negative_prior_experience",
+      "family": "thought",
+      "group": "barrier",
+      "description": "A previous negative experience is a barrier."
+    },
+    {
+      "id": "emotion_interested",
+      "family": "emotion",
+      "group": "positive",
+      "description": "The agent feels interested in the content or offering."
+    },
+    {
+      "id": "emotion_pleased",
+      "family": "emotion",
+      "group": "positive",
+      "description": "The agent feels pleased with the content or offering."
+    },
+    {
+      "id": "emotion_excited",
+      "family": "emotion",
+      "group": "positive",
+      "description": "The agent feels excited or strongly energized."
+    },
+    {
+      "id": "emotion_trusting",
+      "family": "emotion",
+      "group": "positive",
+      "description": "The agent feels trust toward the content, offering, or source."
+    },
+    {
+      "id": "emotion_reassured",
+      "family": "emotion",
+      "group": "positive",
+      "description": "The agent feels reassured or less concerned."
+    },
+    {
+      "id": "emotion_tempted",
+      "family": "emotion",
+      "group": "positive",
+      "description": "The agent feels an affective pull toward trying or choosing the offering."
+    },
+    {
+      "id": "emotion_amused",
+      "family": "emotion",
+      "group": "positive",
+      "description": "The agent feels amused by the content."
+    },
+    {
+      "id": "emotion_nostalgic",
+      "family": "emotion",
+      "group": "positive",
+      "description": "The agent feels nostalgia associated with the content or offering."
+    },
+    {
+      "id": "emotion_skeptical",
+      "family": "emotion",
+      "group": "negative",
+      "description": "The agent feels skeptical about the content, offering, or source."
+    },
+    {
+      "id": "emotion_confused",
+      "family": "emotion",
+      "group": "negative",
+      "description": "The agent feels confused by the content or offering."
+    },
+    {
+      "id": "emotion_disappointed",
+      "family": "emotion",
+      "group": "negative",
+      "description": "The agent feels disappointed."
+    },
+    {
+      "id": "emotion_annoyed",
+      "family": "emotion",
+      "group": "negative",
+      "description": "The agent feels annoyed or irritated."
+    },
+    {
+      "id": "emotion_worried",
+      "family": "emotion",
+      "group": "negative",
+      "description": "The agent feels worried or concerned."
+    },
+    {
+      "id": "emotion_distrustful",
+      "family": "emotion",
+      "group": "negative",
+      "description": "The agent feels distrust toward the content, offering, or source."
+    },
+    {
+      "id": "emotion_bored",
+      "family": "emotion",
+      "group": "negative",
+      "description": "The agent feels bored or insufficiently engaged."
+    },
+    {
+      "id": "emotion_overwhelmed",
+      "family": "emotion",
+      "group": "negative",
+      "description": "The agent feels overwhelmed by the amount or intensity of information."
+    },
+    {
+      "id": "emotion_indifferent",
+      "family": "emotion",
+      "group": "low_or_neutral",
+      "description": "The agent feels indifferent toward the content or offering."
+    },
+    {
+      "id": "emotion_unmoved",
+      "family": "emotion",
+      "group": "low_or_neutral",
+      "description": "The agent feels little emotional response or persuasion."
+    },
+    {
+      "id": "emotion_calm",
+      "family": "emotion",
+      "group": "low_or_neutral",
+      "description": "The agent feels calm after processing the content."
+    }
+  ],
+  "status_notes": {
+    "product_tag_definitions": "Draft vocabulary and definitions; pending semantic review.",
+    "thought_tag_definitions": "Draft vocabulary and definitions; these tags describe possible agent states and do not encode action rules.",
+    "emotion_tag_definitions": "Draft vocabulary and definitions; these tags describe affective states and do not encode action rules.",
+    "persona_mapping": "draft_enterprise_content_tags",
+    "persona_mapping_file": "projectdut_cafe_tag_persona.mapping.json",
+    "persona_mapping_scope": "Enterprise, article, and product tags have reviewed entries: candidate links, explicit gaps, or campaign metadata. Thought and emotion mappings remain out of scope.",
+    "action_contracts": "Defined separately from this vocabulary."
+  }
+}

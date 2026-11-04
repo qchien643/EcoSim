@@ -1,0 +1,4498 @@
+{
+  "generated_at": "2026-09-26T15:16:11.383467+00:00",
+  "method": "Full scan of manifest shards; null bitmap + packed codes + overrides; no imputation.",
+  "schema_sha256": "a02221ff32c2bc135c5e4290e1383081188712ee88f5c341f5fdb56d3d7b1c5c",
+  "manifest_sha256": "b8582f8fcc6f7023bc46a7d675854c8ce8e44ad886095de9d66005866fdb63a3",
+  "shards": [
+    {
+      "path": "data/persona-1m-0000.parquet",
+      "rows": 100000
+    },
+    {
+      "path": "data/persona-1m-0001.parquet",
+      "rows": 100000
+    },
+    {
+      "path": "data/persona-1m-0002.parquet",
+      "rows": 100000
+    },
+    {
+      "path": "data/persona-1m-0003.parquet",
+      "rows": 100000
+    },
+    {
+      "path": "data/persona-1m-0004.parquet",
+      "rows": 100000
+    },
+    {
+      "path": "data/persona-1m-0005.parquet",
+      "rows": 99847
+    },
+    {
+      "path": "data/persona-1m-0006.parquet",
+      "rows": 100000
+    },
+    {
+      "path": "data/persona-1m-0007.parquet",
+      "rows": 100000
+    },
+    {
+      "path": "data/persona-1m-0008.parquet",
+      "rows": 100000
+    },
+    {
+      "path": "data/persona-1m-0009.parquet",
+      "rows": 100000
+    }
+  ],
+  "totals": {
+    "all": 999847,
+    "non_synthetic": 599847,
+    "source:wiki": 323438,
+    "source:amazon": 97915,
+    "source:stackoverflow": 113120,
+    "source:prism": 1487,
+    "source:gss": 63532,
+    "source:real_human_survey": 355,
+    "synthetic": 400000,
+    "source:synthetic": 400000
+  },
+  "fields": {
+    "topic_coffee": {
+      "id": "topic_coffee",
+      "label": "Interest: Coffee",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ]
+    },
+    "lstyle_coffee_ritual": {
+      "id": "lstyle_coffee_ritual",
+      "label": "Coffee ritual",
+      "category": "Interests: Culture",
+      "values": [
+        "Home brew",
+        "Café regular",
+        "Office coffee",
+        "Tea instead",
+        "None"
+      ]
+    },
+    "lstyle_caffeine": {
+      "id": "lstyle_caffeine",
+      "label": "Caffeine intake",
+      "category": "Interests: Culture",
+      "values": [
+        "None",
+        "Low",
+        "Moderate",
+        "High"
+      ]
+    },
+    "topic_tea": {
+      "id": "topic_tea",
+      "label": "Interest: Tea",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ]
+    },
+    "topic_cooking": {
+      "id": "topic_cooking",
+      "label": "Interest: Cooking",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ]
+    },
+    "topic_baking": {
+      "id": "topic_baking",
+      "label": "Interest: Baking",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ]
+    },
+    "skill_cooking": {
+      "id": "skill_cooking",
+      "label": "Skill: Cooking",
+      "category": "Expertise: Skills",
+      "values": [
+        "Master",
+        "Advanced",
+        "Intermediate",
+        "Beginner",
+        "None"
+      ]
+    },
+    "skill_baking": {
+      "id": "skill_baking",
+      "label": "Skill: Baking",
+      "category": "Expertise: Skills",
+      "values": [
+        "Master",
+        "Advanced",
+        "Intermediate",
+        "Beginner",
+        "None"
+      ]
+    },
+    "lstyle_cooking_freq": {
+      "id": "lstyle_cooking_freq",
+      "label": "Cooking frequency",
+      "category": "Interests: Culture",
+      "values": [
+        "Daily",
+        "Weekly",
+        "Monthly",
+        "Rarely",
+        "Never"
+      ]
+    },
+    "cuis_vietnamese": {
+      "id": "cuis_vietnamese",
+      "label": "Cuisine: Vietnamese",
+      "category": "Interests: Food",
+      "values": [
+        "Love",
+        "Like",
+        "Neutral",
+        "Avoid"
+      ]
+    },
+    "ind_food_beverage": {
+      "id": "ind_food_beverage",
+      "label": "Industry: Food & beverage",
+      "category": "Professional: Industry",
+      "values": [
+        "Veteran",
+        "Experienced",
+        "Some exposure",
+        "None"
+      ]
+    },
+    "ind_restaurants": {
+      "id": "ind_restaurants",
+      "label": "Industry: Restaurants",
+      "category": "Professional: Industry",
+      "values": [
+        "Veteran",
+        "Experienced",
+        "Some exposure",
+        "None"
+      ]
+    },
+    "lstyle_shopping_style": {
+      "id": "lstyle_shopping_style",
+      "label": "Shopping style",
+      "category": "Interests: Culture",
+      "values": [
+        "Researcher",
+        "Impulse buyer",
+        "Bargain hunter",
+        "Brand loyal",
+        "Minimalist"
+      ]
+    },
+    "lstyle_frugality": {
+      "id": "lstyle_frugality",
+      "label": "Spending vs saving",
+      "category": "Interests: Culture",
+      "values": [
+        "Frugal saver",
+        "Balanced",
+        "Spender",
+        "Splurger"
+      ]
+    },
+    "att_brand_loyalty": {
+      "id": "att_brand_loyalty",
+      "label": "Attitude: Brand loyalty",
+      "category": "Worldview: Beliefs",
+      "values": [
+        "Enthusiast",
+        "Positive",
+        "Neutral",
+        "Skeptical",
+        "Opposed"
+      ]
+    },
+    "att_advertising": {
+      "id": "att_advertising",
+      "label": "Attitude: Advertising",
+      "category": "Worldview: Beliefs",
+      "values": [
+        "Enthusiast",
+        "Positive",
+        "Neutral",
+        "Skeptical",
+        "Opposed"
+      ]
+    },
+    "att_consumerism": {
+      "id": "att_consumerism",
+      "label": "Attitude: Consumerism",
+      "category": "Worldview: Beliefs",
+      "values": [
+        "Enthusiast",
+        "Positive",
+        "Neutral",
+        "Skeptical",
+        "Opposed"
+      ]
+    },
+    "lstyle_diet_type": {
+      "id": "lstyle_diet_type",
+      "label": "Diet type",
+      "category": "Health: Lifestyle",
+      "values": [
+        "Omnivore",
+        "Flexitarian",
+        "Vegetarian",
+        "Vegan",
+        "Pescatarian",
+        "Keto/low-carb"
+      ]
+    },
+    "lstyle_morning_routine": {
+      "id": "lstyle_morning_routine",
+      "label": "Morning routine",
+      "category": "Interests: Culture",
+      "values": [
+        "Highly structured",
+        "Loosely structured",
+        "Rushed",
+        "Slow",
+        "None"
+      ]
+    },
+    "lstyle_work_schedule": {
+      "id": "lstyle_work_schedule",
+      "label": "Work schedule",
+      "category": "Behavior: Work",
+      "values": [
+        "9-to-5",
+        "Flexible hours",
+        "Shift work",
+        "On-call",
+        "Freelance",
+        "Unemployed"
+      ]
+    },
+    "lstyle_primary_social": {
+      "id": "lstyle_primary_social",
+      "label": "Primary social platform",
+      "category": "Interests: Culture",
+      "values": [
+        "Instagram",
+        "TikTok",
+        "X / Twitter",
+        "Facebook",
+        "LinkedIn",
+        "YouTube",
+        "Reddit",
+        "None"
+      ]
+    },
+    "lstyle_screen_time": {
+      "id": "lstyle_screen_time",
+      "label": "Daily screen time",
+      "category": "Interests: Culture",
+      "values": [
+        "<2 hrs",
+        "2-4 hrs",
+        "4-8 hrs",
+        "8+ hrs"
+      ]
+    },
+    "topic_fashion": {
+      "id": "topic_fashion",
+      "label": "Interest: Fashion",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ]
+    },
+    "lstyle_fashion_sense": {
+      "id": "lstyle_fashion_sense",
+      "label": "Fashion sense",
+      "category": "Interests: Culture",
+      "values": [
+        "Trend-setter",
+        "Trend-follower",
+        "Classic",
+        "Practical",
+        "Indifferent"
+      ]
+    },
+    "topic_fitness": {
+      "id": "topic_fitness",
+      "label": "Interest: Fitness",
+      "category": "Health: Fitness",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ]
+    },
+    "lstyle_exercise_freq": {
+      "id": "lstyle_exercise_freq",
+      "label": "Exercise frequency",
+      "category": "Health: Fitness",
+      "values": [
+        "Daily",
+        "Weekly",
+        "Monthly",
+        "Rarely",
+        "Never"
+      ]
+    },
+    "topic_gaming": {
+      "id": "topic_gaming",
+      "label": "Interest: Gaming",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ]
+    },
+    "lstyle_gaming_freq": {
+      "id": "lstyle_gaming_freq",
+      "label": "Gaming frequency",
+      "category": "Interests: Culture",
+      "values": [
+        "Daily",
+        "Weekly",
+        "Monthly",
+        "Rarely",
+        "Never"
+      ]
+    },
+    "topic_photography": {
+      "id": "topic_photography",
+      "label": "Interest: Photography",
+      "category": "Interests: Topics",
+      "values": [
+        "Passionate",
+        "Interested",
+        "Neutral",
+        "Indifferent",
+        "Averse"
+      ]
+    }
+  },
+  "groups": {
+    "coffee_pair": [
+      "topic_coffee",
+      "lstyle_coffee_ritual"
+    ],
+    "coffee_core": [
+      "topic_coffee",
+      "lstyle_coffee_ritual",
+      "lstyle_caffeine"
+    ],
+    "coffee_commercial": [
+      "topic_coffee",
+      "lstyle_coffee_ritual",
+      "lstyle_caffeine",
+      "lstyle_shopping_style",
+      "lstyle_frugality",
+      "att_advertising"
+    ],
+    "cooking_core": [
+      "topic_cooking",
+      "skill_cooking",
+      "lstyle_cooking_freq"
+    ],
+    "fashion_core": [
+      "topic_fashion",
+      "lstyle_fashion_sense"
+    ],
+    "fitness_core": [
+      "topic_fitness",
+      "lstyle_exercise_freq"
+    ],
+    "gaming_core": [
+      "topic_gaming",
+      "lstyle_gaming_freq"
+    ],
+    "fitness_commercial": [
+      "topic_fitness",
+      "lstyle_exercise_freq",
+      "lstyle_shopping_style",
+      "lstyle_frugality",
+      "att_advertising"
+    ]
+  },
+  "known": {
+    "all": {
+      "att_consumerism": 446140,
+      "lstyle_diet_type": 404991,
+      "lstyle_work_schedule": 550773,
+      "lstyle_frugality": 423870,
+      "topic_fashion": 442978,
+      "ind_food_beverage": 710565,
+      "ind_restaurants": 710566,
+      "lstyle_fashion_sense": 419291,
+      "lstyle_shopping_style": 453477,
+      "att_brand_loyalty": 454729,
+      "att_advertising": 442198,
+      "topic_fitness": 535637,
+      "lstyle_exercise_freq": 523103,
+      "lstyle_morning_routine": 403406,
+      "topic_gaming": 434490,
+      "lstyle_cooking_freq": 449789,
+      "lstyle_screen_time": 445583,
+      "topic_cooking": 442087,
+      "skill_cooking": 497982,
+      "topic_photography": 431437,
+      "topic_coffee": 424241,
+      "topic_tea": 416791,
+      "lstyle_gaming_freq": 407668,
+      "lstyle_primary_social": 409513,
+      "lstyle_caffeine": 448556,
+      "topic_baking": 417483,
+      "skill_baking": 495436,
+      "cuis_vietnamese": 402740,
+      "lstyle_coffee_ritual": 408588
+    },
+    "non_synthetic": {
+      "att_consumerism": 46140,
+      "lstyle_diet_type": 4991,
+      "lstyle_work_schedule": 150773,
+      "lstyle_frugality": 23870,
+      "topic_fashion": 42978,
+      "ind_food_beverage": 310565,
+      "ind_restaurants": 310566,
+      "lstyle_fashion_sense": 19291,
+      "lstyle_shopping_style": 53477,
+      "att_brand_loyalty": 54729,
+      "att_advertising": 42198,
+      "topic_fitness": 135637,
+      "lstyle_exercise_freq": 123103,
+      "lstyle_morning_routine": 3406,
+      "topic_gaming": 34490,
+      "lstyle_cooking_freq": 49789,
+      "lstyle_screen_time": 45583,
+      "topic_cooking": 42087,
+      "skill_cooking": 97982,
+      "topic_photography": 31437,
+      "topic_coffee": 24241,
+      "topic_tea": 16791,
+      "lstyle_gaming_freq": 7668,
+      "lstyle_primary_social": 9513,
+      "lstyle_caffeine": 48556,
+      "topic_baking": 17483,
+      "skill_baking": 95436,
+      "cuis_vietnamese": 2740,
+      "lstyle_coffee_ritual": 8588
+    },
+    "source:wiki": {
+      "att_consumerism": 35947,
+      "lstyle_diet_type": 1065,
+      "lstyle_work_schedule": 132708,
+      "lstyle_frugality": 8704,
+      "topic_fashion": 31903,
+      "ind_food_beverage": 310020,
+      "ind_restaurants": 309984,
+      "lstyle_fashion_sense": 6735,
+      "lstyle_shopping_style": 44707,
+      "att_brand_loyalty": 34395,
+      "att_advertising": 35895,
+      "topic_fitness": 124887,
+      "lstyle_exercise_freq": 120631,
+      "lstyle_morning_routine": 1249,
+      "topic_gaming": 27310,
+      "lstyle_cooking_freq": 44982,
+      "lstyle_screen_time": 44707,
+      "topic_cooking": 27100,
+      "skill_cooking": 94080,
+      "topic_photography": 29288,
+      "topic_coffee": 10196,
+      "topic_tea": 10002,
+      "lstyle_gaming_freq": 4136,
+      "lstyle_primary_social": 7610,
+      "lstyle_caffeine": 44701,
+      "topic_baking": 10438,
+      "skill_baking": 93755,
+      "cuis_vietnamese": 2338,
+      "lstyle_coffee_ritual": 961
+    },
+    "source:amazon": {
+      "att_brand_loyalty": 19989,
+      "att_consumerism": 9794,
+      "topic_tea": 6463,
+      "topic_cooking": 14651,
+      "skill_baking": 1363,
+      "lstyle_cooking_freq": 4451,
+      "lstyle_shopping_style": 8388,
+      "topic_gaming": 6262,
+      "lstyle_morning_routine": 1828,
+      "lstyle_fashion_sense": 12217,
+      "lstyle_frugality": 14812,
+      "topic_fashion": 10743,
+      "topic_baking": 6723,
+      "att_advertising": 4355,
+      "topic_coffee": 13722,
+      "lstyle_work_schedule": 5130,
+      "topic_fitness": 10379,
+      "lstyle_coffee_ritual": 7298,
+      "lstyle_caffeine": 3239,
+      "lstyle_primary_social": 1268,
+      "lstyle_gaming_freq": 2571,
+      "lstyle_diet_type": 3583,
+      "topic_photography": 1827,
+      "lstyle_exercise_freq": 2133,
+      "skill_cooking": 3566,
+      "ind_food_beverage": 94,
+      "lstyle_screen_time": 408,
+      "ind_restaurants": 140,
+      "cuis_vietnamese": 76
+    },
+    "source:stackoverflow": {
+      "lstyle_work_schedule": 11955,
+      "att_advertising": 1620,
+      "lstyle_primary_social": 307,
+      "lstyle_caffeine": 288,
+      "topic_gaming": 587,
+      "lstyle_gaming_freq": 639,
+      "lstyle_cooking_freq": 30,
+      "att_brand_loyalty": 9,
+      "lstyle_coffee_ritual": 7,
+      "ind_food_beverage": 24,
+      "ind_restaurants": 24,
+      "lstyle_screen_time": 49,
+      "lstyle_shopping_style": 47,
+      "att_consumerism": 7,
+      "lstyle_frugality": 3,
+      "topic_fitness": 1,
+      "topic_tea": 1
+    },
+    "source:prism": {
+      "lstyle_work_schedule": 650,
+      "att_consumerism": 74,
+      "ind_food_beverage": 107,
+      "ind_restaurants": 90,
+      "topic_cooking": 11,
+      "lstyle_shopping_style": 5,
+      "lstyle_diet_type": 20,
+      "lstyle_screen_time": 92,
+      "lstyle_morning_routine": 7,
+      "topic_fashion": 9,
+      "lstyle_fashion_sense": 13,
+      "att_brand_loyalty": 10,
+      "topic_fitness": 48,
+      "lstyle_exercise_freq": 14,
+      "topic_gaming": 8,
+      "lstyle_gaming_freq": 4,
+      "lstyle_frugality": 24,
+      "topic_photography": 3,
+      "topic_baking": 4,
+      "skill_cooking": 6,
+      "lstyle_cooking_freq": 5,
+      "lstyle_primary_social": 6,
+      "att_advertising": 7,
+      "lstyle_caffeine": 1
+    },
+    "source:real_human_survey": {
+      "topic_coffee": 323,
+      "lstyle_coffee_ritual": 322,
+      "lstyle_caffeine": 327,
+      "topic_tea": 325,
+      "topic_cooking": 325,
+      "topic_baking": 318,
+      "skill_cooking": 330,
+      "skill_baking": 318,
+      "lstyle_cooking_freq": 321,
+      "cuis_vietnamese": 326,
+      "ind_food_beverage": 320,
+      "ind_restaurants": 328,
+      "lstyle_shopping_style": 330,
+      "lstyle_frugality": 327,
+      "att_brand_loyalty": 326,
+      "att_advertising": 321,
+      "att_consumerism": 318,
+      "lstyle_diet_type": 323,
+      "lstyle_morning_routine": 322,
+      "lstyle_work_schedule": 330,
+      "lstyle_primary_social": 322,
+      "lstyle_screen_time": 327,
+      "topic_fashion": 323,
+      "lstyle_fashion_sense": 326,
+      "topic_fitness": 322,
+      "lstyle_exercise_freq": 325,
+      "topic_gaming": 323,
+      "lstyle_gaming_freq": 318,
+      "topic_photography": 319
+    },
+    "synthetic": {
+      "topic_coffee": 400000,
+      "lstyle_coffee_ritual": 400000,
+      "lstyle_caffeine": 400000,
+      "topic_tea": 400000,
+      "topic_cooking": 400000,
+      "topic_baking": 400000,
+      "skill_cooking": 400000,
+      "skill_baking": 400000,
+      "lstyle_cooking_freq": 400000,
+      "cuis_vietnamese": 400000,
+      "ind_food_beverage": 400000,
+      "ind_restaurants": 400000,
+      "lstyle_shopping_style": 400000,
+      "lstyle_frugality": 400000,
+      "att_brand_loyalty": 400000,
+      "att_advertising": 400000,
+      "att_consumerism": 400000,
+      "lstyle_diet_type": 400000,
+      "lstyle_morning_routine": 400000,
+      "lstyle_work_schedule": 400000,
+      "lstyle_primary_social": 400000,
+      "lstyle_screen_time": 400000,
+      "topic_fashion": 400000,
+      "lstyle_fashion_sense": 400000,
+      "topic_fitness": 400000,
+      "lstyle_exercise_freq": 400000,
+      "topic_gaming": 400000,
+      "lstyle_gaming_freq": 400000,
+      "topic_photography": 400000
+    },
+    "source:synthetic": {
+      "topic_coffee": 400000,
+      "lstyle_coffee_ritual": 400000,
+      "lstyle_caffeine": 400000,
+      "topic_tea": 400000,
+      "topic_cooking": 400000,
+      "topic_baking": 400000,
+      "skill_cooking": 400000,
+      "skill_baking": 400000,
+      "lstyle_cooking_freq": 400000,
+      "cuis_vietnamese": 400000,
+      "ind_food_beverage": 400000,
+      "ind_restaurants": 400000,
+      "lstyle_shopping_style": 400000,
+      "lstyle_frugality": 400000,
+      "att_brand_loyalty": 400000,
+      "att_advertising": 400000,
+      "att_consumerism": 400000,
+      "lstyle_diet_type": 400000,
+      "lstyle_morning_routine": 400000,
+      "lstyle_work_schedule": 400000,
+      "lstyle_primary_social": 400000,
+      "lstyle_screen_time": 400000,
+      "topic_fashion": 400000,
+      "lstyle_fashion_sense": 400000,
+      "topic_fitness": 400000,
+      "lstyle_exercise_freq": 400000,
+      "topic_gaming": 400000,
+      "lstyle_gaming_freq": 400000,
+      "topic_photography": 400000
+    },
+    "source:gss": {}
+  },
+  "usable_enum": {
+    "all": {
+      "topic_coffee": 419356,
+      "lstyle_coffee_ritual": 408472,
+      "lstyle_caffeine": 425614,
+      "topic_tea": 411898,
+      "topic_cooking": 437736,
+      "topic_baking": 412615,
+      "skill_cooking": 495930,
+      "skill_baking": 493365,
+      "lstyle_cooking_freq": 422941,
+      "cuis_vietnamese": 401743,
+      "ind_food_beverage": 710555,
+      "ind_restaurants": 710556,
+      "lstyle_shopping_style": 420379,
+      "lstyle_frugality": 423803,
+      "att_brand_loyalty": 448149,
+      "att_advertising": 435751,
+      "att_consumerism": 440166,
+      "lstyle_diet_type": 404932,
+      "lstyle_morning_routine": 403315,
+      "lstyle_work_schedule": 550361,
+      "lstyle_primary_social": 409417,
+      "lstyle_screen_time": 413535,
+      "topic_fashion": 438791,
+      "lstyle_fashion_sense": 419187,
+      "topic_fitness": 535083,
+      "lstyle_exercise_freq": 516761,
+      "topic_gaming": 430105,
+      "lstyle_gaming_freq": 407564,
+      "topic_photography": 427088
+    },
+    "non_synthetic": {
+      "topic_coffee": 19356,
+      "lstyle_coffee_ritual": 8472,
+      "lstyle_caffeine": 25614,
+      "topic_tea": 11898,
+      "topic_cooking": 37736,
+      "topic_baking": 12615,
+      "skill_cooking": 95930,
+      "skill_baking": 93365,
+      "lstyle_cooking_freq": 22941,
+      "cuis_vietnamese": 1743,
+      "ind_food_beverage": 310555,
+      "ind_restaurants": 310556,
+      "lstyle_shopping_style": 20379,
+      "lstyle_frugality": 23803,
+      "att_brand_loyalty": 48149,
+      "att_advertising": 35751,
+      "att_consumerism": 40166,
+      "lstyle_diet_type": 4932,
+      "lstyle_morning_routine": 3315,
+      "lstyle_work_schedule": 150361,
+      "lstyle_primary_social": 9417,
+      "lstyle_screen_time": 13535,
+      "topic_fashion": 38791,
+      "lstyle_fashion_sense": 19187,
+      "topic_fitness": 135083,
+      "lstyle_exercise_freq": 116761,
+      "topic_gaming": 30105,
+      "lstyle_gaming_freq": 7564,
+      "topic_photography": 27088
+    },
+    "source:wiki": {
+      "topic_coffee": 5311,
+      "lstyle_coffee_ritual": 845,
+      "lstyle_caffeine": 21759,
+      "topic_tea": 5109,
+      "topic_cooking": 22749,
+      "topic_baking": 5570,
+      "skill_cooking": 92028,
+      "skill_baking": 91684,
+      "lstyle_cooking_freq": 18134,
+      "cuis_vietnamese": 1341,
+      "ind_food_beverage": 310010,
+      "ind_restaurants": 309974,
+      "lstyle_shopping_style": 11609,
+      "lstyle_frugality": 8637,
+      "att_brand_loyalty": 27815,
+      "att_advertising": 29448,
+      "att_consumerism": 29973,
+      "lstyle_diet_type": 1006,
+      "lstyle_morning_routine": 1158,
+      "lstyle_work_schedule": 132296,
+      "lstyle_primary_social": 7514,
+      "lstyle_screen_time": 12659,
+      "topic_fashion": 27716,
+      "lstyle_fashion_sense": 6631,
+      "topic_fitness": 124333,
+      "lstyle_exercise_freq": 114289,
+      "topic_gaming": 22925,
+      "lstyle_gaming_freq": 4032,
+      "topic_photography": 24939
+    },
+    "source:amazon": {
+      "topic_coffee": 13722,
+      "lstyle_coffee_ritual": 7298,
+      "lstyle_caffeine": 3239,
+      "topic_tea": 6463,
+      "topic_cooking": 14651,
+      "topic_baking": 6723,
+      "skill_cooking": 3566,
+      "skill_baking": 1363,
+      "lstyle_cooking_freq": 4451,
+      "cuis_vietnamese": 76,
+      "ind_food_beverage": 94,
+      "ind_restaurants": 140,
+      "lstyle_shopping_style": 8388,
+      "lstyle_frugality": 14812,
+      "att_brand_loyalty": 19989,
+      "att_advertising": 4355,
+      "att_consumerism": 9794,
+      "lstyle_diet_type": 3583,
+      "lstyle_morning_routine": 1828,
+      "lstyle_work_schedule": 5130,
+      "lstyle_primary_social": 1268,
+      "lstyle_screen_time": 408,
+      "topic_fashion": 10743,
+      "lstyle_fashion_sense": 12217,
+      "topic_fitness": 10379,
+      "lstyle_exercise_freq": 2133,
+      "topic_gaming": 6262,
+      "lstyle_gaming_freq": 2571,
+      "topic_photography": 1827
+    },
+    "source:stackoverflow": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 7,
+      "lstyle_caffeine": 288,
+      "topic_tea": 1,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 30,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 24,
+      "ind_restaurants": 24,
+      "lstyle_shopping_style": 47,
+      "lstyle_frugality": 3,
+      "att_brand_loyalty": 9,
+      "att_advertising": 1620,
+      "att_consumerism": 7,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 11955,
+      "lstyle_primary_social": 307,
+      "lstyle_screen_time": 49,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 1,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 587,
+      "lstyle_gaming_freq": 639,
+      "topic_photography": 0
+    },
+    "source:prism": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 1,
+      "topic_tea": 0,
+      "topic_cooking": 11,
+      "topic_baking": 4,
+      "skill_cooking": 6,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 5,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 107,
+      "ind_restaurants": 90,
+      "lstyle_shopping_style": 5,
+      "lstyle_frugality": 24,
+      "att_brand_loyalty": 10,
+      "att_advertising": 7,
+      "att_consumerism": 74,
+      "lstyle_diet_type": 20,
+      "lstyle_morning_routine": 7,
+      "lstyle_work_schedule": 650,
+      "lstyle_primary_social": 6,
+      "lstyle_screen_time": 92,
+      "topic_fashion": 9,
+      "lstyle_fashion_sense": 13,
+      "topic_fitness": 48,
+      "lstyle_exercise_freq": 14,
+      "topic_gaming": 8,
+      "lstyle_gaming_freq": 4,
+      "topic_photography": 3
+    },
+    "source:gss": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:real_human_survey": {
+      "topic_coffee": 323,
+      "lstyle_coffee_ritual": 322,
+      "lstyle_caffeine": 327,
+      "topic_tea": 325,
+      "topic_cooking": 325,
+      "topic_baking": 318,
+      "skill_cooking": 330,
+      "skill_baking": 318,
+      "lstyle_cooking_freq": 321,
+      "cuis_vietnamese": 326,
+      "ind_food_beverage": 320,
+      "ind_restaurants": 328,
+      "lstyle_shopping_style": 330,
+      "lstyle_frugality": 327,
+      "att_brand_loyalty": 326,
+      "att_advertising": 321,
+      "att_consumerism": 318,
+      "lstyle_diet_type": 323,
+      "lstyle_morning_routine": 322,
+      "lstyle_work_schedule": 330,
+      "lstyle_primary_social": 322,
+      "lstyle_screen_time": 327,
+      "topic_fashion": 323,
+      "lstyle_fashion_sense": 326,
+      "topic_fitness": 322,
+      "lstyle_exercise_freq": 325,
+      "topic_gaming": 323,
+      "lstyle_gaming_freq": 318,
+      "topic_photography": 319
+    },
+    "synthetic": {
+      "topic_coffee": 400000,
+      "lstyle_coffee_ritual": 400000,
+      "lstyle_caffeine": 400000,
+      "topic_tea": 400000,
+      "topic_cooking": 400000,
+      "topic_baking": 400000,
+      "skill_cooking": 400000,
+      "skill_baking": 400000,
+      "lstyle_cooking_freq": 400000,
+      "cuis_vietnamese": 400000,
+      "ind_food_beverage": 400000,
+      "ind_restaurants": 400000,
+      "lstyle_shopping_style": 400000,
+      "lstyle_frugality": 400000,
+      "att_brand_loyalty": 400000,
+      "att_advertising": 400000,
+      "att_consumerism": 400000,
+      "lstyle_diet_type": 400000,
+      "lstyle_morning_routine": 400000,
+      "lstyle_work_schedule": 400000,
+      "lstyle_primary_social": 400000,
+      "lstyle_screen_time": 400000,
+      "topic_fashion": 400000,
+      "lstyle_fashion_sense": 400000,
+      "topic_fitness": 400000,
+      "lstyle_exercise_freq": 400000,
+      "topic_gaming": 400000,
+      "lstyle_gaming_freq": 400000,
+      "topic_photography": 400000
+    },
+    "source:synthetic": {
+      "topic_coffee": 400000,
+      "lstyle_coffee_ritual": 400000,
+      "lstyle_caffeine": 400000,
+      "topic_tea": 400000,
+      "topic_cooking": 400000,
+      "topic_baking": 400000,
+      "skill_cooking": 400000,
+      "skill_baking": 400000,
+      "lstyle_cooking_freq": 400000,
+      "cuis_vietnamese": 400000,
+      "ind_food_beverage": 400000,
+      "ind_restaurants": 400000,
+      "lstyle_shopping_style": 400000,
+      "lstyle_frugality": 400000,
+      "att_brand_loyalty": 400000,
+      "att_advertising": 400000,
+      "att_consumerism": 400000,
+      "lstyle_diet_type": 400000,
+      "lstyle_morning_routine": 400000,
+      "lstyle_work_schedule": 400000,
+      "lstyle_primary_social": 400000,
+      "lstyle_screen_time": 400000,
+      "topic_fashion": 400000,
+      "lstyle_fashion_sense": 400000,
+      "topic_fitness": 400000,
+      "lstyle_exercise_freq": 400000,
+      "topic_gaming": 400000,
+      "lstyle_gaming_freq": 400000,
+      "topic_photography": 400000
+    }
+  },
+  "invalid_codes": {
+    "all": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "non_synthetic": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:wiki": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:amazon": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:stackoverflow": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:prism": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:gss": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:real_human_survey": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "synthetic": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:synthetic": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    }
+  },
+  "overrides_used": {
+    "all": {
+      "topic_coffee": 4885,
+      "lstyle_coffee_ritual": 116,
+      "lstyle_caffeine": 22942,
+      "topic_tea": 4893,
+      "topic_cooking": 4351,
+      "topic_baking": 4868,
+      "skill_cooking": 2052,
+      "skill_baking": 2071,
+      "lstyle_cooking_freq": 26848,
+      "cuis_vietnamese": 997,
+      "ind_food_beverage": 10,
+      "ind_restaurants": 10,
+      "lstyle_shopping_style": 33098,
+      "lstyle_frugality": 67,
+      "att_brand_loyalty": 6580,
+      "att_advertising": 6447,
+      "att_consumerism": 5974,
+      "lstyle_diet_type": 59,
+      "lstyle_morning_routine": 91,
+      "lstyle_work_schedule": 412,
+      "lstyle_primary_social": 96,
+      "lstyle_screen_time": 32048,
+      "topic_fashion": 4187,
+      "lstyle_fashion_sense": 104,
+      "topic_fitness": 554,
+      "lstyle_exercise_freq": 6342,
+      "topic_gaming": 4385,
+      "lstyle_gaming_freq": 104,
+      "topic_photography": 4349
+    },
+    "non_synthetic": {
+      "topic_coffee": 4885,
+      "lstyle_coffee_ritual": 116,
+      "lstyle_caffeine": 22942,
+      "topic_tea": 4893,
+      "topic_cooking": 4351,
+      "topic_baking": 4868,
+      "skill_cooking": 2052,
+      "skill_baking": 2071,
+      "lstyle_cooking_freq": 26848,
+      "cuis_vietnamese": 997,
+      "ind_food_beverage": 10,
+      "ind_restaurants": 10,
+      "lstyle_shopping_style": 33098,
+      "lstyle_frugality": 67,
+      "att_brand_loyalty": 6580,
+      "att_advertising": 6447,
+      "att_consumerism": 5974,
+      "lstyle_diet_type": 59,
+      "lstyle_morning_routine": 91,
+      "lstyle_work_schedule": 412,
+      "lstyle_primary_social": 96,
+      "lstyle_screen_time": 32048,
+      "topic_fashion": 4187,
+      "lstyle_fashion_sense": 104,
+      "topic_fitness": 554,
+      "lstyle_exercise_freq": 6342,
+      "topic_gaming": 4385,
+      "lstyle_gaming_freq": 104,
+      "topic_photography": 4349
+    },
+    "source:wiki": {
+      "topic_coffee": 4885,
+      "lstyle_coffee_ritual": 116,
+      "lstyle_caffeine": 22942,
+      "topic_tea": 4893,
+      "topic_cooking": 4351,
+      "topic_baking": 4868,
+      "skill_cooking": 2052,
+      "skill_baking": 2071,
+      "lstyle_cooking_freq": 26848,
+      "cuis_vietnamese": 997,
+      "ind_food_beverage": 10,
+      "ind_restaurants": 10,
+      "lstyle_shopping_style": 33098,
+      "lstyle_frugality": 67,
+      "att_brand_loyalty": 6580,
+      "att_advertising": 6447,
+      "att_consumerism": 5974,
+      "lstyle_diet_type": 59,
+      "lstyle_morning_routine": 91,
+      "lstyle_work_schedule": 412,
+      "lstyle_primary_social": 96,
+      "lstyle_screen_time": 32048,
+      "topic_fashion": 4187,
+      "lstyle_fashion_sense": 104,
+      "topic_fitness": 554,
+      "lstyle_exercise_freq": 6342,
+      "topic_gaming": 4385,
+      "lstyle_gaming_freq": 104,
+      "topic_photography": 4349
+    },
+    "source:amazon": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:stackoverflow": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:prism": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:gss": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:real_human_survey": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "synthetic": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    },
+    "source:synthetic": {
+      "topic_coffee": 0,
+      "lstyle_coffee_ritual": 0,
+      "lstyle_caffeine": 0,
+      "topic_tea": 0,
+      "topic_cooking": 0,
+      "topic_baking": 0,
+      "skill_cooking": 0,
+      "skill_baking": 0,
+      "lstyle_cooking_freq": 0,
+      "cuis_vietnamese": 0,
+      "ind_food_beverage": 0,
+      "ind_restaurants": 0,
+      "lstyle_shopping_style": 0,
+      "lstyle_frugality": 0,
+      "att_brand_loyalty": 0,
+      "att_advertising": 0,
+      "att_consumerism": 0,
+      "lstyle_diet_type": 0,
+      "lstyle_morning_routine": 0,
+      "lstyle_work_schedule": 0,
+      "lstyle_primary_social": 0,
+      "lstyle_screen_time": 0,
+      "topic_fashion": 0,
+      "lstyle_fashion_sense": 0,
+      "topic_fitness": 0,
+      "lstyle_exercise_freq": 0,
+      "topic_gaming": 0,
+      "lstyle_gaming_freq": 0,
+      "topic_photography": 0
+    }
+  },
+  "value_counts": {
+    "all": {
+      "att_consumerism": {
+        "Skeptical": 89486,
+        "Opposed": 16175,
+        "Enthusiast": 18938,
+        "Positive": 102419,
+        "null": 3295,
+        "Unsupported": 1312,
+        "Neutral": 213148,
+        "None": 1076,
+        "unsupported": 276,
+        "Apolitical": 4,
+        "Averse": 10,
+        "Interested": 1
+      },
+      "lstyle_diet_type": {
+        "Omnivore": 293793,
+        "Vegan": 10754,
+        "Vegetarian": 34513,
+        "null": 58,
+        "Pescatarian": 11984,
+        "Keto/low-carb": 15375,
+        "Flexitarian": 38513,
+        "Halal": 1
+      },
+      "lstyle_work_schedule": {
+        "Freelance": 102139,
+        "Unemployed": 75460,
+        "Shift work": 85303,
+        "9-to-5": 143391,
+        "Flexible hours": 113398,
+        "On-call": 30670,
+        "null": 405,
+        "Full-time": 4,
+        "Hybrid": 2,
+        "direct": 1
+      },
+      "lstyle_frugality": {
+        "Frugal saver": 114037,
+        "Splurger": 35544,
+        "Spender": 87133,
+        "Balanced": 187089,
+        "null": 67
+      },
+      "topic_fashion": {
+        "Passionate": 15301,
+        "Interested": 81198,
+        "Neutral": 201548,
+        "null": 4174,
+        "Indifferent": 111085,
+        "Averse": 29659,
+        "Null": 9,
+        "Unsupported": 4
+      },
+      "ind_food_beverage": {
+        "None": 541341,
+        "Some exposure": 101631,
+        "Experienced": 50454,
+        "Veteran": 17129,
+        "null": 10
+      },
+      "ind_restaurants": {
+        "None": 550729,
+        "Some exposure": 94414,
+        "Veteran": 16475,
+        "Experienced": 48938,
+        "null": 10
+      },
+      "lstyle_fashion_sense": {
+        "Classic": 91279,
+        "Practical": 175057,
+        "Indifferent": 75862,
+        "Trend-setter": 15221,
+        "Trend-follower": 61768,
+        "None": 11,
+        "null": 90,
+        "Unsupported": 1,
+        "Never": 1,
+        "Goth": 1
+      },
+      "lstyle_shopping_style": {
+        "Minimalist": 87419,
+        "null": 18885,
+        "None": 8742,
+        "Researcher": 85380,
+        "Unfamiliar": 4669,
+        "Unsupported": 668,
+        "Brand loyal": 63384,
+        "Bargain hunter": 129931,
+        "Unknown": 74,
+        "Never": 58,
+        "Impulse buyer": 54265,
+        "unsupported": 2
+      },
+      "att_brand_loyalty": {
+        "Positive": 100950,
+        "null": 3448,
+        "Neutral": 213807,
+        "Unsupported": 1518,
+        "None": 1305,
+        "unsupported": 305,
+        "Skeptical": 97052,
+        "Apolitical": 4,
+        "Enthusiast": 17326,
+        "Opposed": 19014
+      },
+      "att_advertising": {
+        "Positive": 93436,
+        "Skeptical": 92352,
+        "null": 3407,
+        "Neutral": 214291,
+        "Unsupported": 1464,
+        "unsupported": 305,
+        "None": 1265,
+        "Enthusiast": 18894,
+        "Apolitical": 4,
+        "Opposed": 16778,
+        "Interested": 1,
+        "Averse": 1
+      },
+      "topic_fitness": {
+        "Interested": 139295,
+        "Passionate": 138953,
+        "Indifferent": 76139,
+        "Neutral": 163132,
+        "null": 551,
+        "Averse": 17564,
+        "unsupported": 1,
+        "Unsupported": 2
+      },
+      "lstyle_exercise_freq": {
+        "Weekly": 175336,
+        "Daily": 179717,
+        "Never": 31938,
+        "Rarely": 77157,
+        "null": 6331,
+        "Regular": 3,
+        "unsupported": 1,
+        "Unsupported": 2,
+        "Monthly": 52613,
+        "Regularly": 3,
+        "Annual": 2
+      },
+      "lstyle_morning_routine": {
+        "Highly structured": 41185,
+        "None": 50462,
+        "Rushed": 98367,
+        "null": 86,
+        "Slow": 78120,
+        "Loosely structured": 135181,
+        "Always early": 3,
+        "Unsupported": 1,
+        "Unpredictable": 1
+      },
+      "topic_gaming": {
+        "Interested": 60147,
+        "Passionate": 10661,
+        "Neutral": 190536,
+        "null": 4364,
+        "Indifferent": 127592,
+        "Unsupported": 11,
+        "Null": 10,
+        "Averse": 41169
+      },
+      "lstyle_cooking_freq": {
+        "Never": 29365,
+        "null": 18828,
+        "Daily": 157921,
+        "None": 3316,
+        "Rarely": 56580,
+        "Unsupported": 664,
+        "Unfamiliar": 3946,
+        "Weekly": 135433,
+        "Unknown": 76,
+        "unsupported": 2,
+        "Regular": 11,
+        "Monthly": 43642,
+        "Occasional": 4,
+        "Regularly": 1
+      },
+      "lstyle_screen_time": {
+        "<2 hrs": 101597,
+        "null": 18878,
+        "None": 8021,
+        "Unsupported": 665,
+        "Unfamiliar": 4322,
+        "8+ hrs": 56020,
+        "4-8 hrs": 128165,
+        "Unknown": 73,
+        "Never": 81,
+        "unsupported": 3,
+        "High": 3,
+        "Moderate": 1,
+        "2-4 hrs": 127753,
+        "Regular": 1
+      },
+      "topic_cooking": {
+        "Interested": 133189,
+        "Neutral": 187080,
+        "null": 4337,
+        "Indifferent": 72341,
+        "Passionate": 28917,
+        "Averse": 16209,
+        "Null": 12,
+        "Unsupported": 2
+      },
+      "skill_cooking": {
+        "Intermediate": 138765,
+        "Beginner": 149318,
+        "None": 158207,
+        "null": 2049,
+        "Advanced": 41235,
+        "Master": 8405,
+        "unsupported": 3
+      },
+      "topic_photography": {
+        "Interested": 62458,
+        "Neutral": 195130,
+        "null": 4330,
+        "Passionate": 12706,
+        "Indifferent": 121571,
+        "Unsupported": 7,
+        "Averse": 35223,
+        "Null": 12
+      },
+      "topic_coffee": {
+        "Interested": 78530,
+        "Neutral": 186196,
+        "null": 4829,
+        "Indifferent": 111348,
+        "Passionate": 13289,
+        "Averse": 29993,
+        "Null": 54,
+        "Unsupported": 2
+      },
+      "topic_tea": {
+        "Interested": 71728,
+        "Neutral": 186448,
+        "null": 4837,
+        "Indifferent": 110794,
+        "Passionate": 13114,
+        "Null": 54,
+        "Averse": 29814,
+        "Unsupported": 2
+      },
+      "lstyle_gaming_freq": {
+        "Never": 143997,
+        "Rarely": 115404,
+        "Daily": 39686,
+        "Weekly": 58937,
+        "null": 100,
+        "Unsupported": 1,
+        "None": 3,
+        "Monthly": 49540
+      },
+      "lstyle_primary_social": {
+        "Facebook": 88230,
+        "X / Twitter": 25227,
+        "None": 48649,
+        "Reddit": 18909,
+        "YouTube": 100170,
+        "Instagram": 57246,
+        "TikTok": 47392,
+        "null": 56,
+        "LinkedIn": 23594,
+        "WeChat": 7,
+        "Unsupported": 1,
+        "Twitter": 6,
+        "Weibo": 3,
+        "WhatsApp": 5,
+        "Dribbble": 1,
+        "Tumblr": 6,
+        "Snapchat": 3,
+        "Telegram": 5,
+        "Sina Weibo": 1,
+        "SoundCloud": 1,
+        "Weverse": 1
+      },
+      "lstyle_caffeine": {
+        "None": 81369,
+        "null": 18396,
+        "Moderate": 167026,
+        "Unsupported": 625,
+        "Unfamiliar": 3855,
+        "High": 69180,
+        "Never": 51,
+        "unsupported": 2,
+        "Low": 108039,
+        "Unknown": 8,
+        "Regular": 4,
+        "Occasional": 1
+      },
+      "topic_baking": {
+        "Neutral": 184429,
+        "null": 4814,
+        "Interested": 69852,
+        "Indifferent": 115062,
+        "Passionate": 12112,
+        "Null": 52,
+        "Unsupported": 2,
+        "Averse": 31160
+      },
+      "skill_baking": {
+        "None": 242176,
+        "Intermediate": 85715,
+        "null": 2068,
+        "Advanced": 17772,
+        "Master": 3084,
+        "Beginner": 144618,
+        "unsupported": 3
+      },
+      "cuis_vietnamese": {
+        "null": 997,
+        "Neutral": 200623,
+        "Love": 17876,
+        "Like": 91603,
+        "Avoid": 91641
+      },
+      "lstyle_coffee_ritual": {
+        "None": 56427,
+        "Café regular": 46729,
+        "Home brew": 135052,
+        "null": 114,
+        "Tea instead": 120797,
+        "Unsupported": 1,
+        "Office coffee": 49467,
+        "Never": 1
+      }
+    },
+    "non_synthetic": {
+      "att_consumerism": {
+        "Skeptical": 3607,
+        "Opposed": 465,
+        "Enthusiast": 125,
+        "Positive": 10147,
+        "null": 3295,
+        "Unsupported": 1312,
+        "Neutral": 25822,
+        "None": 1076,
+        "unsupported": 276,
+        "Apolitical": 4,
+        "Averse": 10,
+        "Interested": 1
+      },
+      "lstyle_diet_type": {
+        "Omnivore": 1716,
+        "Vegan": 685,
+        "Vegetarian": 631,
+        "null": 58,
+        "Pescatarian": 67,
+        "Keto/low-carb": 1414,
+        "Flexitarian": 419,
+        "Halal": 1
+      },
+      "lstyle_work_schedule": {
+        "Freelance": 61233,
+        "Unemployed": 3012,
+        "Shift work": 12639,
+        "9-to-5": 29946,
+        "Flexible hours": 36003,
+        "On-call": 7528,
+        "null": 405,
+        "Full-time": 4,
+        "Hybrid": 2,
+        "direct": 1
+      },
+      "lstyle_frugality": {
+        "Frugal saver": 8674,
+        "Splurger": 2324,
+        "Spender": 255,
+        "Balanced": 12550,
+        "null": 67
+      },
+      "topic_fashion": {
+        "Passionate": 2750,
+        "Interested": 16119,
+        "Neutral": 19412,
+        "null": 4174,
+        "Indifferent": 459,
+        "Averse": 51,
+        "Null": 9,
+        "Unsupported": 4
+      },
+      "ind_food_beverage": {
+        "None": 296884,
+        "Some exposure": 9886,
+        "Experienced": 2409,
+        "Veteran": 1376,
+        "null": 10
+      },
+      "ind_restaurants": {
+        "None": 306975,
+        "Some exposure": 2397,
+        "Veteran": 504,
+        "Experienced": 680,
+        "null": 10
+      },
+      "lstyle_fashion_sense": {
+        "Classic": 1652,
+        "Practical": 11544,
+        "Indifferent": 365,
+        "Trend-setter": 2117,
+        "Trend-follower": 3509,
+        "None": 11,
+        "null": 90,
+        "Unsupported": 1,
+        "Never": 1,
+        "Goth": 1
+      },
+      "lstyle_shopping_style": {
+        "Minimalist": 3529,
+        "null": 18885,
+        "None": 8742,
+        "Researcher": 13284,
+        "Unfamiliar": 4669,
+        "Unsupported": 668,
+        "Brand loyal": 1575,
+        "Bargain hunter": 1839,
+        "Unknown": 74,
+        "Never": 58,
+        "Impulse buyer": 152,
+        "unsupported": 2
+      },
+      "att_brand_loyalty": {
+        "Positive": 14627,
+        "null": 3448,
+        "Neutral": 29175,
+        "Unsupported": 1518,
+        "None": 1305,
+        "unsupported": 305,
+        "Skeptical": 3759,
+        "Apolitical": 4,
+        "Enthusiast": 564,
+        "Opposed": 24
+      },
+      "att_advertising": {
+        "Positive": 3383,
+        "Skeptical": 4834,
+        "null": 3407,
+        "Neutral": 27279,
+        "Unsupported": 1464,
+        "unsupported": 305,
+        "None": 1265,
+        "Enthusiast": 234,
+        "Apolitical": 4,
+        "Opposed": 21,
+        "Interested": 1,
+        "Averse": 1
+      },
+      "topic_fitness": {
+        "Interested": 17511,
+        "Passionate": 108365,
+        "Indifferent": 6213,
+        "Neutral": 2760,
+        "null": 551,
+        "Averse": 234,
+        "unsupported": 1,
+        "Unsupported": 2
+      },
+      "lstyle_exercise_freq": {
+        "Weekly": 7481,
+        "Daily": 101046,
+        "Never": 7926,
+        "Rarely": 247,
+        "null": 6331,
+        "Regular": 3,
+        "unsupported": 1,
+        "Unsupported": 2,
+        "Monthly": 61,
+        "Regularly": 3,
+        "Annual": 2
+      },
+      "lstyle_morning_routine": {
+        "Highly structured": 1483,
+        "None": 210,
+        "Rushed": 544,
+        "null": 86,
+        "Slow": 152,
+        "Loosely structured": 926,
+        "Always early": 3,
+        "Unsupported": 1,
+        "Unpredictable": 1
+      },
+      "topic_gaming": {
+        "Interested": 6596,
+        "Passionate": 1840,
+        "Neutral": 20874,
+        "null": 4364,
+        "Indifferent": 741,
+        "Unsupported": 11,
+        "Null": 10,
+        "Averse": 54
+      },
+      "lstyle_cooking_freq": {
+        "Never": 7985,
+        "null": 18828,
+        "Daily": 10488,
+        "None": 3316,
+        "Rarely": 432,
+        "Unsupported": 664,
+        "Unfamiliar": 3946,
+        "Weekly": 3971,
+        "Unknown": 76,
+        "unsupported": 2,
+        "Regular": 11,
+        "Monthly": 65,
+        "Occasional": 4,
+        "Regularly": 1
+      },
+      "lstyle_screen_time": {
+        "<2 hrs": 8507,
+        "null": 18878,
+        "None": 8021,
+        "Unsupported": 665,
+        "Unfamiliar": 4322,
+        "8+ hrs": 2122,
+        "4-8 hrs": 2792,
+        "Unknown": 73,
+        "Never": 81,
+        "unsupported": 3,
+        "High": 3,
+        "Moderate": 1,
+        "2-4 hrs": 114,
+        "Regular": 1
+      },
+      "topic_cooking": {
+        "Interested": 15027,
+        "Neutral": 21047,
+        "null": 4337,
+        "Indifferent": 422,
+        "Passionate": 1207,
+        "Averse": 33,
+        "Null": 12,
+        "Unsupported": 2
+      },
+      "skill_cooking": {
+        "Intermediate": 6152,
+        "Beginner": 1489,
+        "None": 86998,
+        "null": 2049,
+        "Advanced": 515,
+        "Master": 776,
+        "unsupported": 3
+      },
+      "topic_photography": {
+        "Interested": 4642,
+        "Neutral": 19477,
+        "null": 4330,
+        "Passionate": 2509,
+        "Indifferent": 415,
+        "Unsupported": 7,
+        "Averse": 45,
+        "Null": 12
+      },
+      "topic_coffee": {
+        "Interested": 13593,
+        "Neutral": 4382,
+        "null": 4829,
+        "Indifferent": 642,
+        "Passionate": 688,
+        "Averse": 51,
+        "Null": 54,
+        "Unsupported": 2
+      },
+      "topic_tea": {
+        "Interested": 6564,
+        "Neutral": 4329,
+        "null": 4837,
+        "Indifferent": 454,
+        "Passionate": 507,
+        "Null": 54,
+        "Averse": 44,
+        "Unsupported": 2
+      },
+      "lstyle_gaming_freq": {
+        "Never": 3654,
+        "Rarely": 1068,
+        "Daily": 1003,
+        "Weekly": 1761,
+        "null": 100,
+        "Unsupported": 1,
+        "None": 3,
+        "Monthly": 78
+      },
+      "lstyle_primary_social": {
+        "Facebook": 1053,
+        "X / Twitter": 952,
+        "None": 4016,
+        "Reddit": 110,
+        "YouTube": 1050,
+        "Instagram": 1249,
+        "TikTok": 668,
+        "null": 56,
+        "LinkedIn": 319,
+        "WeChat": 7,
+        "Unsupported": 1,
+        "Twitter": 6,
+        "Weibo": 3,
+        "WhatsApp": 5,
+        "Dribbble": 1,
+        "Tumblr": 6,
+        "Snapchat": 3,
+        "Telegram": 5,
+        "Sina Weibo": 1,
+        "SoundCloud": 1,
+        "Weverse": 1
+      },
+      "lstyle_caffeine": {
+        "None": 19304,
+        "null": 18396,
+        "Moderate": 4871,
+        "Unsupported": 625,
+        "Unfamiliar": 3855,
+        "High": 1217,
+        "Never": 51,
+        "unsupported": 2,
+        "Low": 222,
+        "Unknown": 8,
+        "Regular": 4,
+        "Occasional": 1
+      },
+      "topic_baking": {
+        "Neutral": 4257,
+        "null": 4814,
+        "Interested": 7370,
+        "Indifferent": 406,
+        "Passionate": 551,
+        "Null": 52,
+        "Unsupported": 2,
+        "Averse": 31
+      },
+      "skill_baking": {
+        "None": 88870,
+        "Intermediate": 3533,
+        "null": 2068,
+        "Advanced": 233,
+        "Master": 213,
+        "Beginner": 516,
+        "unsupported": 3
+      },
+      "cuis_vietnamese": {
+        "null": 997,
+        "Neutral": 1493,
+        "Love": 39,
+        "Like": 142,
+        "Avoid": 69
+      },
+      "lstyle_coffee_ritual": {
+        "None": 440,
+        "Café regular": 879,
+        "Home brew": 6591,
+        "null": 114,
+        "Tea instead": 456,
+        "Unsupported": 1,
+        "Office coffee": 106,
+        "Never": 1
+      }
+    },
+    "source:wiki": {
+      "att_consumerism": {
+        "Skeptical": 2887,
+        "Opposed": 440,
+        "Enthusiast": 103,
+        "Positive": 1090,
+        "null": 3295,
+        "Unsupported": 1312,
+        "Neutral": 25453,
+        "None": 1076,
+        "unsupported": 276,
+        "Apolitical": 4,
+        "Averse": 10,
+        "Interested": 1
+      },
+      "lstyle_diet_type": {
+        "Omnivore": 245,
+        "Vegan": 281,
+        "Vegetarian": 392,
+        "null": 58,
+        "Pescatarian": 44,
+        "Keto/low-carb": 12,
+        "Flexitarian": 32,
+        "Halal": 1
+      },
+      "lstyle_work_schedule": {
+        "Freelance": 51095,
+        "Unemployed": 1600,
+        "Shift work": 10500,
+        "9-to-5": 28903,
+        "Flexible hours": 32731,
+        "On-call": 7467,
+        "null": 405,
+        "Full-time": 4,
+        "Hybrid": 2,
+        "direct": 1
+      },
+      "lstyle_frugality": {
+        "Frugal saver": 5522,
+        "Splurger": 2296,
+        "Spender": 163,
+        "Balanced": 656,
+        "null": 67
+      },
+      "topic_fashion": {
+        "Passionate": 2220,
+        "Interested": 6661,
+        "Neutral": 18425,
+        "null": 4174,
+        "Indifferent": 383,
+        "Averse": 27,
+        "Null": 9,
+        "Unsupported": 4
+      },
+      "ind_food_beverage": {
+        "None": 296590,
+        "Some exposure": 9776,
+        "Experienced": 2314,
+        "Veteran": 1330,
+        "null": 10
+      },
+      "ind_restaurants": {
+        "None": 306675,
+        "Some exposure": 2300,
+        "Veteran": 422,
+        "Experienced": 577,
+        "null": 10
+      },
+      "lstyle_fashion_sense": {
+        "Classic": 1309,
+        "Practical": 1253,
+        "Indifferent": 298,
+        "Trend-setter": 2079,
+        "Trend-follower": 1692,
+        "None": 11,
+        "null": 90,
+        "Unsupported": 1,
+        "Never": 1,
+        "Goth": 1
+      },
+      "lstyle_shopping_style": {
+        "Minimalist": 3450,
+        "null": 18885,
+        "None": 8742,
+        "Researcher": 7046,
+        "Unfamiliar": 4669,
+        "Unsupported": 668,
+        "Brand loyal": 518,
+        "Bargain hunter": 532,
+        "Unknown": 74,
+        "Never": 58,
+        "Impulse buyer": 63,
+        "unsupported": 2
+      },
+      "att_brand_loyalty": {
+        "Positive": 600,
+        "null": 3448,
+        "Neutral": 26792,
+        "Unsupported": 1518,
+        "None": 1305,
+        "unsupported": 305,
+        "Skeptical": 324,
+        "Apolitical": 4,
+        "Enthusiast": 98,
+        "Opposed": 1
+      },
+      "att_advertising": {
+        "Positive": 2708,
+        "Skeptical": 476,
+        "null": 3407,
+        "Neutral": 26051,
+        "Unsupported": 1464,
+        "unsupported": 305,
+        "None": 1265,
+        "Enthusiast": 210,
+        "Apolitical": 4,
+        "Opposed": 3,
+        "Interested": 1,
+        "Averse": 1
+      },
+      "topic_fitness": {
+        "Interested": 8290,
+        "Passionate": 107780,
+        "Indifferent": 5537,
+        "Neutral": 2521,
+        "null": 551,
+        "Averse": 205,
+        "unsupported": 1,
+        "Unsupported": 2
+      },
+      "lstyle_exercise_freq": {
+        "Weekly": 6713,
+        "Daily": 99968,
+        "Never": 7485,
+        "Rarely": 117,
+        "null": 6331,
+        "Regular": 3,
+        "unsupported": 1,
+        "Unsupported": 2,
+        "Monthly": 6,
+        "Regularly": 3,
+        "Annual": 2
+      },
+      "lstyle_morning_routine": {
+        "Highly structured": 829,
+        "None": 159,
+        "Rushed": 79,
+        "null": 86,
+        "Slow": 38,
+        "Loosely structured": 53,
+        "Always early": 3,
+        "Unsupported": 1,
+        "Unpredictable": 1
+      },
+      "topic_gaming": {
+        "Interested": 1583,
+        "Passionate": 1338,
+        "Neutral": 19658,
+        "null": 4364,
+        "Indifferent": 334,
+        "Unsupported": 11,
+        "Null": 10,
+        "Averse": 12
+      },
+      "lstyle_cooking_freq": {
+        "Never": 7949,
+        "null": 18828,
+        "Daily": 8808,
+        "None": 3316,
+        "Rarely": 219,
+        "Unsupported": 664,
+        "Unfamiliar": 3946,
+        "Weekly": 1154,
+        "Unknown": 76,
+        "unsupported": 2,
+        "Regular": 11,
+        "Monthly": 4,
+        "Occasional": 4,
+        "Regularly": 1
+      },
+      "lstyle_screen_time": {
+        "<2 hrs": 8416,
+        "null": 18878,
+        "None": 8021,
+        "Unsupported": 665,
+        "Unfamiliar": 4322,
+        "8+ hrs": 1665,
+        "4-8 hrs": 2573,
+        "Unknown": 73,
+        "Never": 81,
+        "unsupported": 3,
+        "High": 3,
+        "Moderate": 1,
+        "2-4 hrs": 5,
+        "Regular": 1
+      },
+      "topic_cooking": {
+        "Interested": 1865,
+        "Neutral": 19667,
+        "null": 4337,
+        "Indifferent": 328,
+        "Passionate": 879,
+        "Averse": 10,
+        "Null": 12,
+        "Unsupported": 2
+      },
+      "skill_cooking": {
+        "Intermediate": 3830,
+        "Beginner": 113,
+        "None": 86939,
+        "null": 2049,
+        "Advanced": 409,
+        "Master": 737,
+        "unsupported": 3
+      },
+      "topic_photography": {
+        "Interested": 3038,
+        "Neutral": 19171,
+        "null": 4330,
+        "Passionate": 2381,
+        "Indifferent": 337,
+        "Unsupported": 7,
+        "Averse": 12,
+        "Null": 12
+      },
+      "topic_coffee": {
+        "Interested": 747,
+        "Neutral": 4146,
+        "null": 4829,
+        "Indifferent": 287,
+        "Passionate": 117,
+        "Averse": 14,
+        "Null": 54,
+        "Unsupported": 2
+      },
+      "topic_tea": {
+        "Interested": 560,
+        "Neutral": 4136,
+        "null": 4837,
+        "Indifferent": 270,
+        "Passionate": 132,
+        "Null": 54,
+        "Averse": 11,
+        "Unsupported": 2
+      },
+      "lstyle_gaming_freq": {
+        "Never": 3315,
+        "Rarely": 86,
+        "Daily": 521,
+        "Weekly": 110,
+        "null": 100,
+        "Unsupported": 1,
+        "None": 3
+      },
+      "lstyle_primary_social": {
+        "Facebook": 599,
+        "X / Twitter": 915,
+        "None": 3943,
+        "Reddit": 11,
+        "YouTube": 852,
+        "Instagram": 843,
+        "TikTok": 248,
+        "null": 56,
+        "LinkedIn": 103,
+        "WeChat": 7,
+        "Unsupported": 1,
+        "Twitter": 6,
+        "Weibo": 3,
+        "WhatsApp": 5,
+        "Dribbble": 1,
+        "Tumblr": 6,
+        "Snapchat": 3,
+        "Telegram": 5,
+        "Sina Weibo": 1,
+        "SoundCloud": 1,
+        "Weverse": 1
+      },
+      "lstyle_caffeine": {
+        "None": 19238,
+        "null": 18396,
+        "Moderate": 2459,
+        "Unsupported": 625,
+        "Unfamiliar": 3855,
+        "High": 43,
+        "Never": 51,
+        "unsupported": 2,
+        "Low": 19,
+        "Unknown": 8,
+        "Regular": 4,
+        "Occasional": 1
+      },
+      "topic_baking": {
+        "Neutral": 4084,
+        "null": 4814,
+        "Interested": 864,
+        "Indifferent": 287,
+        "Passionate": 333,
+        "Null": 52,
+        "Unsupported": 2,
+        "Averse": 2
+      },
+      "skill_baking": {
+        "None": 88775,
+        "Intermediate": 2501,
+        "null": 2068,
+        "Advanced": 188,
+        "Master": 195,
+        "Beginner": 25,
+        "unsupported": 3
+      },
+      "cuis_vietnamese": {
+        "null": 997,
+        "Neutral": 1314,
+        "Love": 4,
+        "Like": 20,
+        "Avoid": 3
+      },
+      "lstyle_coffee_ritual": {
+        "None": 403,
+        "Café regular": 270,
+        "Home brew": 106,
+        "null": 114,
+        "Tea instead": 46,
+        "Unsupported": 1,
+        "Office coffee": 20,
+        "Never": 1
+      }
+    },
+    "source:amazon": {
+      "att_brand_loyalty": {
+        "Positive": 13961,
+        "Skeptical": 3344,
+        "Neutral": 2242,
+        "Enthusiast": 442
+      },
+      "att_consumerism": {
+        "Positive": 8980,
+        "Neutral": 240,
+        "Skeptical": 574
+      },
+      "topic_tea": {
+        "Interested": 5956,
+        "Neutral": 47,
+        "Indifferent": 102,
+        "Passionate": 354,
+        "Averse": 4
+      },
+      "topic_cooking": {
+        "Interested": 13055,
+        "Neutral": 1270,
+        "Indifferent": 33,
+        "Passionate": 293
+      },
+      "skill_baking": {
+        "Intermediate": 962,
+        "Beginner": 378,
+        "Advanced": 20,
+        "Master": 3
+      },
+      "lstyle_cooking_freq": {
+        "Daily": 1537,
+        "Weekly": 2709,
+        "Rarely": 174,
+        "Never": 7,
+        "Monthly": 24
+      },
+      "lstyle_shopping_style": {
+        "Researcher": 6123,
+        "Bargain hunter": 1223,
+        "Brand loyal": 1003,
+        "Impulse buyer": 35,
+        "Minimalist": 4
+      },
+      "topic_gaming": {
+        "Interested": 4544,
+        "Neutral": 1100,
+        "Passionate": 305,
+        "Indifferent": 308,
+        "Averse": 5
+      },
+      "lstyle_morning_routine": {
+        "Loosely structured": 766,
+        "Highly structured": 613,
+        "Rushed": 394,
+        "Slow": 55
+      },
+      "lstyle_fashion_sense": {
+        "Practical": 10152,
+        "Trend-follower": 1774,
+        "Classic": 271,
+        "Trend-setter": 13,
+        "Indifferent": 7
+      },
+      "lstyle_frugality": {
+        "Frugal saver": 3060,
+        "Balanced": 11745,
+        "Spender": 7
+      },
+      "topic_fashion": {
+        "Interested": 9388,
+        "Neutral": 832,
+        "Passionate": 511,
+        "Indifferent": 12
+      },
+      "topic_baking": {
+        "Interested": 6454,
+        "Passionate": 204,
+        "Neutral": 30,
+        "Indifferent": 35
+      },
+      "att_advertising": {
+        "Skeptical": 3880,
+        "Positive": 212,
+        "Neutral": 263
+      },
+      "topic_coffee": {
+        "Interested": 12795,
+        "Passionate": 544,
+        "Averse": 16,
+        "Indifferent": 272,
+        "Neutral": 95
+      },
+      "lstyle_work_schedule": {
+        "Freelance": 1175,
+        "Flexible hours": 701,
+        "Shift work": 2087,
+        "Unemployed": 401,
+        "9-to-5": 729,
+        "On-call": 37
+      },
+      "topic_fitness": {
+        "Interested": 9097,
+        "Indifferent": 634,
+        "Passionate": 543,
+        "Neutral": 102,
+        "Averse": 3
+      },
+      "lstyle_coffee_ritual": {
+        "Home brew": 6383,
+        "Café regular": 566,
+        "Tea instead": 311,
+        "Office coffee": 38
+      },
+      "lstyle_caffeine": {
+        "High": 957,
+        "Moderate": 2164,
+        "Low": 118
+      },
+      "lstyle_primary_social": {
+        "Facebook": 385,
+        "TikTok": 381,
+        "YouTube": 96,
+        "Instagram": 354,
+        "X / Twitter": 16,
+        "Reddit": 36
+      },
+      "lstyle_gaming_freq": {
+        "Never": 226,
+        "Weekly": 1110,
+        "Daily": 339,
+        "Rarely": 877,
+        "Monthly": 19
+      },
+      "lstyle_diet_type": {
+        "Omnivore": 1265,
+        "Keto/low-carb": 1377,
+        "Vegetarian": 191,
+        "Flexitarian": 359,
+        "Vegan": 380,
+        "Pescatarian": 11
+      },
+      "topic_photography": {
+        "Interested": 1547,
+        "Neutral": 174,
+        "Passionate": 104,
+        "Indifferent": 2
+      },
+      "lstyle_exercise_freq": {
+        "Weekly": 626,
+        "Daily": 1015,
+        "Never": 419,
+        "Rarely": 66,
+        "Monthly": 7
+      },
+      "skill_cooking": {
+        "Intermediate": 2220,
+        "Beginner": 1266,
+        "Advanced": 66,
+        "Master": 14
+      },
+      "ind_food_beverage": {
+        "Some exposure": 19,
+        "Veteran": 27,
+        "Experienced": 48
+      },
+      "lstyle_screen_time": {
+        "8+ hrs": 290,
+        "4-8 hrs": 113,
+        "<2 hrs": 4,
+        "2-4 hrs": 1
+      },
+      "ind_restaurants": {
+        "Veteran": 60,
+        "Experienced": 54,
+        "Some exposure": 26
+      },
+      "cuis_vietnamese": {
+        "Like": 50,
+        "Love": 20,
+        "Neutral": 5,
+        "Avoid": 1
+      }
+    },
+    "source:stackoverflow": {
+      "lstyle_work_schedule": {
+        "Freelance": 8933,
+        "Flexible hours": 2363,
+        "Unemployed": 657,
+        "9-to-5": 2
+      },
+      "att_advertising": {
+        "Neutral": 839,
+        "Positive": 381,
+        "Skeptical": 400
+      },
+      "lstyle_primary_social": {
+        "LinkedIn": 189,
+        "YouTube": 22,
+        "Instagram": 2,
+        "None": 38,
+        "Reddit": 51,
+        "X / Twitter": 4,
+        "Facebook": 1
+      },
+      "lstyle_caffeine": {
+        "High": 162,
+        "Moderate": 125,
+        "None": 1
+      },
+      "topic_gaming": {
+        "Passionate": 175,
+        "Interested": 412
+      },
+      "lstyle_gaming_freq": {
+        "Daily": 103,
+        "Weekly": 497,
+        "Monthly": 19,
+        "Never": 9,
+        "Rarely": 11
+      },
+      "lstyle_cooking_freq": {
+        "Daily": 28,
+        "Weekly": 1,
+        "Never": 1
+      },
+      "att_brand_loyalty": {
+        "Skeptical": 6,
+        "Neutral": 3
+      },
+      "lstyle_coffee_ritual": {
+        "Home brew": 6,
+        "Office coffee": 1
+      },
+      "ind_food_beverage": {
+        "None": 24
+      },
+      "ind_restaurants": {
+        "None": 24
+      },
+      "lstyle_screen_time": {
+        "8+ hrs": 49
+      },
+      "lstyle_shopping_style": {
+        "Researcher": 46,
+        "Minimalist": 1
+      },
+      "att_consumerism": {
+        "Skeptical": 6,
+        "Neutral": 1
+      },
+      "lstyle_frugality": {
+        "Balanced": 3
+      },
+      "topic_fitness": {
+        "Interested": 1
+      },
+      "topic_tea": {
+        "Interested": 1
+      },
+      "topic_coffee": {},
+      "topic_cooking": {},
+      "topic_baking": {},
+      "skill_cooking": {},
+      "skill_baking": {},
+      "cuis_vietnamese": {},
+      "lstyle_diet_type": {},
+      "lstyle_morning_routine": {},
+      "topic_fashion": {},
+      "lstyle_fashion_sense": {},
+      "lstyle_exercise_freq": {},
+      "topic_photography": {}
+    },
+    "source:prism": {
+      "lstyle_work_schedule": {
+        "9-to-5": 208,
+        "Unemployed": 290,
+        "Flexible hours": 152
+      },
+      "att_consumerism": {
+        "Skeptical": 68,
+        "Opposed": 3,
+        "Positive": 3
+      },
+      "ind_food_beverage": {
+        "None": 88,
+        "Some exposure": 19
+      },
+      "ind_restaurants": {
+        "None": 88,
+        "Some exposure": 2
+      },
+      "topic_cooking": {
+        "Interested": 10,
+        "Neutral": 1
+      },
+      "lstyle_shopping_style": {
+        "Bargain hunter": 2,
+        "Researcher": 3
+      },
+      "lstyle_diet_type": {
+        "Vegan": 8,
+        "Vegetarian": 9,
+        "Omnivore": 3
+      },
+      "lstyle_screen_time": {
+        "2-4 hrs": 3,
+        "8+ hrs": 66,
+        "4-8 hrs": 23
+      },
+      "lstyle_morning_routine": {
+        "Highly structured": 3,
+        "Loosely structured": 3,
+        "Slow": 1
+      },
+      "topic_fashion": {
+        "Interested": 6,
+        "Passionate": 1,
+        "Indifferent": 2
+      },
+      "lstyle_fashion_sense": {
+        "Classic": 3,
+        "Practical": 2,
+        "Trend-follower": 3,
+        "Trend-setter": 2,
+        "Indifferent": 3
+      },
+      "att_brand_loyalty": {
+        "Enthusiast": 5,
+        "Opposed": 1,
+        "Skeptical": 2,
+        "Positive": 2
+      },
+      "topic_fitness": {
+        "Passionate": 9,
+        "Interested": 31,
+        "Indifferent": 1,
+        "Neutral": 7
+      },
+      "lstyle_exercise_freq": {
+        "Daily": 3,
+        "Weekly": 9,
+        "Rarely": 1,
+        "Monthly": 1
+      },
+      "topic_gaming": {
+        "Passionate": 2,
+        "Interested": 6
+      },
+      "lstyle_gaming_freq": {
+        "Weekly": 3,
+        "Never": 1
+      },
+      "lstyle_frugality": {
+        "Spender": 2,
+        "Frugal saver": 21,
+        "Balanced": 1
+      },
+      "topic_photography": {
+        "Interested": 2,
+        "Passionate": 1
+      },
+      "topic_baking": {
+        "Interested": 4
+      },
+      "skill_cooking": {
+        "Advanced": 1,
+        "Intermediate": 4,
+        "Beginner": 1
+      },
+      "lstyle_cooking_freq": {
+        "Daily": 3,
+        "Weekly": 2
+      },
+      "lstyle_primary_social": {
+        "YouTube": 1,
+        "Instagram": 1,
+        "Facebook": 1,
+        "None": 3
+      },
+      "att_advertising": {
+        "Skeptical": 6,
+        "Positive": 1
+      },
+      "lstyle_caffeine": {
+        "Moderate": 1
+      },
+      "topic_coffee": {},
+      "lstyle_coffee_ritual": {},
+      "topic_tea": {},
+      "skill_baking": {},
+      "cuis_vietnamese": {}
+    },
+    "source:real_human_survey": {
+      "topic_coffee": {
+        "Neutral": 141,
+        "Passionate": 27,
+        "Indifferent": 83,
+        "Interested": 51,
+        "Averse": 21
+      },
+      "lstyle_coffee_ritual": {
+        "Office coffee": 47,
+        "Tea instead": 99,
+        "Home brew": 96,
+        "Café regular": 43,
+        "None": 37
+      },
+      "lstyle_caffeine": {
+        "Low": 85,
+        "Moderate": 122,
+        "None": 65,
+        "High": 55
+      },
+      "topic_tea": {
+        "Neutral": 146,
+        "Indifferent": 82,
+        "Interested": 47,
+        "Averse": 29,
+        "Passionate": 21
+      },
+      "topic_cooking": {
+        "Averse": 23,
+        "Neutral": 109,
+        "Indifferent": 61,
+        "Interested": 97,
+        "Passionate": 35
+      },
+      "topic_baking": {
+        "Averse": 29,
+        "Passionate": 14,
+        "Indifferent": 84,
+        "Neutral": 143,
+        "Interested": 48
+      },
+      "skill_cooking": {
+        "Beginner": 109,
+        "Intermediate": 98,
+        "None": 59,
+        "Advanced": 39,
+        "Master": 25
+      },
+      "skill_baking": {
+        "None": 95,
+        "Beginner": 113,
+        "Intermediate": 70,
+        "Advanced": 25,
+        "Master": 15
+      },
+      "lstyle_cooking_freq": {
+        "Rarely": 39,
+        "Weekly": 105,
+        "Never": 28,
+        "Monthly": 37,
+        "Daily": 112
+      },
+      "cuis_vietnamese": {
+        "Neutral": 174,
+        "Like": 72,
+        "Avoid": 65,
+        "Love": 15
+      },
+      "ind_food_beverage": {
+        "Some exposure": 72,
+        "None": 182,
+        "Experienced": 47,
+        "Veteran": 19
+      },
+      "ind_restaurants": {
+        "None": 188,
+        "Experienced": 49,
+        "Some exposure": 69,
+        "Veteran": 22
+      },
+      "lstyle_shopping_style": {
+        "Impulse buyer": 54,
+        "Minimalist": 74,
+        "Researcher": 66,
+        "Brand loyal": 54,
+        "Bargain hunter": 82
+      },
+      "lstyle_frugality": {
+        "Spender": 83,
+        "Frugal saver": 71,
+        "Balanced": 145,
+        "Splurger": 28
+      },
+      "att_brand_loyalty": {
+        "Neutral": 138,
+        "Skeptical": 83,
+        "Positive": 64,
+        "Opposed": 22,
+        "Enthusiast": 19
+      },
+      "att_advertising": {
+        "Neutral": 126,
+        "Positive": 81,
+        "Skeptical": 72,
+        "Enthusiast": 24,
+        "Opposed": 18
+      },
+      "att_consumerism": {
+        "Neutral": 128,
+        "Skeptical": 72,
+        "Positive": 74,
+        "Enthusiast": 22,
+        "Opposed": 22
+      },
+      "lstyle_diet_type": {
+        "Omnivore": 203,
+        "Keto/low-carb": 25,
+        "Flexitarian": 28,
+        "Vegetarian": 39,
+        "Vegan": 16,
+        "Pescatarian": 12
+      },
+      "lstyle_morning_routine": {
+        "Rushed": 71,
+        "Loosely structured": 104,
+        "Highly structured": 38,
+        "Slow": 58,
+        "None": 51
+      },
+      "lstyle_work_schedule": {
+        "Flexible hours": 56,
+        "Unemployed": 64,
+        "9-to-5": 104,
+        "Freelance": 30,
+        "Shift work": 52,
+        "On-call": 24
+      },
+      "lstyle_primary_social": {
+        "LinkedIn": 27,
+        "YouTube": 79,
+        "X / Twitter": 17,
+        "Facebook": 67,
+        "Instagram": 49,
+        "None": 32,
+        "TikTok": 39,
+        "Reddit": 12
+      },
+      "lstyle_screen_time": {
+        "8+ hrs": 52,
+        "4-8 hrs": 83,
+        "2-4 hrs": 105,
+        "<2 hrs": 87
+      },
+      "topic_fashion": {
+        "Neutral": 155,
+        "Interested": 64,
+        "Indifferent": 62,
+        "Averse": 24,
+        "Passionate": 18
+      },
+      "lstyle_fashion_sense": {
+        "Trend-follower": 40,
+        "Practical": 137,
+        "Classic": 69,
+        "Indifferent": 57,
+        "Trend-setter": 23
+      },
+      "topic_fitness": {
+        "Passionate": 33,
+        "Neutral": 130,
+        "Averse": 26,
+        "Interested": 92,
+        "Indifferent": 41
+      },
+      "lstyle_exercise_freq": {
+        "Rarely": 63,
+        "Monthly": 47,
+        "Weekly": 133,
+        "Daily": 60,
+        "Never": 22
+      },
+      "topic_gaming": {
+        "Neutral": 116,
+        "Indifferent": 99,
+        "Averse": 37,
+        "Interested": 51,
+        "Passionate": 20
+      },
+      "lstyle_gaming_freq": {
+        "Weekly": 41,
+        "Daily": 40,
+        "Never": 103,
+        "Rarely": 94,
+        "Monthly": 40
+      },
+      "topic_photography": {
+        "Neutral": 132,
+        "Indifferent": 76,
+        "Interested": 55,
+        "Passionate": 23,
+        "Averse": 33
+      }
+    },
+    "synthetic": {
+      "topic_coffee": {
+        "Interested": 64937,
+        "Neutral": 181814,
+        "Indifferent": 110706,
+        "Passionate": 12601,
+        "Averse": 29942
+      },
+      "lstyle_coffee_ritual": {
+        "Office coffee": 49361,
+        "None": 55987,
+        "Home brew": 128461,
+        "Tea instead": 120341,
+        "Café regular": 45850
+      },
+      "lstyle_caffeine": {
+        "Low": 107817,
+        "Moderate": 162155,
+        "None": 62065,
+        "High": 67963
+      },
+      "topic_tea": {
+        "Interested": 65164,
+        "Neutral": 182119,
+        "Indifferent": 110340,
+        "Passionate": 12607,
+        "Averse": 29770
+      },
+      "topic_cooking": {
+        "Neutral": 166033,
+        "Interested": 118162,
+        "Indifferent": 71919,
+        "Averse": 16176,
+        "Passionate": 27710
+      },
+      "topic_baking": {
+        "Neutral": 180172,
+        "Averse": 31129,
+        "Indifferent": 114656,
+        "Passionate": 11561,
+        "Interested": 62482
+      },
+      "skill_cooking": {
+        "Beginner": 147829,
+        "None": 71209,
+        "Intermediate": 132613,
+        "Advanced": 40720,
+        "Master": 7629
+      },
+      "skill_baking": {
+        "Intermediate": 82182,
+        "Beginner": 144102,
+        "None": 153306,
+        "Advanced": 17539,
+        "Master": 2871
+      },
+      "lstyle_cooking_freq": {
+        "Weekly": 131462,
+        "Monthly": 43577,
+        "Daily": 147433,
+        "Never": 21380,
+        "Rarely": 56148
+      },
+      "cuis_vietnamese": {
+        "Neutral": 199130,
+        "Avoid": 91572,
+        "Like": 91461,
+        "Love": 17837
+      },
+      "ind_food_beverage": {
+        "None": 244457,
+        "Some exposure": 91745,
+        "Veteran": 15753,
+        "Experienced": 48045
+      },
+      "ind_restaurants": {
+        "None": 243754,
+        "Veteran": 15971,
+        "Experienced": 48258,
+        "Some exposure": 92017
+      },
+      "lstyle_shopping_style": {
+        "Researcher": 72096,
+        "Bargain hunter": 128092,
+        "Impulse buyer": 54113,
+        "Minimalist": 83890,
+        "Brand loyal": 61809
+      },
+      "lstyle_frugality": {
+        "Frugal saver": 105363,
+        "Spender": 86878,
+        "Balanced": 174539,
+        "Splurger": 33220
+      },
+      "att_brand_loyalty": {
+        "Neutral": 184632,
+        "Positive": 86323,
+        "Skeptical": 93293,
+        "Opposed": 18990,
+        "Enthusiast": 16762
+      },
+      "att_advertising": {
+        "Neutral": 187012,
+        "Enthusiast": 18660,
+        "Positive": 90053,
+        "Opposed": 16757,
+        "Skeptical": 87518
+      },
+      "att_consumerism": {
+        "Positive": 92272,
+        "Skeptical": 85879,
+        "Neutral": 187326,
+        "Enthusiast": 18813,
+        "Opposed": 15710
+      },
+      "lstyle_diet_type": {
+        "Flexitarian": 38094,
+        "Omnivore": 292077,
+        "Vegetarian": 33882,
+        "Pescatarian": 11917,
+        "Keto/low-carb": 13961,
+        "Vegan": 10069
+      },
+      "lstyle_morning_routine": {
+        "Loosely structured": 134255,
+        "Rushed": 97823,
+        "Slow": 77968,
+        "Highly structured": 39702,
+        "None": 50252
+      },
+      "lstyle_work_schedule": {
+        "Freelance": 40906,
+        "Shift work": 72664,
+        "Unemployed": 72448,
+        "9-to-5": 113445,
+        "On-call": 23142,
+        "Flexible hours": 77395
+      },
+      "lstyle_primary_social": {
+        "Reddit": 18799,
+        "YouTube": 99120,
+        "Facebook": 87177,
+        "X / Twitter": 24275,
+        "TikTok": 46724,
+        "Instagram": 55997,
+        "None": 44633,
+        "LinkedIn": 23275
+      },
+      "lstyle_screen_time": {
+        "4-8 hrs": 125373,
+        "<2 hrs": 93090,
+        "2-4 hrs": 127639,
+        "8+ hrs": 53898
+      },
+      "topic_fashion": {
+        "Indifferent": 110626,
+        "Neutral": 182136,
+        "Interested": 65079,
+        "Averse": 29608,
+        "Passionate": 12551
+      },
+      "lstyle_fashion_sense": {
+        "Practical": 163513,
+        "Indifferent": 75497,
+        "Classic": 89627,
+        "Trend-follower": 58259,
+        "Trend-setter": 13104
+      },
+      "topic_fitness": {
+        "Interested": 121784,
+        "Indifferent": 69926,
+        "Passionate": 30588,
+        "Neutral": 160372,
+        "Averse": 17330
+      },
+      "lstyle_exercise_freq": {
+        "Weekly": 167855,
+        "Rarely": 76910,
+        "Never": 24012,
+        "Monthly": 52552,
+        "Daily": 78671
+      },
+      "topic_gaming": {
+        "Neutral": 169662,
+        "Indifferent": 126851,
+        "Averse": 41115,
+        "Passionate": 8821,
+        "Interested": 53551
+      },
+      "lstyle_gaming_freq": {
+        "Never": 140343,
+        "Daily": 38683,
+        "Monthly": 49462,
+        "Weekly": 57176,
+        "Rarely": 114336
+      },
+      "topic_photography": {
+        "Neutral": 175653,
+        "Indifferent": 121156,
+        "Interested": 57816,
+        "Passionate": 10197,
+        "Averse": 35178
+      }
+    },
+    "source:synthetic": {
+      "topic_coffee": {
+        "Interested": 64937,
+        "Neutral": 181814,
+        "Indifferent": 110706,
+        "Passionate": 12601,
+        "Averse": 29942
+      },
+      "lstyle_coffee_ritual": {
+        "Office coffee": 49361,
+        "None": 55987,
+        "Home brew": 128461,
+        "Tea instead": 120341,
+        "Café regular": 45850
+      },
+      "lstyle_caffeine": {
+        "Low": 107817,
+        "Moderate": 162155,
+        "None": 62065,
+        "High": 67963
+      },
+      "topic_tea": {
+        "Interested": 65164,
+        "Neutral": 182119,
+        "Indifferent": 110340,
+        "Passionate": 12607,
+        "Averse": 29770
+      },
+      "topic_cooking": {
+        "Neutral": 166033,
+        "Interested": 118162,
+        "Indifferent": 71919,
+        "Averse": 16176,
+        "Passionate": 27710
+      },
+      "topic_baking": {
+        "Neutral": 180172,
+        "Averse": 31129,
+        "Indifferent": 114656,
+        "Passionate": 11561,
+        "Interested": 62482
+      },
+      "skill_cooking": {
+        "Beginner": 147829,
+        "None": 71209,
+        "Intermediate": 132613,
+        "Advanced": 40720,
+        "Master": 7629
+      },
+      "skill_baking": {
+        "Intermediate": 82182,
+        "Beginner": 144102,
+        "None": 153306,
+        "Advanced": 17539,
+        "Master": 2871
+      },
+      "lstyle_cooking_freq": {
+        "Weekly": 131462,
+        "Monthly": 43577,
+        "Daily": 147433,
+        "Never": 21380,
+        "Rarely": 56148
+      },
+      "cuis_vietnamese": {
+        "Neutral": 199130,
+        "Avoid": 91572,
+        "Like": 91461,
+        "Love": 17837
+      },
+      "ind_food_beverage": {
+        "None": 244457,
+        "Some exposure": 91745,
+        "Veteran": 15753,
+        "Experienced": 48045
+      },
+      "ind_restaurants": {
+        "None": 243754,
+        "Veteran": 15971,
+        "Experienced": 48258,
+        "Some exposure": 92017
+      },
+      "lstyle_shopping_style": {
+        "Researcher": 72096,
+        "Bargain hunter": 128092,
+        "Impulse buyer": 54113,
+        "Minimalist": 83890,
+        "Brand loyal": 61809
+      },
+      "lstyle_frugality": {
+        "Frugal saver": 105363,
+        "Spender": 86878,
+        "Balanced": 174539,
+        "Splurger": 33220
+      },
+      "att_brand_loyalty": {
+        "Neutral": 184632,
+        "Positive": 86323,
+        "Skeptical": 93293,
+        "Opposed": 18990,
+        "Enthusiast": 16762
+      },
+      "att_advertising": {
+        "Neutral": 187012,
+        "Enthusiast": 18660,
+        "Positive": 90053,
+        "Opposed": 16757,
+        "Skeptical": 87518
+      },
+      "att_consumerism": {
+        "Positive": 92272,
+        "Skeptical": 85879,
+        "Neutral": 187326,
+        "Enthusiast": 18813,
+        "Opposed": 15710
+      },
+      "lstyle_diet_type": {
+        "Flexitarian": 38094,
+        "Omnivore": 292077,
+        "Vegetarian": 33882,
+        "Pescatarian": 11917,
+        "Keto/low-carb": 13961,
+        "Vegan": 10069
+      },
+      "lstyle_morning_routine": {
+        "Loosely structured": 134255,
+        "Rushed": 97823,
+        "Slow": 77968,
+        "Highly structured": 39702,
+        "None": 50252
+      },
+      "lstyle_work_schedule": {
+        "Freelance": 40906,
+        "Shift work": 72664,
+        "Unemployed": 72448,
+        "9-to-5": 113445,
+        "On-call": 23142,
+        "Flexible hours": 77395
+      },
+      "lstyle_primary_social": {
+        "Reddit": 18799,
+        "YouTube": 99120,
+        "Facebook": 87177,
+        "X / Twitter": 24275,
+        "TikTok": 46724,
+        "Instagram": 55997,
+        "None": 44633,
+        "LinkedIn": 23275
+      },
+      "lstyle_screen_time": {
+        "4-8 hrs": 125373,
+        "<2 hrs": 93090,
+        "2-4 hrs": 127639,
+        "8+ hrs": 53898
+      },
+      "topic_fashion": {
+        "Indifferent": 110626,
+        "Neutral": 182136,
+        "Interested": 65079,
+        "Averse": 29608,
+        "Passionate": 12551
+      },
+      "lstyle_fashion_sense": {
+        "Practical": 163513,
+        "Indifferent": 75497,
+        "Classic": 89627,
+        "Trend-follower": 58259,
+        "Trend-setter": 13104
+      },
+      "topic_fitness": {
+        "Interested": 121784,
+        "Indifferent": 69926,
+        "Passionate": 30588,
+        "Neutral": 160372,
+        "Averse": 17330
+      },
+      "lstyle_exercise_freq": {
+        "Weekly": 167855,
+        "Rarely": 76910,
+        "Never": 24012,
+        "Monthly": 52552,
+        "Daily": 78671
+      },
+      "topic_gaming": {
+        "Neutral": 169662,
+        "Indifferent": 126851,
+        "Averse": 41115,
+        "Passionate": 8821,
+        "Interested": 53551
+      },
+      "lstyle_gaming_freq": {
+        "Never": 140343,
+        "Daily": 38683,
+        "Monthly": 49462,
+        "Weekly": 57176,
+        "Rarely": 114336
+      },
+      "topic_photography": {
+        "Neutral": 175653,
+        "Indifferent": 121156,
+        "Interested": 57816,
+        "Passionate": 10197,
+        "Averse": 35178
+      }
+    },
+    "source:gss": {
+      "topic_coffee": {},
+      "lstyle_coffee_ritual": {},
+      "lstyle_caffeine": {},
+      "topic_tea": {},
+      "topic_cooking": {},
+      "topic_baking": {},
+      "skill_cooking": {},
+      "skill_baking": {},
+      "lstyle_cooking_freq": {},
+      "cuis_vietnamese": {},
+      "ind_food_beverage": {},
+      "ind_restaurants": {},
+      "lstyle_shopping_style": {},
+      "lstyle_frugality": {},
+      "att_brand_loyalty": {},
+      "att_advertising": {},
+      "att_consumerism": {},
+      "lstyle_diet_type": {},
+      "lstyle_morning_routine": {},
+      "lstyle_work_schedule": {},
+      "lstyle_primary_social": {},
+      "lstyle_screen_time": {},
+      "topic_fashion": {},
+      "lstyle_fashion_sense": {},
+      "topic_fitness": {},
+      "lstyle_exercise_freq": {},
+      "topic_gaming": {},
+      "lstyle_gaming_freq": {},
+      "topic_photography": {}
+    }
+  },
+  "joint_known_histograms": {
+    "all": {
+      "coffee_pair": {
+        "0": 572998,
+        "1": 20869,
+        "2": 405980
+      },
+      "coffee_core": {
+        "0": 533010,
+        "1": 54065,
+        "2": 10996,
+        "3": 401776
+      },
+      "coffee_commercial": {
+        "0": 486829,
+        "1": 53934,
+        "2": 38178,
+        "5": 1004,
+        "4": 4729,
+        "3": 14778,
+        "6": 400395
+      },
+      "cooking_core": {
+        "0": 467664,
+        "1": 86526,
+        "2": 33639,
+        "3": 412018
+      },
+      "fashion_core": {
+        "0": 545285,
+        "1": 46855,
+        "2": 407707
+      },
+      "fitness_core": {
+        "0": 463513,
+        "2": 522406,
+        "1": 13928
+      },
+      "gaming_core": {
+        "0": 560705,
+        "1": 36126,
+        "2": 403016
+      },
+      "fitness_commercial": {
+        "0": 383925,
+        "1": 75885,
+        "2": 123106,
+        "3": 12481,
+        "4": 3505,
+        "5": 400945
+      }
+    },
+    "non_synthetic": {
+      "coffee_pair": {
+        "0": 572998,
+        "1": 20869,
+        "2": 5980
+      },
+      "coffee_core": {
+        "0": 533010,
+        "1": 54065,
+        "2": 10996,
+        "3": 1776
+      },
+      "coffee_commercial": {
+        "0": 486829,
+        "1": 53934,
+        "2": 38178,
+        "5": 1004,
+        "4": 4729,
+        "3": 14778,
+        "6": 395
+      },
+      "cooking_core": {
+        "0": 467664,
+        "1": 86526,
+        "2": 33639,
+        "3": 12018
+      },
+      "fashion_core": {
+        "0": 545285,
+        "1": 46855,
+        "2": 7707
+      },
+      "fitness_core": {
+        "0": 463513,
+        "2": 122406,
+        "1": 13928
+      },
+      "gaming_core": {
+        "0": 560705,
+        "1": 36126,
+        "2": 3016
+      },
+      "fitness_commercial": {
+        "0": 383925,
+        "1": 75885,
+        "2": 123106,
+        "3": 12481,
+        "4": 3505,
+        "5": 945
+      }
+    },
+    "source:wiki": {
+      "coffee_pair": {
+        "0": 312738,
+        "1": 10243,
+        "2": 457
+      },
+      "coffee_core": {
+        "0": 273949,
+        "1": 43448,
+        "2": 5713,
+        "3": 328
+      },
+      "coffee_commercial": {
+        "0": 249166,
+        "1": 26510,
+        "2": 30688,
+        "5": 848,
+        "4": 4018,
+        "3": 12094,
+        "6": 114
+      },
+      "cooking_core": {
+        "0": 211048,
+        "1": 70063,
+        "2": 30882,
+        "3": 11445
+      },
+      "fashion_core": {
+        "0": 290318,
+        "1": 27602,
+        "2": 5518
+      },
+      "fitness_core": {
+        "0": 198549,
+        "2": 120629,
+        "1": 4260
+      },
+      "gaming_core": {
+        "0": 293562,
+        "1": 28306,
+        "2": 1570
+      },
+      "fitness_commercial": {
+        "0": 142490,
+        "1": 47664,
+        "2": 117439,
+        "3": 11762,
+        "4": 3419,
+        "5": 664
+      }
+    },
+    "source:amazon": {
+      "coffee_pair": {
+        "0": 82117,
+        "1": 10576,
+        "2": 5222
+      },
+      "coffee_core": {
+        "0": 81213,
+        "1": 10298,
+        "2": 5251,
+        "3": 1153
+      },
+      "coffee_commercial": {
+        "0": 61509,
+        "1": 25454,
+        "2": 7466,
+        "4": 686,
+        "6": 4,
+        "3": 2660,
+        "5": 136
+      },
+      "cooking_core": {
+        "0": 78518,
+        "2": 2717,
+        "1": 16403,
+        "3": 277
+      },
+      "fashion_core": {
+        "0": 76831,
+        "1": 19208,
+        "2": 1876
+      },
+      "fitness_core": {
+        "0": 86863,
+        "1": 9592,
+        "2": 1460
+      },
+      "gaming_core": {
+        "0": 90053,
+        "1": 6891,
+        "2": 971
+      },
+      "fitness_commercial": {
+        "0": 65043,
+        "1": 26490,
+        "2": 5630,
+        "3": 691,
+        "4": 61
+      }
+    },
+    "source:stackoverflow": {
+      "coffee_pair": {
+        "0": 113113,
+        "1": 7
+      },
+      "coffee_core": {
+        "0": 112825,
+        "1": 295
+      },
+      "coffee_commercial": {
+        "0": 111170,
+        "1": 1935,
+        "2": 15
+      },
+      "cooking_core": {
+        "0": 113090,
+        "1": 30
+      },
+      "fashion_core": {
+        "0": 113120
+      },
+      "fitness_core": {
+        "0": 113119,
+        "1": 1
+      },
+      "gaming_core": {
+        "0": 112066,
+        "2": 172,
+        "1": 882
+      },
+      "fitness_commercial": {
+        "0": 111452,
+        "1": 1665,
+        "2": 3
+      }
+    },
+    "source:prism": {
+      "coffee_pair": {
+        "0": 1487
+      },
+      "coffee_core": {
+        "0": 1486,
+        "1": 1
+      },
+      "coffee_commercial": {
+        "0": 1452,
+        "1": 33,
+        "2": 2
+      },
+      "cooking_core": {
+        "0": 1474,
+        "1": 7,
+        "3": 3,
+        "2": 3
+      },
+      "fashion_core": {
+        "0": 1471,
+        "2": 6,
+        "1": 10
+      },
+      "fitness_core": {
+        "0": 1438,
+        "2": 13,
+        "1": 36
+      },
+      "gaming_core": {
+        "0": 1478,
+        "1": 6,
+        "2": 3
+      },
+      "fitness_commercial": {
+        "0": 1407,
+        "1": 63,
+        "2": 16,
+        "3": 1
+      }
+    },
+    "source:gss": {
+      "coffee_pair": {
+        "0": 63532
+      },
+      "coffee_core": {
+        "0": 63532
+      },
+      "coffee_commercial": {
+        "0": 63532
+      },
+      "cooking_core": {
+        "0": 63532
+      },
+      "fashion_core": {
+        "0": 63532
+      },
+      "fitness_core": {
+        "0": 63532
+      },
+      "gaming_core": {
+        "0": 63532
+      },
+      "fitness_commercial": {
+        "0": 63532
+      }
+    },
+    "source:real_human_survey": {
+      "coffee_pair": {
+        "2": 301,
+        "0": 11,
+        "1": 43
+      },
+      "coffee_core": {
+        "3": 295,
+        "0": 5,
+        "1": 23,
+        "2": 32
+      },
+      "coffee_commercial": {
+        "6": 277,
+        "2": 7,
+        "4": 25,
+        "5": 20,
+        "3": 24,
+        "1": 2
+      },
+      "cooking_core": {
+        "3": 293,
+        "2": 37,
+        "1": 23,
+        "0": 2
+      },
+      "fashion_core": {
+        "2": 307,
+        "0": 13,
+        "1": 35
+      },
+      "fitness_core": {
+        "2": 304,
+        "1": 39,
+        "0": 12
+      },
+      "gaming_core": {
+        "2": 300,
+        "1": 41,
+        "0": 14
+      },
+      "fitness_commercial": {
+        "5": 281,
+        "4": 25,
+        "3": 27,
+        "2": 18,
+        "1": 3,
+        "0": 1
+      }
+    },
+    "synthetic": {
+      "coffee_pair": {
+        "2": 400000
+      },
+      "coffee_core": {
+        "3": 400000
+      },
+      "coffee_commercial": {
+        "6": 400000
+      },
+      "cooking_core": {
+        "3": 400000
+      },
+      "fashion_core": {
+        "2": 400000
+      },
+      "fitness_core": {
+        "2": 400000
+      },
+      "gaming_core": {
+        "2": 400000
+      },
+      "fitness_commercial": {
+        "5": 400000
+      }
+    },
+    "source:synthetic": {
+      "coffee_pair": {
+        "2": 400000
+      },
+      "coffee_core": {
+        "3": 400000
+      },
+      "coffee_commercial": {
+        "6": 400000
+      },
+      "cooking_core": {
+        "3": 400000
+      },
+      "fashion_core": {
+        "2": 400000
+      },
+      "fitness_core": {
+        "2": 400000
+      },
+      "gaming_core": {
+        "2": 400000
+      },
+      "fitness_commercial": {
+        "5": 400000
+      }
+    }
+  },
+  "joint_usable_histograms": {
+    "all": {
+      "coffee_pair": {
+        "0": 577921,
+        "1": 16024,
+        "2": 405902
+      },
+      "coffee_core": {
+        "0": 556619,
+        "1": 34637,
+        "2": 6968,
+        "3": 401623
+      },
+      "coffee_commercial": {
+        "0": 506878,
+        "1": 63987,
+        "2": 20510,
+        "3": 6414,
+        "4": 1462,
+        "5": 298,
+        "6": 400298
+      },
+      "cooking_core": {
+        "0": 477468,
+        "1": 92745,
+        "2": 25040,
+        "3": 404594
+      },
+      "fashion_core": {
+        "0": 549460,
+        "1": 42796,
+        "2": 407591
+      },
+      "fitness_core": {
+        "0": 464067,
+        "2": 516064,
+        "1": 19716
+      },
+      "gaming_core": {
+        "0": 565020,
+        "1": 31985,
+        "2": 402842
+      },
+      "fitness_commercial": {
+        "0": 405303,
+        "1": 67851,
+        "2": 118181,
+        "3": 6918,
+        "4": 1160,
+        "5": 400434
+      }
+    },
+    "non_synthetic": {
+      "coffee_pair": {
+        "0": 577921,
+        "1": 16024,
+        "2": 5902
+      },
+      "coffee_core": {
+        "0": 556619,
+        "1": 34637,
+        "2": 6968,
+        "3": 1623
+      },
+      "coffee_commercial": {
+        "0": 506878,
+        "1": 63987,
+        "2": 20510,
+        "3": 6414,
+        "4": 1462,
+        "5": 298,
+        "6": 298
+      },
+      "cooking_core": {
+        "0": 477468,
+        "1": 92745,
+        "2": 25040,
+        "3": 4594
+      },
+      "fashion_core": {
+        "0": 549460,
+        "1": 42796,
+        "2": 7591
+      },
+      "fitness_core": {
+        "0": 464067,
+        "2": 116064,
+        "1": 19716
+      },
+      "gaming_core": {
+        "0": 565020,
+        "1": 31985,
+        "2": 2842
+      },
+      "fitness_commercial": {
+        "0": 405303,
+        "1": 67851,
+        "2": 118181,
+        "3": 6918,
+        "4": 1160,
+        "5": 434
+      }
+    },
+    "source:wiki": {
+      "coffee_pair": {
+        "0": 317661,
+        "1": 5398,
+        "2": 379
+      },
+      "coffee_core": {
+        "0": 297558,
+        "1": 24020,
+        "2": 1685,
+        "3": 175
+      },
+      "coffee_commercial": {
+        "0": 269215,
+        "1": 36563,
+        "2": 13020,
+        "3": 3730,
+        "4": 751,
+        "5": 142,
+        "6": 17
+      },
+      "cooking_core": {
+        "0": 220852,
+        "1": 76282,
+        "2": 22283,
+        "3": 4021
+      },
+      "fashion_core": {
+        "0": 294493,
+        "1": 23543,
+        "2": 5402
+      },
+      "fitness_core": {
+        "0": 199103,
+        "2": 114287,
+        "1": 10048
+      },
+      "gaming_core": {
+        "0": 297877,
+        "1": 24165,
+        "2": 1396
+      },
+      "fitness_commercial": {
+        "0": 163868,
+        "1": 39630,
+        "2": 112514,
+        "3": 6199,
+        "4": 1074,
+        "5": 153
+      }
+    },
+    "source:amazon": {
+      "coffee_pair": {
+        "0": 82117,
+        "1": 10576,
+        "2": 5222
+      },
+      "coffee_core": {
+        "0": 81213,
+        "1": 10298,
+        "2": 5251,
+        "3": 1153
+      },
+      "coffee_commercial": {
+        "0": 61509,
+        "1": 25454,
+        "2": 7466,
+        "4": 686,
+        "6": 4,
+        "3": 2660,
+        "5": 136
+      },
+      "cooking_core": {
+        "0": 78518,
+        "2": 2717,
+        "1": 16403,
+        "3": 277
+      },
+      "fashion_core": {
+        "0": 76831,
+        "1": 19208,
+        "2": 1876
+      },
+      "fitness_core": {
+        "0": 86863,
+        "1": 9592,
+        "2": 1460
+      },
+      "gaming_core": {
+        "0": 90053,
+        "1": 6891,
+        "2": 971
+      },
+      "fitness_commercial": {
+        "0": 65043,
+        "1": 26490,
+        "2": 5630,
+        "3": 691,
+        "4": 61
+      }
+    },
+    "source:stackoverflow": {
+      "coffee_pair": {
+        "0": 113113,
+        "1": 7
+      },
+      "coffee_core": {
+        "0": 112825,
+        "1": 295
+      },
+      "coffee_commercial": {
+        "0": 111170,
+        "1": 1935,
+        "2": 15
+      },
+      "cooking_core": {
+        "0": 113090,
+        "1": 30
+      },
+      "fashion_core": {
+        "0": 113120
+      },
+      "fitness_core": {
+        "0": 113119,
+        "1": 1
+      },
+      "gaming_core": {
+        "0": 112066,
+        "2": 172,
+        "1": 882
+      },
+      "fitness_commercial": {
+        "0": 111452,
+        "1": 1665,
+        "2": 3
+      }
+    },
+    "source:prism": {
+      "coffee_pair": {
+        "0": 1487
+      },
+      "coffee_core": {
+        "0": 1486,
+        "1": 1
+      },
+      "coffee_commercial": {
+        "0": 1452,
+        "1": 33,
+        "2": 2
+      },
+      "cooking_core": {
+        "0": 1474,
+        "1": 7,
+        "3": 3,
+        "2": 3
+      },
+      "fashion_core": {
+        "0": 1471,
+        "2": 6,
+        "1": 10
+      },
+      "fitness_core": {
+        "0": 1438,
+        "2": 13,
+        "1": 36
+      },
+      "gaming_core": {
+        "0": 1478,
+        "1": 6,
+        "2": 3
+      },
+      "fitness_commercial": {
+        "0": 1407,
+        "1": 63,
+        "2": 16,
+        "3": 1
+      }
+    },
+    "source:gss": {
+      "coffee_pair": {
+        "0": 63532
+      },
+      "coffee_core": {
+        "0": 63532
+      },
+      "coffee_commercial": {
+        "0": 63532
+      },
+      "cooking_core": {
+        "0": 63532
+      },
+      "fashion_core": {
+        "0": 63532
+      },
+      "fitness_core": {
+        "0": 63532
+      },
+      "gaming_core": {
+        "0": 63532
+      },
+      "fitness_commercial": {
+        "0": 63532
+      }
+    },
+    "source:real_human_survey": {
+      "coffee_pair": {
+        "2": 301,
+        "0": 11,
+        "1": 43
+      },
+      "coffee_core": {
+        "3": 295,
+        "0": 5,
+        "1": 23,
+        "2": 32
+      },
+      "coffee_commercial": {
+        "6": 277,
+        "2": 7,
+        "4": 25,
+        "5": 20,
+        "3": 24,
+        "1": 2
+      },
+      "cooking_core": {
+        "3": 293,
+        "2": 37,
+        "1": 23,
+        "0": 2
+      },
+      "fashion_core": {
+        "2": 307,
+        "0": 13,
+        "1": 35
+      },
+      "fitness_core": {
+        "2": 304,
+        "1": 39,
+        "0": 12
+      },
+      "gaming_core": {
+        "2": 300,
+        "1": 41,
+        "0": 14
+      },
+      "fitness_commercial": {
+        "5": 281,
+        "4": 25,
+        "3": 27,
+        "2": 18,
+        "1": 3,
+        "0": 1
+      }
+    },
+    "synthetic": {
+      "coffee_pair": {
+        "2": 400000
+      },
+      "coffee_core": {
+        "3": 400000
+      },
+      "coffee_commercial": {
+        "6": 400000
+      },
+      "cooking_core": {
+        "3": 400000
+      },
+      "fashion_core": {
+        "2": 400000
+      },
+      "fitness_core": {
+        "2": 400000
+      },
+      "gaming_core": {
+        "2": 400000
+      },
+      "fitness_commercial": {
+        "5": 400000
+      }
+    },
+    "source:synthetic": {
+      "coffee_pair": {
+        "2": 400000
+      },
+      "coffee_core": {
+        "3": 400000
+      },
+      "coffee_commercial": {
+        "6": 400000
+      },
+      "cooking_core": {
+        "3": 400000
+      },
+      "fashion_core": {
+        "2": 400000
+      },
+      "fitness_core": {
+        "2": 400000
+      },
+      "gaming_core": {
+        "2": 400000
+      },
+      "fitness_commercial": {
+        "5": 400000
+      }
+    }
+  }
+}

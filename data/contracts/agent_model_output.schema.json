@@ -1,0 +1,730 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://projectdut.local/schemas/agent-model-output.schema.json",
+  "title": "ProjectDut agent model output",
+  "description": "Normalized internal contract produced by a JEV adapter or the structured-output LLM fallback.",
+  "unevaluatedProperties": false,
+  "oneOf": [
+    {
+      "$ref": "#/$defs/attention_score_output"
+    },
+    {
+      "$ref": "#/$defs/tag_scores_output"
+    },
+    {
+      "$ref": "#/$defs/choice_output"
+    },
+    {
+      "$ref": "#/$defs/unresolved_output"
+    },
+    {
+      "$ref": "#/$defs/empty_result_output"
+    }
+  ],
+  "$defs": {
+    "source": {
+      "type": "string",
+      "enum": [
+        "jev",
+        "llm_fallback"
+      ]
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_score",
+        "normalized_score",
+        "scale_id"
+      ],
+      "properties": {
+        "raw_score": {
+          "type": "number"
+        },
+        "normalized_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "scale_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "common_resolved": {
+      "type": "object",
+      "required": [
+        "contract_version",
+        "contract_kind",
+        "stage",
+        "contract_variant",
+        "status",
+        "source"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "1.0-draft"
+        },
+        "status": {
+          "const": "resolved"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "normalization_policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selection_policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attention": {
+          "$ref": "#/$defs/score"
+        },
+        "decision": {
+          "type": "object"
+        },
+        "reason_state_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_tags": {
+          "type": "array"
+        },
+        "answer": {
+          "type": "string"
+        }
+      }
+    },
+    "attention_common": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common_resolved"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "contract_kind": {
+              "const": "attention_score"
+            },
+            "stage": {
+              "enum": [
+                "A1",
+                "B1"
+              ]
+            },
+            "contract_variant": {
+              "enum": [
+                "first_encounter",
+                "repeat_encounter",
+                "first_product_encounter",
+                "repeat_product_encounter"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "attention_score_output": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/attention_common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "attention",
+                "decision"
+              ],
+              "properties": {
+                "stage": {
+                  "const": "A1"
+                },
+                "contract_variant": {
+                  "const": "first_encounter"
+                },
+                "attention": {
+                  "$ref": "#/$defs/score"
+                },
+                "decision": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "action",
+                    "policy_id"
+                  ],
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "attend",
+                        "skip"
+                      ]
+                    },
+                    "policy_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "reason_state_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/attention_common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "attention",
+                "decision"
+              ],
+              "properties": {
+                "stage": {
+                  "const": "A1"
+                },
+                "contract_variant": {
+                  "const": "repeat_encounter"
+                },
+                "attention": {
+                  "$ref": "#/$defs/score"
+                },
+                "decision": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "action",
+                    "policy_id"
+                  ],
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "attend_again",
+                        "skip"
+                      ]
+                    },
+                    "policy_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "reason_state_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/attention_common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "attention",
+                "decision"
+              ],
+              "properties": {
+                "stage": {
+                  "const": "B1"
+                },
+                "contract_variant": {
+                  "const": "first_product_encounter"
+                },
+                "attention": {
+                  "$ref": "#/$defs/score"
+                },
+                "decision": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "action",
+                    "policy_id"
+                  ],
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "attend",
+                        "skip"
+                      ]
+                    },
+                    "policy_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "reason_state_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/attention_common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "attention",
+                "decision"
+              ],
+              "properties": {
+                "stage": {
+                  "const": "B1"
+                },
+                "contract_variant": {
+                  "const": "repeat_product_encounter"
+                },
+                "attention": {
+                  "$ref": "#/$defs/score"
+                },
+                "decision": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "action",
+                    "policy_id"
+                  ],
+                  "properties": {
+                    "action": {
+                      "enum": [
+                        "attend_again",
+                        "skip"
+                      ]
+                    },
+                    "policy_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "reason_state_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "tag_scores_output": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common_resolved"
+        },
+        {
+          "type": "object",
+          "required": [
+            "contract_kind",
+            "stage",
+            "contract_variant",
+            "status",
+            "source",
+            "selected_tags"
+          ],
+          "properties": {
+            "contract_kind": {
+              "const": "tag_scores"
+            },
+            "stage": {
+              "enum": [
+                "A1R",
+                "A2",
+                "A3",
+                "B1R",
+                "B2"
+              ]
+            },
+            "contract_variant": {
+              "enum": [
+                "skip_reason",
+                "first_attention",
+                "repeat_attention",
+                "first_read",
+                "repeat_read",
+                "first_consideration",
+                "repeat_consideration"
+              ]
+            },
+            "selected_tags": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "tag_id",
+                  "description",
+                  "score"
+                ],
+                "properties": {
+                  "tag_id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z_]+\\.[a-z][a-z_]+$"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "score": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            },
+            "normalization_policy_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "selection_policy_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "choice_output": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/choice_a4_first"
+        },
+        {
+          "$ref": "#/$defs/choice_a4_existing"
+        },
+        {
+          "$ref": "#/$defs/choice_a5_first"
+        },
+        {
+          "$ref": "#/$defs/choice_a5_repeat"
+        },
+        {
+          "$ref": "#/$defs/choice_b3_first"
+        },
+        {
+          "$ref": "#/$defs/choice_b3_repeat"
+        }
+      ]
+    },
+    "choice_base": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common_resolved"
+        },
+        {
+          "type": "object",
+          "required": [
+            "contract_kind",
+            "stage",
+            "contract_variant",
+            "status",
+            "source",
+            "answer"
+          ],
+          "properties": {
+            "contract_kind": {
+              "const": "choice"
+            },
+            "answer": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "choice_a4_first": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/choice_base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "const": "A4"
+            },
+            "contract_variant": {
+              "const": "first_reaction"
+            },
+            "answer": {
+              "enum": [
+                "like",
+                "dislike",
+                "no_reaction"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "choice_a4_existing": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/choice_base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "const": "A4"
+            },
+            "contract_variant": {
+              "const": "existing_reaction"
+            },
+            "answer": {
+              "enum": [
+                "keep_current",
+                "remove_reaction",
+                "no_new_reaction"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "choice_a5_first": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/choice_base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "const": "A5"
+            },
+            "contract_variant": {
+              "const": "first_visit"
+            },
+            "answer": {
+              "enum": [
+                "visit",
+                "not_visit"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "choice_a5_repeat": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/choice_base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "const": "A5"
+            },
+            "contract_variant": {
+              "const": "repeat_visit"
+            },
+            "answer": {
+              "enum": [
+                "visit_again",
+                "not_visit_again"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "choice_b3_first": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/choice_base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "const": "B3"
+            },
+            "contract_variant": {
+              "const": "first_purchase"
+            },
+            "answer": {
+              "enum": [
+                "buy",
+                "not_buy"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "choice_b3_repeat": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/choice_base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "const": "B3"
+            },
+            "contract_variant": {
+              "const": "repeat_purchase"
+            },
+            "answer": {
+              "enum": [
+                "buy_again",
+                "not_buy_again"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "empty_result_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "contract_kind",
+        "stage",
+        "contract_variant",
+        "status",
+        "source",
+        "selected_tags",
+        "normalization_policy_id",
+        "selection_policy_id",
+        "reason_code"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "1.0-draft"
+        },
+        "contract_kind": {
+          "const": "empty_result"
+        },
+        "stage": {
+          "enum": ["A1R", "A2", "A3", "B1R", "B2"]
+        },
+        "contract_variant": {
+          "enum": [
+            "skip_reason",
+            "first_attention",
+            "repeat_attention",
+            "first_read",
+            "repeat_read",
+            "first_consideration",
+            "repeat_consideration"
+          ]
+        },
+        "status": {
+          "const": "empty_result"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "selected_tags": {
+          "const": []
+        },
+        "normalization_policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selection_policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason_code": {
+          "const": "no_item_above_score_floor"
+        }
+      }
+    },
+    "unresolved_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "contract_kind",
+        "stage",
+        "contract_variant",
+        "status",
+        "reason_code"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": "1.0-draft"
+        },
+        "contract_kind": {
+          "const": "unresolved"
+        },
+        "stage": {
+          "enum": [
+            "A1",
+            "A1R",
+            "A2",
+            "A3",
+            "A4",
+            "A5",
+            "B1",
+            "B1R",
+            "B2",
+            "B3"
+          ]
+        },
+        "contract_variant": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "const": "unresolved"
+        },
+        "reason_code": {
+          "enum": [
+            "jev_empty",
+            "jev_invalid",
+            "fallback_empty",
+            "fallback_invalid",
+            "no_item_above_score_floor",
+            "fallback_exhausted"
+          ]
+        },
+        "dependent_branch": {
+          "enum": [
+            "stop",
+            "continue"
+          ],
+          "default": "stop"
+        }
+      }
+    }
+  }
+}

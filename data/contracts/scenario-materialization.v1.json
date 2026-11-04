@@ -1,0 +1,23 @@
+{
+  "format": "projectdut_scenario_materialization",
+  "version": "scenario-materialization-v1",
+  "description": "Optional marketer input used to resolve a prepared persona cohort before scenario validation.",
+  "persona_cohort": {
+    "cohort_path": "data/personas/cafe_mvp/cohort.jsonl",
+    "manifest_path": "data/personas/cafe_mvp/manifest.json",
+    "agent_count": 100
+  },
+  "materialized_outputs": [
+    "agents",
+    "customer_structure.agent_ids",
+    "persona_cohort_snapshot",
+    "relationship_assignments"
+  ],
+  "invariants": [
+    "The selected cohort and industry profile must match the scenario.",
+    "Every materialized agent has one stable agent_id and one persona snapshot.",
+    "The customer structure partitions all materialized agents exactly once.",
+    "Relationship assignment occurs after persona materialization and before the run starts.",
+    "The cohort files, manifest and profile versions are frozen in the run snapshot."
+  ]
+}

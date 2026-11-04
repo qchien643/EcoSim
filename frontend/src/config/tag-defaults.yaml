@@ -1,0 +1,18 @@
+{
+  "business": {
+    "source_field": "brand_description",
+    "visible_stages": ["A1", "A2", "A3", "A5", "B1", "B2", "B3"]
+  },
+  "shop": {
+    "source_field": "public_profile",
+    "visible_stages": ["A1", "A2", "A3", "A5", "B1", "B2", "B3"]
+  },
+  "article": {
+    "source_field": "preview",
+    "visible_stages": ["A1", "A2", "A3"]
+  },
+  "product": {
+    "source_field": "product_description",
+    "visible_stages": ["B2", "B3"]
+  }
+}

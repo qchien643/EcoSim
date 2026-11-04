@@ -1,0 +1,513 @@
+{
+  "format": "projectdut_tag_persona_mapping",
+  "format_version": 1,
+  "status": "draft",
+  "language": "en",
+  "industry": "cafe",
+  "purpose": "Candidate persona fields for context mapping, selected by enterprise, article, or product tags.",
+  "references": {
+    "tag_vocabulary": {"path": "data/tags/projectdut_cafe_tags.schema.json", "format_version": 1},
+    "persona_schema": {"path": "data/matraix/persona_1m/projectdut_persona.schema.json", "format_version": 2}
+  },
+  "scope": {
+    "article": "article_thought",
+    "product": "product_thought",
+    "enterprise": "enterprise_context",
+    "thought": "out_of_scope",
+    "emotion": "out_of_scope"
+  },
+  "priority_definitions": {
+    "primary": "Review first: the field describes a closely related preference, attitude, or way of processing information.",
+    "supporting": "Optional background context with a less direct relationship to the tag."
+  },
+  "status_definitions": {
+    "mapped": "One or more candidate fields are available, subject to the stated limitations.",
+    "no_available_field": "No sufficiently specific link is proposed within the current 70-field subset.",
+    "campaign_metadata": "The tag expresses campaign intent, not evidence about the individual."
+  },
+  "interpretation_rules": [
+    "Links are project-authored relevance hypotheses, not validated causal relationships.",
+    "Priority concerns context selection, not recommendation scores or action probabilities.",
+    "No link specifies whether a persona will like, dislike, comment, buy, or not buy.",
+    "Use only valid values actually available for the individual; do not impute missing fields or pad a context to 15 fields.",
+    "Retain original enum strings. The string None is a valid value where declared, not a missing value.",
+    "A tag ID and a persona field ID belong to separate namespaces, even when both are topic_coffee.",
+    "Enterprise tags describe public organization or brand context; they do not establish that an agent knows, trusts, or prefers the enterprise.",
+    "Multiple tags may refer to the same field. Deduplicate fields when assembling context; repeated links are not independent evidence.",
+    "This file does not implement per-persona top-15 ranking, prompt assembly, or recommendation policy.",
+    "Do not pass these fields again to emotion or action steps merely because they appear in this mapping.",
+    "Customer testimonials inside an article are distinct from other agents' comments, which remain unavailable to the agent."
+  ],
+  "mappings": [
+    {
+      "tag_id": "enterprise_local", "family": "enterprise", "flow": "enterprise_context", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The current persona subset has no sufficiently specific field for preference toward local enterprises."]
+    },
+    {
+      "tag_id": "enterprise_chain", "family": "enterprise", "flow": "enterprise_context", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The current persona subset has no sufficiently specific field for preference toward chain businesses."]
+    },
+    {
+      "tag_id": "enterprise_new_brand", "family": "enterprise", "flow": "enterprise_context", "status": "mapped",
+      "links": [
+        {"field_id": "pref_novelty_vs_familiarity", "priority": "primary", "reason": "A newly established brand introduces a novel brand context."},
+        {"field_id": "pref_early_vs_late", "priority": "supporting", "reason": "Adoption timing can be relevant when an agent encounters a new brand."},
+        {"field_id": "trait_curiosity", "priority": "supporting", "reason": "Curiosity supplies background for exploring an unfamiliar brand context."}
+      ],
+      "limitations": ["Brand newness does not establish that the agent has not encountered the brand before or will prefer it."]
+    },
+    {
+      "tag_id": "enterprise_established_brand", "family": "enterprise", "flow": "enterprise_context", "status": "mapped",
+      "links": [
+        {"field_id": "att_brand_loyalty", "priority": "supporting", "reason": "An established brand context can be considered alongside general attitudes toward brand loyalty."},
+        {"field_id": "pref_novelty_vs_familiarity", "priority": "supporting", "reason": "Established positioning provides context for familiarity-oriented preferences."}
+      ],
+      "limitations": ["Established in the market does not mean personally familiar to the agent or imply loyalty."]
+    },
+    {
+      "tag_id": "enterprise_premium_positioning", "family": "enterprise", "flow": "enterprise_context", "status": "mapped",
+      "links": [
+        {"field_id": "economic_motivation", "priority": "primary", "reason": "Premium positioning is relevant to economic priorities and value appraisal."},
+        {"field_id": "pref_quality_vs_quantity", "priority": "primary", "reason": "Premium positioning may be considered alongside quality-versus-quantity preferences."},
+        {"field_id": "pref_save_vs_spend", "priority": "supporting", "reason": "Saving and spending preferences provide context for higher-price positioning."}
+      ],
+      "limitations": ["Premium positioning does not establish actual quality, affordability, or willingness to pay."]
+    },
+    {
+      "tag_id": "enterprise_value_positioning", "family": "enterprise", "flow": "enterprise_context", "status": "mapped",
+      "links": [
+        {"field_id": "economic_motivation", "priority": "primary", "reason": "Value positioning is relevant to economic priorities."},
+        {"field_id": "pref_save_vs_spend", "priority": "primary", "reason": "Saving and spending preferences provide context for affordability-oriented communication."},
+        {"field_id": "lstyle_shopping_style", "priority": "supporting", "reason": "Shopping style supplies background for interpreting practical value claims."}
+      ],
+      "limitations": ["Value positioning does not establish the actual price, savings, or perceived value for this agent."]
+    },
+    {
+      "tag_id": "enterprise_quality_focused", "family": "enterprise", "flow": "enterprise_context", "status": "mapped",
+      "links": [
+        {"field_id": "pref_quality_vs_quantity", "priority": "primary", "reason": "Quality-focused positioning is directly related to quality-versus-quantity preferences."},
+        {"field_id": "cog_skepticism", "priority": "supporting", "reason": "Quality claims may be examined or questioned."}
+      ],
+      "limitations": ["A public quality emphasis is a brand claim and does not establish actual quality or agent agreement."]
+    },
+    {
+      "tag_id": "enterprise_convenience_focused", "family": "enterprise", "flow": "enterprise_context", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The current persona subset has no sufficiently specific preference for convenience or reduced effort."]
+    },
+    {
+      "tag_id": "enterprise_community_oriented", "family": "enterprise", "flow": "enterprise_context", "status": "mapped",
+      "links": [
+        {"field_id": "bfi2_facet_sociability", "priority": "supporting", "reason": "Sociability supplies background for interpreting a public community-oriented identity."}
+      ],
+      "limitations": ["A community-oriented identity does not establish belonging, local connection, or acceptance by the agent."]
+    },
+    {
+      "tag_id": "enterprise_sustainability_oriented", "family": "enterprise", "flow": "enterprise_context", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The current persona subset has no sufficiently specific sustainability value or preference field."]
+    },
+    {
+      "tag_id": "enterprise_transparent", "family": "enterprise", "flow": "enterprise_context", "status": "mapped",
+      "links": [
+        {"field_id": "cog_skepticism", "priority": "primary", "reason": "Transparency claims can be considered alongside tendencies to scrutinize claims."},
+        {"field_id": "att_advertising", "priority": "supporting", "reason": "Public openness about products or practices is part of commercial communication."}
+      ],
+      "limitations": ["A transparency claim does not establish that the information is complete or trusted."]
+    },
+    {
+      "tag_id": "enterprise_innovative", "family": "enterprise", "flow": "enterprise_context", "status": "mapped",
+      "links": [
+        {"field_id": "pref_novelty_vs_familiarity", "priority": "primary", "reason": "Innovative positioning introduces novelty in the brand context."},
+        {"field_id": "trait_curiosity", "priority": "supporting", "reason": "Curiosity supplies background for exploring an innovative brand identity."}
+      ],
+      "limitations": ["Innovative positioning does not establish product novelty, quality, or interest."]
+    },
+    {
+      "tag_id": "topic_coffee", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "topic_coffee", "priority": "primary", "reason": "Interest in coffee provides topic-specific context for a post about coffee."},
+        {"field_id": "lstyle_coffee_ritual", "priority": "supporting", "reason": "An existing coffee-use context can help interpret examples involving coffee."}
+      ],
+      "limitations": ["Interest in coffee does not establish flavor preferences or approval of this post."]
+    },
+    {
+      "tag_id": "topic_product_launch", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "pref_novelty_vs_familiarity", "priority": "primary", "reason": "The post explicitly introduces something new rather than an established option."},
+        {"field_id": "pref_early_vs_late", "priority": "primary", "reason": "Adoption timing is relevant when considering a newly introduced offering."},
+        {"field_id": "trait_curiosity", "priority": "supporting", "reason": "General curiosity supplies background for exploring an unfamiliar offering."}
+      ],
+      "limitations": ["Catalog novelty does not establish whether this individual has seen or tried the product."]
+    },
+    {
+      "tag_id": "topic_brand_story", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "att_advertising", "priority": "supporting", "reason": "The brand story is presented as campaign communication."},
+        {"field_id": "cog_skepticism", "priority": "supporting", "reason": "The story may contain identity or background claims that invite scrutiny."}
+      ],
+      "limitations": ["The subset has no explicit preference for brand narratives. General brand-loyalty attitudes are not loyalty to this brand."]
+    },
+    {
+      "tag_id": "topic_how_it_works", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "need_for_cognition", "priority": "primary", "reason": "Explanations involve processing how a product or process works."},
+        {"field_id": "cog_detail_orientation", "priority": "primary", "reason": "Process explanations may present details to examine."}
+      ],
+      "limitations": ["General reasoning tendencies do not establish knowledge of the specific process."]
+    },
+    {
+      "tag_id": "topic_offer", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "economic_motivation", "priority": "primary", "reason": "Economic motivation provides context for evaluating a commercial offer."},
+        {"field_id": "lstyle_shopping_style", "priority": "primary", "reason": "Shopping style distinguishes approaches to offers and bargains."},
+        {"field_id": "pref_save_vs_spend", "priority": "supporting", "reason": "Saving or spending preferences provide background for considering expenditure."}
+      ],
+      "limitations": ["The tag does not establish the offer's actual price, savings, or value."]
+    },
+    {
+      "tag_id": "topic_social_proof", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "cog_skepticism", "priority": "primary", "reason": "Presented evidence, popularity claims, or endorsements can invite verification."},
+        {"field_id": "big5_trust", "priority": "supporting", "reason": "General interpersonal trust provides background for considering others' statements."}
+      ],
+      "limitations": ["This broad tag does not identify whether the evidence is a review or influencer endorsement. Do not assume either or expose live agent comments."]
+    },
+    {
+      "tag_id": "topic_lifestyle", "family": "article", "flow": "article_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The tag does not specify which lifestyle, routine, or occasion is described. Demographics cannot substitute for that missing context."]
+    },
+    {
+      "tag_id": "topic_problem_solution", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "decision_style", "priority": "supporting", "reason": "Decision style supplies context for evaluating a proposed solution."},
+        {"field_id": "cog_skepticism", "priority": "supporting", "reason": "A claim that an offering solves a problem may invite scrutiny."}
+      ],
+      "limitations": ["The tag does not establish that the individual has the stated problem."]
+    },
+    {
+      "tag_id": "topic_community", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "bfi2_facet_sociability", "priority": "supporting", "reason": "Sociability provides background for interpreting an invitation to participate with others."}
+      ],
+      "limitations": ["Sociability does not establish belonging to this community or determine whether its message is welcome."]
+    },
+    {
+      "tag_id": "topic_education", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "bfi2_facet_intellectual_curiosity", "priority": "primary", "reason": "Intellectual curiosity concerns exploring information or ideas."},
+        {"field_id": "need_for_cognition", "priority": "supporting", "reason": "Effortful information processing is relevant to explanatory material."}
+      ],
+      "limitations": ["Interest in learning does not establish knowledge, agreement, or purchase intent."]
+    },
+    {
+      "tag_id": "style_informational", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "need_for_cognition", "priority": "primary", "reason": "The presentation emphasizes information to process rather than only an affective appeal."},
+        {"field_id": "cog_detail_orientation", "priority": "supporting", "reason": "Attention to detail supplies context for examining stated facts."}
+      ],
+      "limitations": ["An informational style does not establish factual accuracy."]
+    },
+    {
+      "tag_id": "style_sensory", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "schwartz_value_hedonism", "priority": "supporting", "reason": "Sensory descriptions can be considered in the context of the importance assigned to enjoyment."}
+      ],
+      "limitations": ["No specific taste, texture, aroma, or temperature preference is represented by this link."]
+    },
+    {
+      "tag_id": "style_storytelling", "family": "article", "flow": "article_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["cog_storytelling describes expression, not a demonstrated preference for receiving narrative advertising."]
+    },
+    {
+      "tag_id": "style_testimonial", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "att_online_reviews", "priority": "primary", "reason": "A customer account presented online overlaps with the subject of attitudes toward online reviews."},
+        {"field_id": "cog_skepticism", "priority": "supporting", "reason": "A testimonial's credibility may be examined."}
+      ],
+      "limitations": ["Only the testimonial supplied in the article is available, not other agents' comments. The account need not be an independent review."]
+    },
+    {
+      "tag_id": "style_conversational", "family": "article", "flow": "article_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The subset contains expression styles but no explicit preference for receiving informal advertising. Sociability is not a substitute."]
+    },
+    {
+      "tag_id": "style_humorous", "family": "article", "flow": "article_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The current subset has no humor preference field. Curiosity or extraversion does not establish which humor the individual enjoys."]
+    },
+    {
+      "tag_id": "style_aspirational", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "att_consumerism", "priority": "supporting", "reason": "An aspirational commercial message may be interpreted in relation to attitudes toward consumerism."}
+      ],
+      "limitations": ["The desired identity or experience is unspecified; do not infer status seeking or premium preference."]
+    },
+    {
+      "tag_id": "style_urgent", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "pref_plan_vs_spontaneous", "priority": "primary", "reason": "An immediate call for attention can be considered alongside planned or spontaneous decision preferences."},
+        {"field_id": "cog_decision_speed", "priority": "supporting", "reason": "Decision-speed tendencies provide context for a time-limited message."},
+        {"field_id": "cog_skepticism", "priority": "supporting", "reason": "Claims of scarcity or limited time can invite verification."}
+      ],
+      "limitations": ["Message urgency is not the individual's time pressure and does not trigger an immediate action."]
+    },
+    {
+      "tag_id": "style_minimal", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "cog_detail_orientation", "priority": "primary", "reason": "A restrained amount of information can be evaluated against attention to detail."},
+        {"field_id": "cog_ambiguity_tolerance", "priority": "supporting", "reason": "Limited explanation may leave uncertainty for the individual to consider."}
+      ],
+      "limitations": ["Minimal presentation is not necessarily incomplete or unclear."]
+    },
+    {
+      "tag_id": "style_comparison", "family": "article", "flow": "article_thought", "status": "mapped",
+      "links": [
+        {"field_id": "decision_style", "priority": "primary", "reason": "Comparison provides alternatives for evaluation."},
+        {"field_id": "cog_detail_orientation", "priority": "supporting", "reason": "Feature differences may require attention to detail."}
+      ],
+      "limitations": ["The tag does not establish which alternative is preferable."]
+    },
+    {
+      "tag_id": "role_awareness", "family": "article", "flow": "article_thought", "status": "campaign_metadata",
+      "links": [],
+      "limitations": ["Campaign intent does not establish whether the individual knows the brand."]
+    },
+    {
+      "tag_id": "role_consideration", "family": "article", "flow": "article_thought", "status": "campaign_metadata",
+      "links": [],
+      "limitations": ["Campaign intent does not establish the individual's current evaluation stage."]
+    },
+    {
+      "tag_id": "role_conversion", "family": "article", "flow": "article_thought", "status": "campaign_metadata",
+      "links": [],
+      "limitations": ["Campaign intent does not establish purchase readiness or increase a purchase probability."]
+    },
+    {
+      "tag_id": "role_retention", "family": "article", "flow": "article_thought", "status": "campaign_metadata",
+      "links": [],
+      "limitations": ["Campaign intent does not establish prior purchase or loyalty; those are separate scenario and history data."]
+    },
+    {
+      "tag_id": "product_coffee_beverage", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "topic_coffee", "priority": "primary", "reason": "Interest in coffee is directly related to the product category."},
+        {"field_id": "lstyle_coffee_ritual", "priority": "supporting", "reason": "Coffee-use habits provide context for considering a prepared beverage."}
+      ],
+      "limitations": ["Coffee category alone does not specify caffeine dose or flavor."]
+    },
+    {
+      "tag_id": "product_tea_beverage", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "topic_tea", "priority": "primary", "reason": "Interest in tea is directly related to the product category."},
+        {"field_id": "lstyle_coffee_ritual", "priority": "supporting", "reason": "The field includes a Tea instead category that may supply relevant beverage-habit context."}
+      ],
+      "limitations": ["Do not treat tea as necessarily caffeine-free or incompatible with liking coffee."]
+    },
+    {
+      "tag_id": "product_pastry", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "topic_baking", "priority": "supporting", "reason": "Interest in baking supplies adjacent context for a baked item."},
+        {"field_id": "skill_baking", "priority": "supporting", "reason": "Baking experience may support interpretation of preparation details if supplied."}
+      ],
+      "limitations": ["Baking interest or skill does not establish appetite, taste preferences, or desire to buy pastries."]
+    },
+    {
+      "tag_id": "product_combo", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "pref_quality_vs_quantity", "priority": "primary", "reason": "A multi-item offer raises a quality-versus-quantity consideration."},
+        {"field_id": "economic_motivation", "priority": "supporting", "reason": "Economic motivation provides context for evaluating combined benefits and cost."}
+      ],
+      "limitations": ["A combo is not necessarily cheaper or better value; component preferences remain separate."]
+    },
+    {
+      "tag_id": "product_packaged_coffee", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "topic_coffee", "priority": "primary", "reason": "Coffee interest concerns the product category."},
+        {"field_id": "lstyle_coffee_ritual", "priority": "primary", "reason": "Coffee-use context distinguishes home preparation from other settings."}
+      ],
+      "limitations": ["The tag does not establish equipment ownership or preparation skill."]
+    },
+    {
+      "tag_id": "product_ready_to_drink", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The subset has no explicit convenience or preparation-effort preference. A work schedule alone does not establish demand for convenience."]
+    },
+    {
+      "tag_id": "flavor_sweet", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No sweetness preference is present in the subset. Enjoyment values do not imply liking sweet products."]
+    },
+    {
+      "tag_id": "flavor_bitter", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["Coffee interest and caffeine use do not establish a preference for bitterness."]
+    },
+    {
+      "tag_id": "flavor_acidic", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No acidity preference is present in the subset."]
+    },
+    {
+      "tag_id": "flavor_creamy", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No creamy-texture preference is present in the subset; creaminess also does not establish dairy content."]
+    },
+    {
+      "tag_id": "flavor_chocolate", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No chocolate-flavor preference is present in the subset."]
+    },
+    {
+      "tag_id": "flavor_fruity", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No fruit-flavor preference is present in the subset."]
+    },
+    {
+      "tag_id": "intensity_light", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No sensory-intensity preference is present in the subset. Light flavor does not mean low caffeine."]
+    },
+    {
+      "tag_id": "intensity_strong", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No sensory-intensity preference is present in the subset. Excitement seeking and caffeine use are not strong-flavor preferences."]
+    },
+    {
+      "tag_id": "temperature_hot", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No serving-temperature preference is present in the subset. Geographic region is not a substitute."]
+    },
+    {
+      "tag_id": "temperature_iced", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No serving-temperature preference is present in the subset. Geographic region is not a substitute."]
+    },
+    {
+      "tag_id": "occasion_morning", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "lstyle_sleep_schedule", "priority": "supporting", "reason": "Sleep schedule provides background for interpreting a morning use occasion."},
+        {"field_id": "lstyle_work_schedule", "priority": "supporting", "reason": "Work schedule provides background for a suggested morning routine."}
+      ],
+      "limitations": ["A simulation session is not a time of day. Neither field establishes a morning purchase habit."]
+    },
+    {
+      "tag_id": "occasion_work_break", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "lstyle_work_schedule", "priority": "supporting", "reason": "Work schedule supplies background for a work-break use occasion."},
+        {"field_id": "lstyle_coffee_ritual", "priority": "supporting", "reason": "Coffee-use context can include office coffee when considering this occasion."}
+      ],
+      "limitations": ["These fields do not specify actual break times, current location, or availability."]
+    },
+    {
+      "tag_id": "occasion_social", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "bfi2_facet_sociability", "priority": "supporting", "reason": "Sociability supplies background for considering a social use occasion."}
+      ],
+      "limitations": ["Introversion does not imply avoiding this occasion or disliking change."]
+    },
+    {
+      "tag_id": "occasion_study", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["No current study setting or study-beverage preference is present. Life stage and attention span do not establish either."]
+    },
+    {
+      "tag_id": "occasion_treat", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "schwartz_value_hedonism", "priority": "primary", "reason": "A treat is presented in terms of enjoyment."},
+        {"field_id": "pref_save_vs_spend", "priority": "supporting", "reason": "Saving or spending preferences provide context for discretionary expenditure."}
+      ],
+      "limitations": ["Valuing enjoyment does not establish liking this particular treat."]
+    },
+    {
+      "tag_id": "price_budget", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "economic_motivation", "priority": "primary", "reason": "The tag states relative price positioning, which is relevant to economic priorities."},
+        {"field_id": "pref_save_vs_spend", "priority": "supporting", "reason": "Saving and spending preferences provide background for price appraisal."}
+      ],
+      "limitations": ["A catalog-relative budget tier does not establish affordability, quality, or the individual's budget."]
+    },
+    {
+      "tag_id": "price_standard", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "economic_motivation", "priority": "primary", "reason": "Relative price positioning can be considered alongside economic priorities."},
+        {"field_id": "pref_save_vs_spend", "priority": "supporting", "reason": "Saving and spending preferences provide background for price appraisal."}
+      ],
+      "limitations": ["A standard tier is not automatically acceptable to an individual."]
+    },
+    {
+      "tag_id": "price_premium", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "economic_motivation", "priority": "primary", "reason": "Economic motivation includes cost, value, and premium positioning."},
+        {"field_id": "pref_save_vs_spend", "priority": "supporting", "reason": "Saving and spending preferences provide background for considering higher expenditure."}
+      ],
+      "limitations": ["A premium price does not prove superior quality. Income group alone does not establish willingness to pay."]
+    },
+    {
+      "tag_id": "availability_new", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "pref_novelty_vs_familiarity", "priority": "primary", "reason": "The offering is identified as new in the catalog."},
+        {"field_id": "pref_early_vs_late", "priority": "primary", "reason": "Adoption timing provides context for considering newly introduced offerings."},
+        {"field_id": "trait_curiosity", "priority": "supporting", "reason": "Curiosity supplies background for exploring an unfamiliar offering."}
+      ],
+      "limitations": ["Newness does not imply liking, risk, purchase intent, or lack of prior exposure for this agent."]
+    },
+    {
+      "tag_id": "availability_signature", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "att_advertising", "priority": "supporting", "reason": "Signature positioning is a brand's promotional description."},
+        {"field_id": "cog_skepticism", "priority": "supporting", "reason": "A claim of distinctiveness may invite examination."}
+      ],
+      "limitations": ["Signature positioning does not establish quality, popularity, familiarity, or loyalty."]
+    },
+    {
+      "tag_id": "availability_familiar", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["This tag means established in the catalog, not personally familiar to the agent. Personal exposure requires separate history; do not substitute pref_novelty_vs_familiarity for that evidence."]
+    },
+    {
+      "tag_id": "offer_discount", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "economic_motivation", "priority": "primary", "reason": "A reduced price is relevant to economic priorities."},
+        {"field_id": "lstyle_shopping_style", "priority": "primary", "reason": "Shopping style includes how a person approaches bargains."},
+        {"field_id": "cog_skepticism", "priority": "supporting", "reason": "A discount claim may require verification against its terms."}
+      ],
+      "limitations": ["The tag does not provide discount size or establish genuine savings."]
+    },
+    {
+      "tag_id": "offer_bundle", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "pref_quality_vs_quantity", "priority": "primary", "reason": "Multiple items or benefits create a quality-versus-quantity consideration."},
+        {"field_id": "economic_motivation", "priority": "supporting", "reason": "Economic priorities provide context for evaluating combined cost and benefits."}
+      ],
+      "limitations": ["Bundling does not establish savings or interest in every component."]
+    },
+    {
+      "tag_id": "option_vegan", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The current subset contains no diet-type or vegan-preference field. Personality, culture, or region must not substitute for dietary information."]
+    },
+    {
+      "tag_id": "option_low_sugar", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The subset has no sugar preference or intake target. Do not infer a health condition or dietary restriction."]
+    },
+    {
+      "tag_id": "option_decaf", "family": "product", "flow": "product_thought", "status": "mapped",
+      "links": [
+        {"field_id": "lstyle_caffeine", "priority": "primary", "reason": "Caffeine-use level is related to the stated caffeine characteristic."}
+      ],
+      "limitations": ["Consumption level is not a medical restriction, desired dose, or decaf preference. Use product details for the exact caffeine claim."]
+    },
+    {
+      "tag_id": "option_dairy_free", "family": "product", "flow": "product_thought", "status": "no_available_field",
+      "links": [],
+      "limitations": ["The subset has no dairy preference, allergy, or intolerance field. None may be inferred from other traits."]
+    }
+  ]
+}

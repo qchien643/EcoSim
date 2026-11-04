@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "projectdut/scenario-input-v1",
+  "title": "ProjectDut Scenario Input",
+  "description": "Resolved scenario snapshot accepted by the deterministic loader before a simulation run.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "run_id",
+    "scenario_id",
+    "campaign_id",
+    "organization_id",
+    "brand_id",
+    "industry_id",
+    "industry_profile_version",
+    "sessions",
+    "agents",
+    "shops",
+    "posts",
+    "products"
+  ],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "scenario_id": {"type": "string", "minLength": 1},
+    "campaign_id": {"type": "string", "minLength": 1},
+    "organization_id": {"type": "string", "minLength": 1},
+    "brand_id": {"type": "string", "minLength": 1},
+    "industry_id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+    "industry_profile_version": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+    "industry_profile_snapshot": {
+      "description": "Loader-generated profile and asset hashes; supplied snapshots must match the installed bundle.",
+      "type": "object"
+    },
+    "policy_version": {"type": "string", "minLength": 1},
+    "scenario_schema_version": {
+      "const": "scenario-input-v1"
+    },
+    "session_count": {"type": "integer", "minimum": 1},
+    "sessions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/session"}
+    },
+    "agents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/agent"}
+    },
+    "shops": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/shop"}
+    },
+    "posts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/post"}
+    },
+    "products": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/product"}
+    },
+    "persona_cohort": {"$ref": "#/$defs/personaCohortReference"},
+    "persona_cohort_snapshot": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "customer_structure": {"$ref": "#/$defs/customerStructure"},
+    "relationship_initialization": {
+      "$ref": "#/$defs/relationshipInitialization"
+    },
+    "relationship_assignments": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/relationshipAssignment"}
+    },
+    "validation_warnings": {
+      "type": "array",
+      "items": {"type": "object"}
+    }
+  },
+  "$defs": {
+    "owner": {
+      "type": "object",
+      "required": ["organization_id", "brand_id"],
+      "properties": {
+        "organization_id": {"type": "string", "minLength": 1},
+        "brand_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "tagAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tag_id", "source_ref", "visible_stages"],
+      "properties": {
+        "tag_id": {"type": "string", "minLength": 1},
+        "source_ref": {"type": "string", "minLength": 1},
+        "visible_stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "sessionPost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["post_id", "position"],
+      "properties": {
+        "post_id": {"type": "string", "minLength": 1},
+        "position": {"type": "integer", "minimum": 1}
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["session_id", "session_no"],
+      "properties": {
+        "session_id": {"type": "string", "minLength": 1},
+        "session_no": {"type": "integer", "minimum": 1},
+        "active_agents": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "posts": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/sessionPost"}
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent_id", "persona"],
+      "properties": {
+        "agent_id": {"type": "string", "minLength": 1},
+        "source_persona_id": {"type": "string", "minLength": 1},
+        "persona_provenance": {"type": "object"},
+        "field_provenance": {"type": "object"},
+        "cohort_bucket": {"type": ["string", "null"]},
+        "persona": {
+          "type": "object",
+          "additionalProperties": true,
+          "minProperties": 1
+        }
+      }
+    },
+    "shop": {
+      "allOf": [
+        {"$ref": "#/$defs/owner"},
+        {
+          "type": "object",
+          "required": ["shop_id", "public_profile", "tags"],
+          "properties": {
+            "shop_id": {"type": "string", "minLength": 1},
+            "public_profile": {"type": "string", "minLength": 1},
+            "tags": {
+              "type": "array",
+              "items": {"$ref": "#/$defs/tagAssignment"}
+            }
+          }
+        }
+      ]
+    },
+    "post": {
+      "allOf": [
+        {"$ref": "#/$defs/owner"},
+        {
+          "type": "object",
+          "required": [
+            "post_id",
+            "shop_id",
+            "title",
+            "preview",
+            "article_content",
+            "tags"
+          ],
+          "properties": {
+            "post_id": {"type": "string", "minLength": 1},
+            "shop_id": {"type": "string", "minLength": 1},
+            "title": {"type": "string", "minLength": 1},
+            "preview": {"type": "string", "minLength": 1},
+            "article_content": {"type": "string", "minLength": 1},
+            "tags": {
+              "type": "array",
+              "items": {"$ref": "#/$defs/tagAssignment"}
+            }
+          }
+        }
+      ]
+    },
+    "product": {
+      "allOf": [
+        {"$ref": "#/$defs/owner"},
+        {
+          "type": "object",
+          "required": [
+            "product_id",
+            "shop_id",
+            "position",
+            "product_name",
+            "listed_price",
+            "product_description",
+            "tags"
+          ],
+          "properties": {
+            "product_id": {"type": "string", "minLength": 1},
+            "shop_id": {"type": "string", "minLength": 1},
+            "position": {"type": "integer", "minimum": 1},
+            "product_name": {"type": "string", "minLength": 1},
+            "listed_price": {"type": "string", "minLength": 1},
+            "product_description": {"type": "string", "minLength": 1},
+            "tags": {
+              "type": "array",
+              "items": {"$ref": "#/$defs/tagAssignment"}
+            }
+          }
+        }
+      ]
+    },
+    "relationshipState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "awareness",
+        "familiarity",
+        "attitude",
+        "purchase_history"
+      ],
+      "properties": {
+        "awareness": {"enum": ["unknown", "aware"]},
+        "familiarity": {"enum": ["none", "low", "established"]},
+        "attitude": {
+          "enum": ["not_formed", "positive", "neutral", "negative"]
+        },
+        "purchase_history": {"enum": ["none", "has_purchased"]}
+      }
+    },
+    "relationshipGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["group_id", "state"],
+      "properties": {
+        "group_id": {"type": "string", "minLength": 1},
+        "state": {"$ref": "#/$defs/relationshipState"},
+        "count": {"type": "integer", "minimum": 0},
+        "percentage": {"type": "number", "minimum": 0, "maximum": 100}
+      },
+      "oneOf": [
+        {"required": ["count"], "not": {"required": ["percentage"]}},
+        {"required": ["percentage"], "not": {"required": ["count"]}}
+      ]
+    },
+    "relationshipInitialization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed", "groups"],
+      "properties": {
+        "seed": {"type": "integer", "minimum": 0},
+        "groups": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/relationshipGroup"}
+        }
+      }
+    },
+    "relationshipAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_id",
+        "organization_id",
+        "brand_id",
+        "group_id",
+        "state",
+        "provenance"
+      ],
+      "properties": {
+        "agent_id": {"type": "string", "minLength": 1},
+        "organization_id": {"type": "string", "minLength": 1},
+        "brand_id": {"type": "string", "minLength": 1},
+        "group_id": {"type": "string", "minLength": 1},
+        "state": {"$ref": "#/$defs/relationshipState"},
+        "provenance": {"type": "object"}
+      }
+    },
+    "customerGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["group_id", "agent_ids"],
+      "properties": {
+        "group_id": {"type": "string", "minLength": 1},
+        "agent_ids": {
+          "type": "array",
+          "minItems": 0,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "count": {"type": "integer", "minimum": 0},
+        "percentage": {"type": "number", "minimum": 0, "maximum": 100}
+      },
+      "oneOf": [
+        {"required": ["count"], "not": {"required": ["percentage"]}},
+        {"required": ["percentage"], "not": {"required": ["count"]}}
+      ]
+    },
+    "customerStructure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total_agents", "groups"],
+      "properties": {
+        "total_agents": {"type": "integer", "minimum": 1},
+        "assignment_seed": {"type": "integer", "minimum": 0},
+        "groups": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/customerGroup"}
+        }
+      }
+    },
+    "personaCohortReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cohort_path"],
+      "properties": {
+        "cohort_path": {"type": "string", "minLength": 1},
+        "manifest_path": {"type": "string", "minLength": 1},
+        "agent_count": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

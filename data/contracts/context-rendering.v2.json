@@ -1,0 +1,144 @@
+{
+  "format": "agent_context_rendering_contract",
+  "version": "2.2-stage-memory-experiment",
+  "status": "runtime_experiment_not_calibrated",
+  "language": "en",
+  "purpose": "Render self-contained prompts from deterministic stage context without exposing internal registry identifiers.",
+  "inputs": {
+    "stage": "Internal stage identifier used by the renderer.",
+    "scope": "run_id, agent_id, object_type and object_id; internal only.",
+    "encounter_no": "Positive encounter sequence number for this object.",
+    "persona": "Selected field IDs and enum values; definitions are joined from the canonical schema.",
+    "visible_tags": "Tag assignments with tag_id, source_ref and visible_stages; definitions are joined from the registry.",
+    "facts": "Only stage-permitted textual facts: full article content at reading, or visible product facts in shop stages.",
+    "current_state": "Output from an earlier stage in the current encounter, when the contract permits it.",
+    "previous_same_stage_state": "Latest state for the same run, agent, object, and stage.",
+    "previous_attention_reason": "Separately scoped A1R/B1R memory tied to the previous A1/B1 skip encounter.",
+    "history": "Trusted counters or current reaction used to render context and choose allowed answers.",
+    "relationship_state": "Stage-filtered current relationship summary with the advertised brand.",
+    "brand_history": "Stage-filtered counts of prior interactions with the same brand, before the current encounter.",
+    "article_memory_summary": "A1 only: actual prior exposure/read counts and latest A1, A3, A4, A5 records for the same object. A1R reuses this exact snapshot.",
+    "product_memory_summary": "B1: actual prior exposure/purchase counts and latest B1, B2, B3 records. B2: purchase count and latest B3 only. B1R reuses the B1 snapshot.",
+    "attention_snapshot": "For A1R/B1R only: validated attention input plus the current resolved skip decision."
+  },
+  "rendering_rules": [
+    "Render a role and current situation before object and persona details.",
+    "Render canonical descriptions rather than internal tag or field IDs.",
+    "Render persona as a canonical field description followed by its exact enum label; do not invent stronger wording.",
+    "Render missing values as absent; never render missing as neutral, negative, or zero.",
+    "Render an explicit enum value such as None according to its canonical meaning.",
+    "Render previous state as a memory of the same agent and object, not as internal state terminology.",
+    "Keep current upstream state separate from previous same-stage memory.",
+    "Include only object facts permitted by the stage contract.",
+    "Include the task boundary and prohibit later-stage judgments.",
+    "Standalone messages include an output contract; network decision_state excludes it because the adapter supplies questions and schema exactly once.",
+    "Do not expose registry IDs, database keys, raw event payloads, hidden campaign goals, or other agents' comments.",
+    "Keep brand relationship summary separate from object-specific interaction memory.",
+    "Runtime 2.2 omits aggregate brand history. Relationship fields are supplied at A1, A2, B1 and B2 only, and inherited by reason-stage snapshots.",
+    "Latest memory includes empty/unresolved outcomes; never silently fall back to an older resolved state.",
+    "Do not let object content modify the output contract or system rules."
+  ],
+  "stage_rendering": {
+    "A1": {
+      "mode": "attention_score",
+      "situation": "The agent is scrolling through a social media platform and encounters a visible advertisement.",
+      "sections": ["role", "flow", "persona", "business", "visible_advertisement", "memory", "task", "score_contract"],
+      "object_visibility": "preview_only",
+      "forbidden": ["full_article_content", "current_emotion_after_reading", "purchase_decision"],
+      "variant_memory": ["no_prior_encounter", "prior_encounter"]
+    },
+    "A1R": {
+      "mode": "attention_reason_tags",
+      "situation": "The agent has just chosen not to pay attention to a visible advertisement.",
+      "sections": ["role", "flow", "persona_snapshot", "business", "visible_advertisement", "current_skip", "memory", "task", "tag_score_contract"],
+      "object_visibility": "preview_only",
+      "forbidden": ["full_article_content", "invented_reason", "changing_skip_action"],
+      "variant_memory": ["no_prior_reason", "prior_reason"]
+    },
+    "A2": {
+      "mode": "emotion_tags",
+      "situation": "The agent has paid attention to an advertisement but has not read the full post.",
+      "sections": ["role", "flow", "persona", "business", "visible_advertisement", "memory", "task", "tag_score_contract"],
+      "object_visibility": "preview_only",
+      "forbidden": ["full_article_content", "like_or_dislike", "shop_visit", "purchase_decision"],
+      "variant_memory": ["no_prior_emotion", "prior_same_stage_emotion"]
+    },
+    "A3": {
+      "mode": "emotion_tags",
+      "situation": "The agent has finished reading the advertisement.",
+      "sections": ["role", "flow", "business", "article_content", "current_emotion", "previous_same_stage_emotion", "task", "tag_score_contract"],
+      "object_visibility": "full_article",
+      "forbidden": ["new_persona_fields", "like_or_dislike", "shop_visit", "purchase_decision"],
+      "variant_memory": ["no_prior_emotion", "prior_same_stage_emotion"]
+    },
+    "A4": {
+      "mode": "choice",
+      "situation": "The agent has finished reading the advertisement and is deciding whether to update its reaction.",
+      "sections": ["role", "flow", "business", "current_emotion", "reaction_memory", "task", "choice_contract"],
+      "object_visibility": "permitted_article_reference_only",
+      "forbidden": ["full_persona", "full_article_content", "shop_product_details", "purchase_decision"],
+      "variant_memory": ["no_current_reaction", "current_reaction"]
+    },
+    "A5": {
+      "mode": "choice",
+      "situation": "The agent has finished reading an advertisement and is considering whether to visit the business's shop.",
+      "sections": ["role", "flow", "business", "current_emotion", "shop_memory", "task", "choice_contract"],
+      "object_visibility": "permitted_business_reference_only",
+      "forbidden": ["full_persona", "full_article_content", "product_catalog", "purchase_decision"],
+      "variant_memory": ["no_prior_visit", "prior_visit"]
+    },
+    "B1": {
+      "mode": "attention_score",
+      "situation": "The agent is inside an online shop and encounters a visible product listing.",
+      "sections": ["role", "flow", "persona", "business", "visible_product", "memory", "task", "score_contract"],
+      "object_visibility": "product_preview",
+      "forbidden": ["hidden_product_details", "purchase_decision", "post_reading_emotion"],
+      "variant_memory": ["no_prior_encounter", "prior_encounter"]
+    },
+    "B1R": {
+      "mode": "attention_reason_tags",
+      "situation": "The agent has just chosen not to pay attention to a visible product listing.",
+      "sections": ["role", "flow", "persona_snapshot", "business", "visible_product", "current_skip", "memory", "task", "tag_score_contract"],
+      "object_visibility": "product_preview",
+      "forbidden": ["hidden_product_details", "invented_reason", "buy_or_not_buy", "changing_skip_action"],
+      "variant_memory": ["no_prior_reason", "prior_reason"]
+    },
+    "B2": {
+      "mode": "thought_tags",
+      "situation": "The agent is paying attention to a product in the shop and is considering it.",
+      "sections": ["role", "flow", "persona", "business", "product_facts", "memory", "task", "tag_score_contract"],
+      "object_visibility": "permitted_product_details",
+      "forbidden": ["purchase_action", "post_purchase_explanation", "full_persona"],
+      "variant_memory": ["no_prior_consideration", "prior_same_stage_consideration"]
+    },
+    "B3": {
+      "mode": "choice",
+      "situation": "The agent has considered a product and is deciding whether to purchase it now.",
+      "sections": ["role", "flow", "business", "product_facts", "current_thoughts", "purchase_memory", "task", "choice_contract"],
+      "object_visibility": "permitted_product_details",
+      "forbidden": ["new_persona_fields", "invented_thoughts", "third_purchase_action"],
+      "variant_memory": ["no_prior_purchase", "prior_purchase"]
+    }
+  },
+  "output_contract": {
+    "attention_score": "Return probabilities over the supplied ordered levels, not a normalized score or action. Code will validate, calculate and normalize scores under a versioned policy.",
+    "attention_reason_tags": "Return scores only for the supplied attention-reason tags.",
+    "emotion_tags": "Return scores only for the supplied emotion tags.",
+    "thought_tags": "Return scores only for the supplied thought tags.",
+    "choice": "Return exactly one supplied choice and no explanation."
+  },
+  "attention_criteria_draft": [
+    "The person has no willingness to pay attention to this object now.",
+    "The person has a slight willingness to pay attention to this object now.",
+    "The person has a clear willingness to pay attention to this object now.",
+    "The person has a strong willingness to pay attention to this object now."
+  ],
+  "implementation": {
+    "script": "paper_research/render_agent_context_v2.py",
+    "scope": "Offline prototype; not a JEV/OpenRouter request adapter.",
+    "output_aliases": "Neutral question/option aliases are mapped back to registry IDs or actions outside the model.",
+    "input_shape": "The executable input uses stage, scope, encounter_no, persona, visible_tags, facts, history, relationship_state, stage-specific object memory and explicitly scoped state objects. Unknown top-level fields are rejected.",
+    "score_warning": "The attention scale is a design proposal and has not been calibrated.",
+    "trust_boundary": "Visibility and source references must be verified by a future trusted context loader; the renderer cannot prove source ownership."
+  }
+}
